@@ -1,0 +1,13 @@
+13012345678920260120260105Hospital Sanidad S.A.          Av. San Martin 1234, CABA                                                                    
+227123456780SUELDO_BAS0000H000000110000000Sueldo Basico                                                                                               
+227123456780PRESENTISM0000H000000009163000Presentismo / Asistencia                                                                                    
+227123456780ANTIGUEDAD0000H000000013200000Antiguedad                                                                                                  
+227123456780HORAS_EXTR0000H000000009537600Horas Extras 50%                                                                                            
+227123456780HORAS_EXTR0000H000000005086700Horas Extras 100%                                                                                           
+227123456780BONO_TITU0000H000000015000000Bono Titulo                                                                                                  
+227123456780VIANDA   0000H000000004000000Vianda                                                                                                       
+227123456780JUBILACION0000D000000017818600Jubilacion (SIPA)                                                                                           
+227123456780LEY19032  0000D000000004859600Ley 19.032 (PAMI)                                                                                           
+227123456780OBRA_SOC  0000D000000004859600Obra Social                                                                                                 
+327123456780000000161987300000000161987300000000161987300                                                                                             
+4271234567801206080003                                                                                                                                

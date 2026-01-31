@@ -1,0 +1,102 @@
+══════════════════════════════════════════════════════════════════════════════
+   RECIBO DE SUELDO - LIQUIDACIÓN DOCENTE - Enero 2026
+   24/01/2026 23:00
+══════════════════════════════════════════════════════════════════════════════
+
+--- DATOS DE LA INSTITUCIÓN ---
+CUIT: 27-25374168-1
+Razón Social: Colegio Researchers Potter
+Domicilio: Lainez 55, Plottier (Neuquén)
+Jurisdicción: Neuquén
+
+--- DATOS DEL DOCENTE ---
+Nombre: BENITEZ, VANESA SOLEDAD
+CUIL: 23-32695655-4
+Gestión: Privada
+Cargo (Nomenclador 2026): Maestro de Grado
+Nivel: primario
+Zona desfavorable: a
+Nivel Ubicación / Ruralidad: urbana
+Valor del Punto / Índice efectivo: $491.36
+Zona Patagónica: Sí (plus aplicado según jurisdicción)
+Cargas familiares: 0
+Horas cátedra: 0
+Cant. cargos (FONID): 1
+Fecha ingreso: 23/02/2024
+Código RNOS: -
+
+--- PUNTOS Y VALOR DEL ÍNDICE ---
+Puntos: 1100 | Valor Índice (equiv. básico vigente): $491.36
+
+--- DESGLOSE CASCADA / BASE BONIFICABLE ---
+Neuquén recibo: A=$540500.00 | Antig $108100.00 | Dto 233/15 $264845.00 | Ubic.Zona $54050.00 | Zona 40% $386998.00 | A5 D335/16 $147016.00 | FONID/Conect. $49759.09
+
+--- HABERES REMUNERATIVOS ---
+  Sueldo básico: $540500.00
+  Adicional antigüedad: $108100.00
+  Ad. Rem. Bonif. Dto 233/15: $264845.00
+  Ubicación por Zona 10%: $54050.00
+  Ad. zona desfavorable: $0.00
+  Plus Zona Patagónica / Zona 40%: $386998.00
+  Inc. Docente Ley 25053: $16450.00
+  A5 D335/16: $147016.00
+  Comp Fonid: $6397.22
+  IPC FONID: $26911.87
+  Plus Ubicación / Ruralidad: $0.00
+  Adicional salarial ciudad: $0.00
+  Ítem Aula: $0.00
+  Estado Docente: $0.00
+  Material Didáctico: $0.00
+  FONID: $0.00
+  Conectividad: $0.00
+  Horas cátedra: $0.00
+  Ajuste equiparación Ley 13.047 (privada): $0.00
+  Fondo Compensador: $0.00
+  Garantía Salarial Nacional: $0.00
+
+>>> TOTAL BRUTO REMUNERATIVO: $1551268.09 <<<
+  Conec. nacional (no rem): $26674.67
+  Conect. provincial (no rem): $72852.89
+  Redondeo (no rem): $0.90
+  Total no remunerativo: $99528.46
+  Base imponible topeada (jubilación): $1551268.09
+
+--- DESCUENTOS ---
+  Jubilación: $-224933.87
+  Obra social (3%): $-46538.04
+  PAMI (3%): $-46538.04
+  Dec. Suplementario 137/05 2%: $-31025.36
+  Impuesto a las Ganancias: $-0.00
+
+>>> TOTAL DESCUENTOS: $-349035.32 <<<
+
+--- NETO A COBRAR ---
+>>> NETO A COBRAR: $1301761.23 <<<
+
+--- ART. 12 LEY 17.250 ---
+ART. 12 LEY 17.250 - ÚLTIMO DEPÓSITO DE APORTES
+Período: enero 2026 | Fecha de Pago: 05/02/2026
+Jubilación: $224933.87 | Obra Social: $46538.04 | PAMI: $46538.04
+Total: $318009.96
+
+--- ANÁLISIS DE COSTO EMPLEADOR ---
+Parámetros: ART % sobre bruto = 3.5%; Cuota fija ART = $800.00
+  Sueldo Bruto: $1551268.09
+  Contribuciones Patronales (30%): $465380.43
+    - Seguridad Social (24%): $372304.34
+    - Obra Social patronal (6%): $93076.09
+  ART: $55094.38
+  SVO (Seguro de Vida Obligatorio): $1200.00
+  ART y Seguros: $56294.38
+  Provisión SAC (8,33%): $129272.34
+  Provisión Vacaciones (4%): $62050.72
+  Provisión SAC y Vacaciones: $191323.06
+  Cargas Sociales s/ Provisiones (30%): $57396.92
+
+>>> TOTAL COSTO LABORAL REAL: $2321662.88 <<<
+
+(Incluye reserva mensual para Aguinaldo y Vacaciones y sus cargas patronales.)
+
+══════════════════════════════════════════════════════════════════════════════
+   Fin del recibo - Liquidación Docente Federal 2026 - Enero 2026
+══════════════════════════════════════════════════════════════════════════════

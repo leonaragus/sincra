@@ -1,0 +1,60 @@
+============================================================
+RECIBO DE SUELDO - ENERO 2026
+============================================================
+
+Empresa: Hospital Sanidad S.A.
+CUIT: 30-12345678-9
+
+Empleado: Elena Martínez
+CUIL: 27-12345678-0
+Categoría: Enfermero de Primera
+Fecha de Ingreso: 01/01/2014
+Antigüedad: 12 años
+Cargas Familiares: 3
+Obra Social: RNOS 120608
+Período Liquidado: Enero 2026
+Fecha de Pago: 05/01/2026
+
+------------------------------------------------------------
+HABERES
+------------------------------------------------------------
+Sueldo Básico                          $1100000.00
+Presentismo (8.33%)                    $91630.00
+Antigüedad (12 años × 1%)              $132000.00
+Horas Extras 50% (10 horas)            $95376.00
+Horas Extras 100% (4 horas)            $50867.00
+Bono Título                            $150000.00
+
+TOTAL BRUTO:                           $1619873.00
+
+------------------------------------------------------------
+DESCUENTOS
+------------------------------------------------------------
+Base Imponible (Topeada):              $1619873.00
+Jubilación (SIPA) (11%)                $178186.00
+Ley 19.032 (PAMI) (3%)                 $48596.00
+Obra Social (3%)                        $48596.00
+
+TOTAL DEDUCCIONES:                     $275378.00
+
+------------------------------------------------------------
+CONCEPTOS NO REMUNERATIVOS
+------------------------------------------------------------
+Vianda                                  $40000.00
+
+TOTAL NO REMUNERATIVO:                  $40000.00
+
+============================================================
+NETO A COBRAR:                         $1385495.00
+============================================================
+
+NOTA: Se aplicó tope previsional de $2.500.000,00
+      para el cálculo de aportes (Jubilación, PAMI, Obra Social)
+
+Lugar y Fecha de Pago: Av. San Martín 1234, CABA, 05/01/2026
+
+============================================================
+Este recibo cumple con todos los requisitos legales
+establecidos por la Ley de Contrato de Trabajo (LCT)
+y la Resolución General AFIP 4294/2023
+============================================================

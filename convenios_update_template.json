@@ -1,0 +1,37 @@
+[
+  {
+    "id": "cct_130_75_adm_a",
+    "nombreCCT": "Empleados de Comercio",
+    "categoria": "Administrativo A",
+    "sueldoBasico": 850000,
+    "adicionales": {
+      "presentismo": 8.33,
+      "antiguedad": 1.0,
+      "zona_desfavorable": 15.0
+    },
+    "ultimaActualizacion": "2024-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "cct_130_75_adm_b",
+    "nombreCCT": "Empleados de Comercio",
+    "categoria": "Administrativo B",
+    "sueldoBasico": 950000,
+    "adicionales": {
+      "presentismo": 8.33,
+      "antiguedad": 1.0
+    },
+    "ultimaActualizacion": "2024-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "cct_76_93_oficial",
+    "nombreCCT": "Construcción UOCRA",
+    "categoria": "Oficial",
+    "sueldoBasico": 1000000,
+    "adicionales": {
+      "presentismo": 8.33,
+      "antiguedad": 1.0,
+      "zona_desfavorable": 20.0
+    },
+    "ultimaActualizacion": "2024-06-01T00:00:00.000Z"
+  }
+]

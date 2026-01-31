@@ -1,0 +1,54 @@
+{
+  "updates": [
+    {
+      "cct_codigo": "CCT_122/75",
+      "version": 2,
+      "fecha_vigencia": "2026-02-01",
+      "cambios": {
+        "tipo": "actualizacion_salarial",
+        "descripcion": "Aumento paritario febrero 2026",
+        "porcentaje": 15.5,
+        "categorias_afectadas": [
+          {
+            "codigo": "A",
+            "nombre": "Enfermero Profesional",
+            "sueldo_basico_anterior": 850000,
+            "sueldo_basico_nuevo": 982250
+          },
+          {
+            "codigo": "B",
+            "nombre": "Auxiliar de Enfermería",
+            "sueldo_basico_anterior": 650000,
+            "sueldo_basico_nuevo": 750750
+          }
+        ],
+        "vigencia_desde": "2026-02-01",
+        "retroactivo": false
+      }
+    },
+    {
+      "cct_codigo": "CCT_406/75",
+      "version": 3,
+      "fecha_vigencia": "2026-02-01",
+      "cambios": {
+        "tipo": "nuevo_adicional",
+        "descripcion": "Nuevo adicional por zona desfavorable",
+        "adicionales": [
+          {
+            "codigo": "ZONA_DESF",
+            "nombre": "Zona Desfavorable",
+            "tipo": "remunerativo",
+            "valor_porcentaje": 20.0,
+            "provincias_aplicables": ["Neuquén", "Río Negro", "Chubut"]
+          }
+        ],
+        "vigencia_desde": "2026-02-01"
+      }
+    }
+  ],
+  "metadata": {
+    "fecha_actualizacion": "2026-01-27",
+    "responsable": "Sistema Automático",
+    "observaciones": "Actualización paritaria febrero 2026"
+  }
+}

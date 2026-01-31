@@ -1,0 +1,21 @@
+SUELDO_BASSueldo Basico                                     011000                                                                                    
+JORNAL    Jornal                                            011000                                                                                    
+ADIC_GEN  Adicionales Generales                             011000                                                                                    
+ANTIGUEDADAntiguedad                                        012000                                                                                    
+TITULO    Titulo / Profesionalismo                          012000                                                                                    
+PRESENTISMPresentismo / Asistencia                          011000                                                                                    
+HORAS_EXTRHoras Extras                                      051000                                                                                    
+VACACIONESVacaciones                                        015000                                                                                    
+SAC       SAC (Aguinaldo)                                   031000                                                                                    
+GRATIF    Gratificaciones / Bonos                           041000                                                                                    
+FALLAS_CAJFallas de Caja                                    011000                                                                                    
+VIATICOS  Viaticos (con/sin comprobante)                    112000                                                                                    
+ASIG_FAM  Asignaciones Familiares                           111000                                                                                    
+INDEMNIZ  Indemnizaciones                                   131000                                                                                    
+CONC_NO_REConceptos No Remun. por Convenio                  112000                                                                                    
+JUBILACIONJubilacion (SIPA)                                 810000                                                                                    
+LEY19032  Ley 19.032 (PAMI)                                 810000                                                                                    
+OBRA_SOC  Obra Social                                       810000                                                                                    
+CUOTA_SINDCuota Sindical                                    820000                                                                                    
+FONDO_DESEFondo de Desempleo (UOCRA)                        820000                                                                                    
+RET_GANANCRetencion Impuesto a las Ganancias                990000                                                                                    

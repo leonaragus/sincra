@@ -1,0 +1,11 @@
+13088888888920260120260105Neptuno Oil & Gas S.A.        Av. Libertador 1234, CABA                                                                     
+220234567897SUELDO_BAS0000H000000180000000Sueldo Basico                                                                                               
+220234567897PRESENTISM0000H000000014994000Presentismo / Asistencia                                                                                    
+220234567897ADIC_GEN  0000H000000050000000Adicionales Generales                                                                                       
+220234567897HORAS_EXTR0000H000000030000000Horas Extras 50%                                                                                            
+220234567897HORAS_EXTR0000H000000020000000Horas Extras 100%                                                                                           
+220234567897JUBILACION0000D000000027500000Jubilacion (SIPA)                                                                                           
+220234567897LEY19032  0000D000000007500000Ley 19.032 (PAMI)                                                                                           
+220234567897OBRA_SOC  0000D000000007500000Obra Social                                                                                                 
+320234567897000000250000000000000250000000000000250000000                                                                                             
+4202345678971262050004                                                                                                                                

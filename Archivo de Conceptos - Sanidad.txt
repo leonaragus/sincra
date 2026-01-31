@@ -1,0 +1,12 @@
+SUELDO_BASSueldo Basico                                     011000                                                                                    
+PRESENTISMPresentismo / Asistencia                          011000                                                                                    
+ADIC_GEN  Adicionales Generales                             011000                                                                                    
+ANTIGUEDADAntiguedad                                        012000                                                                                    
+HORAS_EXTRHoras Extras                                      051000                                                                                    
+VACACIONESVacaciones                                        015000                                                                                    
+SAC       SAC (Aguinaldo)                                   031000                                                                                    
+JUBILACIONJubilacion (SIPA)                                 810000                                                                                    
+LEY19032  Ley 19.032 (PAMI)                                 810000                                                                                    
+OBRA_SOC  Obra Social                                       810000                                                                                    
+CUOTA_SINDCuota Sindical                                    820000                                                                                    
+RET_GANANCRetencion Impuesto a las Ganancias                990000                                                                                    

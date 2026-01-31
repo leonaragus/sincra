@@ -1,0 +1,421 @@
+================================================================================
+                    ESTADO FINAL DE CONCEPTOS - ELEVAR LIQUIDACIÓN
+                    Sistema de Gestión de Nómina para Argentina
+                    Fecha: Enero 2026
+================================================================================
+
+ÍNDICE
+------
+1. CONCEPTOS REMUNERATIVOS
+2. CONCEPTOS NO REMUNERATIVOS
+3. DEDUCCIONES / DESCUENTOS
+4. CONCEPTOS ESPECÍFICOS POR CONVENIO
+5. CONCEPTOS ADICIONALES PERSONALIZABLES
+6. CÓDIGOS AFIP ASOCIADOS
+7. CARACTERÍSTICAS ESPECIALES
+8. NOTAS DE IMPLEMENTACIÓN
+
+================================================================================
+1. CONCEPTOS REMUNERATIVOS
+================================================================================
+
+✅ SUELDO BÁSICO
+   - Estado: IMPLEMENTADO
+   - Cálculo: Proporcional según días trabajados (por defecto 30 días)
+   - Código AFIP: 011000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Base Imponible: SÍ (topeado a $2.500.000)
+   - Notas: Se deduce proporcionalmente si hay vacaciones activas
+
+✅ PRESENTISMO / ASISTENCIA
+   - Estado: IMPLEMENTADO
+   - Cálculo: Porcentaje configurable (por defecto 8.33%)
+   - Base: Sueldo básico proporcional
+   - Código AFIP: 011000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Condición: Solo se paga si está activo y no hay inasistencias injustificadas
+
+✅ HORAS EXTRAS 50%
+   - Estado: IMPLEMENTADO
+   - Cálculo: Automático según cantidad de horas ingresadas
+   - Fórmula: (Sueldo Básico / Divisor Horas Mensuales) × 1.5 × Cantidad Horas
+   - Divisor por defecto: 173 horas (Petroleros Jerárquicos)
+   - Código AFIP: 051000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Cambiado de NO REMUNERATIVO a REMUNERATIVO (Enero 2026)
+
+✅ HORAS EXTRAS 100%
+   - Estado: IMPLEMENTADO
+   - Cálculo: Automático según cantidad de horas ingresadas
+   - Fórmula: (Sueldo Básico / Divisor Horas Mensuales) × 2.0 × Cantidad Horas
+   - Divisor por defecto: 173 horas (Petroleros Jerárquicos)
+   - Código AFIP: 051000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Cambiado de NO REMUNERATIVO a REMUNERATIVO (Enero 2026)
+
+✅ ANTIGÜEDAD
+   - Estado: IMPLEMENTADO (a través de servicios)
+   - Cálculo: Según años de antigüedad y porcentaje del convenio
+   - Código AFIP: 012000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Se calcula automáticamente según fecha de ingreso
+
+✅ TÍTULO / PROFESIONALISMO
+   - Estado: IMPLEMENTADO (a través de conceptos adicionales)
+   - Código AFIP: 012000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Se puede agregar como concepto remunerativo adicional
+
+✅ VACACIONES
+   - Estado: IMPLEMENTADO
+   - Cálculo: Divisor 25 (Art. 155 LCT)
+   - Fórmula: (Sueldo Básico / 25) × Días de Vacaciones
+   - Código AFIP: 015000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Características:
+     * Días de vacaciones configurables
+     * Tipo: Gozadas / No Gozadas
+     * Fechas de período vacacional (inicio y fin)
+     * Deducción automática del sueldo básico para evitar doble pago
+     * Ajuste manual disponible
+
+✅ PLUS VACACIONAL
+   - Estado: IMPLEMENTADO
+   - Cálculo: Diferencia entre divisor 25 y 30
+   - Fórmula: (Sueldo Básico / 25) - (Sueldo Básico / 30)
+   - Código AFIP: 015000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Se calcula automáticamente cuando hay vacaciones activas
+
+✅ SAC (AGUINALDO)
+   - Estado: IMPLEMENTADO (a través de conceptos adicionales)
+   - Código AFIP: 031000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Se puede agregar como concepto remunerativo adicional
+
+✅ KILÓMETROS RECORRIDOS (CCT Camioneros)
+   - Estado: IMPLEMENTADO
+   - Cálculo: Automático según cantidad de kilómetros
+   - Valor por kilómetro (Enero 2026): $150.00
+   - Fórmula: Cantidad Kilómetros × $150.00
+   - Código AFIP: 011000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Específico para convenio de Camioneros
+
+✅ ADICIONALES GENERALES
+   - Estado: IMPLEMENTADO (a través de conceptos adicionales)
+   - Código AFIP: 011000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Se puede agregar como concepto remunerativo adicional
+
+✅ FALLAS DE CAJA
+   - Estado: IMPLEMENTADO (a través de conceptos adicionales)
+   - Código AFIP: 011000
+   - Aporta a Jubilación: SÍ
+   - Aporta a Obra Social: SÍ
+   - Notas: Se puede agregar como concepto remunerativo adicional
+
+✅ CONCEPTOS REMUNERATIVOS ADICIONALES
+   - Estado: IMPLEMENTADO
+   - Características:
+     * Permite agregar múltiples conceptos personalizados
+     * Cada concepto tiene nombre y monto
+     * Se muestran individualmente en la tabla de liquidación
+     * Código AFIP: 011000 (por defecto)
+   - Notas: Sistema flexible para conceptos específicos de cada empresa
+
+================================================================================
+2. CONCEPTOS NO REMUNERATIVOS
+================================================================================
+
+✅ PREMIOS / BONOS / GRATIFICACIONES
+   - Estado: IMPLEMENTADO
+   - Cálculo: Monto fijo ingresado manualmente
+   - Código AFIP: 041000
+   - Aporta a Jubilación: NO
+   - Aporta a Obra Social: NO
+   - Base Imponible: NO
+   - Notas: No integra base imponible de seguridad social
+
+✅ CONCEPTOS NO REMUNERATIVOS GENÉRICOS
+   - Estado: IMPLEMENTADO
+   - Cálculo: Monto fijo ingresado manualmente
+   - Código AFIP: 112000
+   - Aporta a Jubilación: NO
+   - Aporta a Obra Social: NO
+   - Base Imponible: NO
+
+✅ VIÁTICOS / COMIDA (CCT Camioneros)
+   - Estado: IMPLEMENTADO
+   - Cálculo: Automático según cantidad de días
+   - Valor por día (Enero 2026): $2.500.00
+   - Fórmula: Cantidad Días × $2.500.00
+   - Código AFIP: 112000
+   - Aporta a Jubilación: NO
+   - Aporta a Obra Social: NO
+   - Base Imponible: NO
+   - Notas: Específico para convenio de Camioneros
+
+✅ PERNOCTE (CCT Camioneros)
+   - Estado: IMPLEMENTADO
+   - Cálculo: Automático según cantidad de días
+   - Valor por día (Enero 2026): $3.800.00
+   - Fórmula: Cantidad Días × $3.800.00
+   - Código AFIP: 112000
+   - Aporta a Jubilación: NO
+   - Aporta a Obra Social: NO
+   - Base Imponible: NO
+   - Notas: Específico para convenio de Camioneros
+
+✅ ASIGNACIONES FAMILIARES
+   - Estado: IMPLEMENTADO (a través de conceptos adicionales)
+   - Código AFIP: 111000
+   - Aporta a Jubilación: NO
+   - Aporta a Obra Social: NO
+   - Base Imponible: NO
+   - Notas: Se puede agregar como concepto no remunerativo adicional
+
+✅ INDEMNIZACIONES
+   - Estado: IMPLEMENTADO (a través de conceptos adicionales)
+   - Código AFIP: 131000
+   - Aporta a Jubilación: NO
+   - Aporta a Obra Social: NO
+   - Base Imponible: NO
+   - Notas: Se puede agregar como concepto no remunerativo adicional
+
+✅ CONCEPTOS NO REMUNERATIVOS ADICIONALES
+   - Estado: IMPLEMENTADO
+   - Características:
+     * Permite agregar múltiples conceptos personalizados
+     * Cada concepto tiene nombre y monto
+     * Se muestran individualmente en la tabla de liquidación
+     * Código AFIP: 112000 (por defecto)
+   - Notas: Sistema flexible para conceptos específicos de cada empresa
+
+================================================================================
+3. DEDUCCIONES / DESCUENTOS
+================================================================================
+
+✅ JUBILACIÓN (SIPA)
+   - Estado: IMPLEMENTADO
+   - Porcentaje: 11% sobre base topeada
+   - Base de Cálculo: Mínimo entre Sueldo Bruto y TOPE_BASE ($2.500.000)
+   - Código AFIP: 810000
+   - Cálculo Automático: SÍ
+   - Notas: Se aplica tope previsional obligatorio
+
+✅ LEY 19.032 (PAMI)
+   - Estado: IMPLEMENTADO
+   - Porcentaje: 3% sobre base topeada
+   - Base de Cálculo: Mínimo entre Sueldo Bruto y TOPE_BASE ($2.500.000)
+   - Código AFIP: 810000
+   - Cálculo Automático: SÍ
+   - Notas: Se aplica tope previsional obligatorio
+
+✅ OBRA SOCIAL
+   - Estado: IMPLEMENTADO
+   - Porcentaje: 3% sobre base topeada
+   - Base de Cálculo: Mínimo entre Sueldo Bruto y TOPE_BASE ($2.500.000)
+   - Código AFIP: 810000
+   - Cálculo Automático: SÍ
+   - Notas: Se aplica tope previsional obligatorio
+
+✅ CUOTA SINDICAL
+   - Estado: IMPLEMENTADO
+   - Porcentaje: 2.5% sobre base topeada
+   - Base de Cálculo: Mínimo entre Sueldo Bruto y TOPE_BASE ($2.500.000)
+   - Código AFIP: 820000
+   - Cálculo Automático: SÍ
+   - Condición: Solo si el empleado está afiliado sindicalmente
+   - Notas: Se aplica tope previsional obligatorio
+
+✅ IMPUESTO A LAS GANANCIAS (4ta Categoría)
+   - Estado: IMPLEMENTADO
+   - Cálculo: Automático con validación obligatoria
+   - Base de Cálculo: Remuneración Neta Sujeta a Impuestos (base topeada)
+   - Mínimo No Imponible: 15 × SMVM = $5.115.000 (Enero 2026)
+   - Escala Progresiva:
+     * Hasta $2.000.000 de excedente: 27%
+     * Más de $2.000.000 a $5.000.000: 30%
+     * Más de $5.000.000: 35%
+   - Código AFIP: 990000
+   - Modo Manual: Disponible (puede desactivarse cálculo automático)
+   - Validación: Si Remuneración Neta < Mínimo No Imponible, retención = 0
+   - Notas: Sistema completo con cálculo dinámico según legislación vigente
+
+✅ FONDO DE DESEMPLEO (UOCRA)
+   - Estado: IMPLEMENTADO (a través de deducciones adicionales)
+   - Código AFIP: 820000
+   - Notas: Se puede agregar como deducción adicional
+
+✅ DEDUCCIONES ADICIONALES
+   - Estado: IMPLEMENTADO
+   - Características:
+     * Permite agregar múltiples deducciones personalizadas
+     * Cada deducción tiene nombre y monto
+     * Se muestran individualmente en la tabla de liquidación
+     * Código AFIP: 810000 (por defecto para descuentos)
+   - Notas: Sistema flexible para deducciones específicas de cada empresa
+
+================================================================================
+4. CONCEPTOS ESPECÍFICOS POR CONVENIO
+================================================================================
+
+✅ CONVENIO CAMIONEROS
+   - Kilómetros Recorridos: IMPLEMENTADO (Remunerativo)
+   - Viáticos / Comida: IMPLEMENTADO (No Remunerativo)
+   - Pernocte: IMPLEMENTADO (No Remunerativo)
+   - Valores Enero 2026:
+     * Kilómetro: $150.00
+     * Viático Comida: $2.500.00 por día
+     * Pernocte: $3.800.00 por día
+
+✅ CONVENIO PETROLEROS JERÁRQUICOS
+   - Horas Extras: IMPLEMENTADO
+   - Divisor Horas Mensuales: 173 horas (configurable)
+   - Presentismo: IMPLEMENTADO (8.33% por defecto)
+
+✅ OTROS CONVENIOS
+   - Sistema genérico que permite agregar conceptos adicionales
+   - Compatible con cualquier convenio colectivo
+   - Valores configurables por empresa
+
+================================================================================
+5. CONCEPTOS ADICIONALES PERSONALIZABLES
+================================================================================
+
+✅ SISTEMA DE CONCEPTOS ADICIONALES
+   - Estado: IMPLEMENTADO
+   - Tipos Disponibles:
+     * Remunerativos
+     * No Remunerativos
+     * Descuentos
+   - Modos de Cálculo:
+     * Fijo (monto directo)
+     * Porcentaje (sobre sueldo bruto)
+   - Características:
+     * Nombre personalizado
+     * Monto o porcentaje configurable
+     * Se muestran individualmente en la tabla
+     * Se incluyen en los totales correspondientes
+     * Compatible con exportación ARCA LSD
+
+================================================================================
+6. CÓDIGOS AFIP ASOCIADOS
+================================================================================
+
+CÓDIGOS REMUNERATIVOS:
+  011000 - Sueldo Básico, Jornal, Adicionales Generales, Presentismo, 
+           Kilómetros Recorridos, Fallas de Caja
+  012000 - Antigüedad, Título, Profesionalismo
+  015000 - Vacaciones, Plus Vacacional
+  031000 - SAC (Aguinaldo)
+  041000 - Gratificaciones, Bonos, Premios
+  051000 - Horas Extras (50% y 100%)
+
+CÓDIGOS NO REMUNERATIVOS:
+  111000 - Asignaciones Familiares
+  112000 - Viáticos, Conceptos No Remunerativos, Pernocte
+  131000 - Indemnizaciones
+
+CÓDIGOS DESCUENTOS:
+  810000 - Jubilación (SIPA), Ley 19.032 (PAMI), Obra Social
+  820000 - Cuota Sindical, Fondo de Desempleo (UOCRA)
+  990000 - Retención Impuesto a las Ganancias
+
+================================================================================
+7. CARACTERÍSTICAS ESPECIALES
+================================================================================
+
+✅ CÁLCULO PROPORCIONAL
+   - Días trabajados configurables (por defecto 30 días)
+   - Aplicación proporcional a sueldo básico y presentismo
+   - Compatible con liquidaciones parciales
+
+✅ TOPE PREVISIONAL
+   - Valor: $2.500.000 (Enero 2026)
+   - Aplicación: Obligatoria para todos los aportes
+   - Base de Cálculo: Mínimo entre Sueldo Bruto y TOPE_BASE
+   - Afecta: Jubilación, PAMI, Obra Social, Cuota Sindical
+
+✅ DEDUCCIÓN DE VACACIONES DEL SUELDO BÁSICO
+   - Implementado según Art. 155 LCT
+   - Evita pagar los mismos días dos veces
+   - Se muestra explícitamente en la tabla de liquidación
+
+✅ CÁLCULO AUTOMÁTICO DE GANANCIAS
+   - Sistema completo con validación obligatoria
+   - Escala progresiva según legislación vigente
+   - Modo manual disponible
+   - Validación de mínimo no imponible
+
+✅ GESTIÓN DE INASISTENCIAS
+   - Días de inasistencia injustificada configurables
+   - Afecta el cálculo de presentismo
+   - Presentismo solo se paga si no hay inasistencias
+
+✅ SISTEMA DE VACACIONES COMPLETO
+   - Días configurables
+   - Tipo: Gozadas / No Gozadas
+   - Fechas de período vacacional
+   - Cálculo con divisor 25
+   - Plus vacacional automático
+   - Deducción del sueldo básico
+
+✅ EXPORTACIÓN ARCA LSD
+   - Compatible con formato ARCA LSD
+   - Generación de archivos de importación de conceptos
+   - Mapeo automático de códigos AFIP
+   - Validación de estructura de archivos
+
+================================================================================
+8. NOTAS DE IMPLEMENTACIÓN
+================================================================================
+
+CONSTANTES LEGALES (Enero 2026):
+   - SMVM: $341.000
+   - Mínimo No Imponible: $5.115.000 (15 × SMVM)
+   - TOPE_BASE: $2.500.000
+   - Porcentaje Jubilación: 11%
+   - Porcentaje PAMI: 3%
+   - Porcentaje Obra Social: 3%
+   - Porcentaje Cuota Sindical: 2.5%
+   - Porcentaje Presentismo (por defecto): 8.33%
+
+VALORES ESPECÍFICOS CONVENIO CAMIONEROS (Enero 2026):
+   - Valor Kilómetro: $150.00
+   - Valor Viático Comida: $2.500.00 por día
+   - Valor Pernocte: $3.800.00 por día
+
+DIVISORES:
+   - Horas Mensuales (Petroleros Jerárquicos): 173 horas
+   - Vacaciones: 25 días (Art. 155 LCT)
+   - Sueldo Básico: 30 días (mes completo)
+
+CAMBIOS IMPORTANTES (Enero 2026):
+   - Horas Extras: Cambiadas de NO REMUNERATIVO a REMUNERATIVO
+   - Sistema de cálculo automático de horas extras por cantidad
+   - Implementación completa de cálculo de Ganancias con validación
+   - Sistema de conceptos adicionales mejorado
+
+ESTADO GENERAL:
+   ✅ Todos los conceptos principales están implementados
+   ✅ Sistema flexible para conceptos personalizados
+   ✅ Compatible con múltiples convenios
+   ✅ Exportación ARCA LSD funcional
+   ✅ Cálculos según legislación vigente Enero 2026
+
+================================================================================
+                    FIN DEL DOCUMENTO
+================================================================================

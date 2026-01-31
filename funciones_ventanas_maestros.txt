@@ -1,0 +1,133 @@
+================================================================================
+LISTA DE FUNCIONES - VENTANAS DE MAESTROS (DOCENTES)
+================================================================================
+
+--- FEDERAL (teacher_dashboard.dart - "Liquidación Docente Federal 2026") ---
+
+  initState
+  _obtenerNombreJurisdiccion
+  _obtenerNombreCargo
+  _obtenerNombreNivel
+  _cargarConfiguracionInicial
+  _actualizarConfiguracion
+  _actualizarValorIndice
+  _actualizarMinimoGarantizado
+  _calcularLiquidacion
+  build
+  _buildSectionCard
+  _buildLiquidacionCard
+  _buildConceptoRow
+  dispose
+
+--- OMNI (teacher_interface_screen.dart - "Liquidación Docente Federal 2026 (Omni)") ---
+
+  initState
+  _recalcular
+  _editarParitarias
+  _abrirPanelConceptosPropios
+  _exportarLsd
+  build
+  _buildForm
+  _buildInfoAportes
+  _buildSimuladorNeto
+  _buildDetalleLiquidacion
+  _row
+  dispose
+
+  (_PanelConceptosPropios, widget auxiliar)
+    - build
+    - _agregarConcepto
+
+================================================================================
+DIFERENCIAS ENTRE FEDERAL Y OMNI (específico, no detallado)
+================================================================================
+
+  Motor / datos
+  -------------
+  Federal: TeacherEngine, NomencladorFederal, TipoCargo (maestroGrado, profesor,
+           director, vicedirector, secretario, preceptor, bibliotecario,
+           maestroEspecial, profesorTitular, profesorAdjunto, jefeTrabajosPracticos,
+           ayudante). Puntos por cargo editables manualmente.
+  Omni:    TeacherOmniEngine, NomencladorFederal2026, JurisdiccionDBOmni,
+           TipoNomenclador (maestroGrado, maestroNivelInicial, profesor, etc.).
+           Puntos fijos por ítem de nomenclador.
+
+  Cálculo
+  -------
+  Federal: Cálculo con botón "Calcular" (on-demand).
+  Omni:    Recalculo en tiempo real al cambiar datos (simulador neto continuo).
+
+  Paritarias
+  ----------
+  Federal: Editor inline en pantalla (Valor Índice, Mínimo Garantizado) y botones
+           "Actualizar Valor Índice" / "Actualizar Mínimo Garantizado".
+  Omni:    Editor en diálogo ("Editor de Paritarias"): Valor Índice y Piso Salarial;
+           aplica al instante y recalcula.
+
+  Conceptos propios / adicionales
+  --------------------------------
+  Federal: No tiene panel de conceptos propios; sí usa _conceptosAdicionales y
+           _deduccionesAdicionales (si se pasan al motor), pero la UI no los gestiona.
+  Omni:    Panel lateral "Conceptos propios" (agregar, eliminar, remunerativo/no,
+           bonificable para antigüedad/zona). Se integran en el detalle y en LSD.
+
+  Zona desfavorable
+  -----------------
+  Federal: No.
+  Omni:    Sí. Selector ZonaDesfavorable (A 0%, B 20%, C 40%, D 80%, E 110%) y
+           adicional zona en el resultado.
+
+  Export / integración
+  --------------------
+  Federal: No exporta. Solo muestra resultado en pantalla y bloque Art. 12 Ley 17.250.
+  Omni:    Export TXT LSD (formato ARCA Guía 4): CUIT, razón social, domicilio
+           empresa; abre el archivo generado. Usa teacherOmniToLsdTxt.
+
+  Simulador / resultado
+  --------------------
+  Federal: Tarjeta "Resultado de Liquidación" con haberes, descuentos, no
+           remunerativo, neto, base imponible y Art. 12.
+  Omni:    "Simulador de Sueldo Neto" (neto destacado), alerta de Garantía
+           Salarial Nacional, "Detalle liquidación" expandible con ítems extra:
+           Ítem Aula, Ad. zona, Ad. ciudad, Estado docente, Fondo compensador,
+           Equip. 13.047, conceptos propios, Garantía Salarial Nacional.
+
+  Datos del docente
+  -----------------
+  Federal: Nombre, CUIL, jurisdicción, tipo gestión, cargo, nivel, puntos cargo
+          (editables), fecha ingreso, cargas familiares, horas cátedra,
+          puntos hora cátedra, código RNOS, aporte estatal (% si gestión privada),
+          cantidad cargos.
+  Omni:    Nombre, CUIL, jurisdicción, gestión, cargo (nomenclador con puntos),
+          nivel, zona desfavorable, cargas familiares, horas cátedra, cant. cargos,
+          fecha ingreso, código RNOS, aporte estatal (% si privada). Además:
+          CUIT empresa, razón social, domicilio (para export LSD).
+
+  Garantía Salarial Nacional / piso
+  --------------------------------
+  Federal: Usa mínimo garantizado por jurisdicción (Editor de Paritarias);
+           equiparación salarial si aplica.
+  Omni:    Piso salarial en JurisdiccionConfigOmni; "Garantía Salarial Nacional"
+           (adicionalGarantiaSalarial) y aviso cuando se aplica (p.ej. piso
+           \$745.311 Enero 2026).
+
+  Tabla antigüedad / parámetros
+  ------------------------------
+  Federal: TablaAntiguedadFederal y ParametrosFederales2026 vía teacher_types / 
+           teacher_engine.
+  Omni:    TablaAntiguedadFederal y ParametrosFederales2026Omni; opción
+           usarExtendida140 en antigüedad. JurisdiccionConfigOmni por provincia.
+
+================================================================================
+RESUMEN ULTRA BREVE
+================================================================================
+
+  Federal: Interfaz clásica, cálculo con botón, paritarias inline, sin zona
+           desfavorable, sin conceptos propios en UI, sin export LSD.
+
+  Omni:    Interfaz con simulador en tiempo real, concepto propios, zona
+           desfavorable, export LSD ARCA, paritarias en diálogo, garantía
+           salarial nacional y más ítems en el detalle (ítem aula, ad. zona,
+           ad. ciudad, estado docente, fondo compensador, equip. 13.047).
+
+================================================================================
