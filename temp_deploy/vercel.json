@@ -1,5 +1,4 @@
 {
-  "framework": "other",
   "installCommand": "git clone https://github.com/flutter/flutter.git -b stable && export PATH=$PWD/flutter/bin:$PATH && flutter --version && flutter config --enable-web && flutter pub get",
   "buildCommand": "export PATH=$PWD/flutter/bin:$PATH && flutter build web --release",
   "outputDirectory": "build/web"
