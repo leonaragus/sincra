@@ -4,6 +4,9 @@ echo Preparando proyecto para deploy en Vercel...
 REM Crear archivo temporal con los archivos necesarios
 echo Copiando archivos importantes...
 
+REM Limpiar directorio temporal si existe
+if exist temp_deploy rmdir /s /q temp_deploy
+
 REM Crear directorio temporal
 mkdir temp_deploy
 
@@ -13,7 +16,9 @@ xcopy web temp_deploy\web\ /E /I /Y
 copy pubspec.yaml temp_deploy\
 copy pubspec.lock temp_deploy\
 copy README.md temp_deploy\
-copy vercel.json temp_deploy\
+
+REM Copiar vercel.json si existe
+if exist vercel.json copy vercel.json temp_deploy\
 
 echo Archivos copiados exitosamente!
 echo Ahora puedes:
