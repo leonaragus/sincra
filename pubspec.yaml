@@ -1,0 +1,68 @@
+name: syncra_arg
+description: "Syncra Arg - La evolución digital de la nómina argentina. Gestión contable híbrida local/nube."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  pdf: ^3.10.7
+  path_provider: ^2.1.2
+  image_picker: ^1.0.7
+  open_file: ^3.5.1
+  share_plus: ^10.1.4
+
+  shared_preferences: ^2.0.15
+  http: ^1.2.0
+  intl: ^0.20.2
+  url_launcher: ^6.2.5
+  decimal: ^3.0.1
+
+  # Escaneo de recibos docente: OCR on-device + QR
+  google_mlkit_text_recognition: ^0.15.0
+  mobile_scanner: ^7.1.4
+
+  # Capa híbrida local/nube
+  supabase_flutter: ^2.8.0
+  connectivity_plus: ^6.0.5
+  # isar: ^3.1.0+1  # Descomentar al habilitar Isar (crear lib/db/syncra_entity.dart y ejecutar build_runner)
+  
+  # Sprint 2: Gráficos y reportes
+  fl_chart: ^0.68.0  # Gráficos profesionales
+  excel: ^4.0.3      # Exportar Excel
+
+  # Google Play Billing para suscripciones (Play Store)
+  in_app_purchase: ^3.1.7
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_native_splash: ^2.4.1
+  # Para Isar en móvil/desktop: isar_generator + build_runner, crear lib/db/syncra_entity.dart y ejecutar build_runner
+  # isar_generator: ^3.1.0+1
+  # build_runner: ^2.4.9
+
+flutter:
+  uses-material-design: true
+
+flutter_native_splash:
+  color: "#0D1B2A"
+  fullscreen: true
+  android: true
+  ios: true
+  web: true
+  android_12:
+    color: "#0D1B2A"
+  color_dark: "#0D1B2A"
+  android_12_dark:
+    color_dark: "#0D1B2A"
+  # Para "Syncra Arg" y eslogan: agregar image: "assets/images/splash_logo.png"
