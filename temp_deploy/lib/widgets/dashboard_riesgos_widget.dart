@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../services/alertas_proactivas_service.dart';
 import '../services/auditoria_service.dart';
+import '../models/empleado_completo.dart';
 
 class DashboardRiesgosWidget extends StatefulWidget {
   const DashboardRiesgosWidget({super.key});
@@ -173,9 +174,9 @@ class _DashboardRiesgosWidgetState extends State<DashboardRiesgosWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 25),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 77)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -192,7 +193,7 @@ class _DashboardRiesgosWidgetState extends State<DashboardRiesgosWidget> {
           Text(
             label,
             style: TextStyle(
-              color: color.withValues(alpha: 204),
+              color: color.withOpacity(0.8),
               fontSize: 12,
             ),
           ),
@@ -256,9 +257,9 @@ class _DashboardRiesgosWidgetState extends State<DashboardRiesgosWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 13),
+        color: Colors.blue.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withValues(alpha: 51)),
+        border: Border.all(color: Colors.blue.withOpacity(0.2)),
       ),
       child: Row(
         children: [
