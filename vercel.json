@@ -1,23 +1,16 @@
 {
-  "version": 2,
-  "installCommand": "git clone https://github.com/flutter/flutter.git --depth 1 -b stable && export PATH=$PWD/flutter/bin:$PATH && flutter --version && flutter config --enable-web && flutter pub get",
-  "buildCommand": "export PATH=$PWD/flutter/bin:$PATH && flutter build web --release --base-href \"/\" && rm -rf public && mkdir -p public && cp -r build/web/* public",
-  "outputDirectory": "public",
   "headers": [
-    { "source": "/flutter_bootstrap.js", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] },
-    { "source": "/manifest.json", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https: wss:;"
+        }
+      ]
+    }
   ],
-  "routes": [
-    { "src": "/flutter_bootstrap.js", "dest": "/flutter_bootstrap.js" },
-    { "src": "/flutter.js", "dest": "/flutter.js" },
-    { "src": "/main.dart.js", "dest": "/main.dart.js" },
-    { "src": "/manifest.json", "dest": "/manifest.json" },
-    { "src": "/favicon.png", "dest": "/favicon.png" },
-    { "src": "/canvaskit/(.*)", "dest": "/canvaskit/$1" },
-    { "handle": "filesystem" },
-    { "src": "/(.*\\.(?:css|js|png|jpe?g|gif|svg|webp|ico|json|wasm|map|txt|ttf|woff2?))", "dest": "/$1" },
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/icons/(.*)", "dest": "/icons/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
