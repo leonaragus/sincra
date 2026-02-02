@@ -795,4 +795,34 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: _buildBody(),
+      // Botón flotante de ayuda general
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          final helpContent = AppHelp.getHelpContent('HomeScreen');
+          AppHelp.showHelpDialog(
+            context,
+            helpContent['title']!,
+            helpContent['content']!,
+          );
+        },
+        backgroundColor: const Color(0xFF6366F1),
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 8,
+        child: const Icon(
+          Icons.help_outline,
+          size: 28,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
 }
