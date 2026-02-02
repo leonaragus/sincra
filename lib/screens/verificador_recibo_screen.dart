@@ -23,7 +23,8 @@ class VerificadorReciboScreen extends StatefulWidget {
 
 class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   final OcrService _ocrService = OcrService();
-  final VerificacionReciboService _verificacionService = VerificacionReciboService();
+  final VerificacionReciboService _verificacionService =
+      VerificacionReciboService();
 
   bool _estaProcesando = false;
   String? _rutaImagen;
@@ -34,23 +35,30 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   final double _ipcConservador = 6.0;
   final double _ipcOptimista = 10.0;
   double _ajusteMensual = 0.0;
-  final TextEditingController _ipcController = TextEditingController(text: '8.0');
-  final TextEditingController _ajusteController = TextEditingController(text: '0.0');
+  final TextEditingController _ipcController =
+      TextEditingController(text: '8.0');
+  final TextEditingController _ajusteController =
+      TextEditingController(text: '0.0');
   DateTime? _fechaDocentes;
   DateTime? _fechaSanidad;
   double? _smvm;
   DateTime? _fechaIngreso;
   String _motivoCese = 'Renuncia'; // 'Renuncia' o 'Despido'
-  
+
   // Nuevas variables para funcionalidad mejorada
   bool _mostrarDatosLeidos = true;
   String _convenioSeleccionado = 'Docente Federal';
-  final List<String> _conveniosDisponibles = ['Docente Federal', 'Sanidad', 'Comercio', 'Gastronomía', 'Construcción'];
-  
+  final List<String> _conveniosDisponibles = [
+    'Docente Federal',
+    'Sanidad',
+    'Comercio',
+    'Gastronomía',
+    'Construcción'
+  ];
+
   // Variables para análisis de pago
   bool _mostrarBannerAcademia = true;
 
-  
   /// Controlador para el menú hamburguesa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -103,13 +111,12 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     } catch (_) {}
   }
 
-
-
   // Helper method to extract basic salary from conceptos
   double? _obtenerSueldoBasico(ReciboEscaneado recibo) {
     final sueldoBasicoConcepto = recibo.conceptos.firstWhere(
-      (concepto) => concepto.descripcion.toLowerCase().contains('sueldo') && 
-                   concepto.descripcion.toLowerCase().contains('basico'),
+      (concepto) =>
+          concepto.descripcion.toLowerCase().contains('sueldo') &&
+          concepto.descripcion.toLowerCase().contains('basico'),
       orElse: () => ConceptoRecibo(descripcion: '', remunerativo: null),
     );
     return sueldoBasicoConcepto.remunerativo;
@@ -118,8 +125,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   // Función para analizar pago según convenio
   Map<String, dynamic> _analizarPagoConvenio() {
     final r = _recibo;
-    if (r == null) return {'detalles': [], 'items_revisar': [], 'alertas_graves': []};
-    
+    if (r == null)
+      return {'detalles': [], 'items_revisar': [], 'alertas_graves': []};
+
     final sueldoBasico = _obtenerSueldoBasico(r);
 
     final detalles = <String>[];
@@ -137,74 +145,88 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         detalles.add('Convenio: Docente Federal (Nacional)');
         detalles.add('Categoría: Maestro de Grado - Jornada Completa');
         detalles.add('Referencia 2026: 650.000 - 850.000');
-        
+
         if (sueldoBasico != null && sueldoBasico < 600000) {
-          alertasGraves.add('⚠️ SUELDO CRÍTICAMENTE BAJO: Tu básico está muy por debajo del piso docente');
-          alertasGraves.add('Urgente: Contactá a tu delegado gremial inmediatamente');
+          alertasGraves.add(
+              '⚠️ SUELDO CRÍTICAMENTE BAJO: Tu básico está muy por debajo del piso docente');
+          alertasGraves
+              .add('Urgente: Contactá a tu delegado gremial inmediatamente');
         } else if (sueldoBasico != null && sueldoBasico < 650000) {
-          itemsRevisar.add('Sueldo básico bajo para docente federal (debería ser > 650.000)');
+          itemsRevisar.add(
+              'Sueldo básico bajo para docente federal (debería ser > 650.000)');
         }
         break;
-      
+
       case 'Sanidad':
         detalles.add('Convenio: Sanidad (UPCN/Sindicato)');
         detalles.add('Categoría: Enfermero Profesional');
         detalles.add('Referencia 2026: 580.000 - 720.000');
-        
+
         if (sueldoBasico != null && sueldoBasico < 550000) {
-          alertasGraves.add('⚠️ SUELDO BAJO: Tu básico está por debajo del convenio de sanidad');
+          alertasGraves.add(
+              '⚠️ SUELDO BAJO: Tu básico está por debajo del convenio de sanidad');
           itemsRevisar.add('Revisá con recursos humanos tu categorización');
         }
         break;
-      
+
       case 'Comercio':
         detalles.add('Convenio: Comercio (FAECYS)');
         detalles.add('Categoría: Dependiente - 8hs');
         detalles.add('Referencia 2026: 520.000 - 620.000');
-        
+
         if (sueldoBasico != null && sueldoBasico < 500000) {
-          itemsRevisar.add('Sueldo básico bajo para convenio de comercio (mínimo 520.000)');
+          itemsRevisar.add(
+              'Sueldo básico bajo para convenio de comercio (mínimo 520.000)');
         }
         break;
-      
+
       default:
         detalles.add('Convenio: $_convenioSeleccionado');
         detalles.add('Verificá con tu sindicato los valores de referencia');
     }
 
     // Verificación de aportes básicos (porcentajes aproximados)
-    final aporteJubilacion = r.conceptos.firstWhere((concepto) =>
-        concepto.descripcion.toLowerCase().contains('jubilacion') ||
-        concepto.descripcion.toLowerCase().contains('aporte j'),
+    final aporteJubilacion = r.conceptos.firstWhere(
+        (concepto) =>
+            concepto.descripcion.toLowerCase().contains('jubilacion') ||
+            concepto.descripcion.toLowerCase().contains('aporte j'),
         orElse: () => ConceptoRecibo(descripcion: '', remunerativo: 0));
-    
-    final aporteObraSocial = r.conceptos.firstWhere((concepto) =>
-        concepto.descripcion.toLowerCase().contains('obra social') ||
-        concepto.descripcion.toLowerCase().contains('os') ||
-        concepto.descripcion.toLowerCase().contains('pami'),
+
+    final aporteObraSocial = r.conceptos.firstWhere(
+        (concepto) =>
+            concepto.descripcion.toLowerCase().contains('obra social') ||
+            concepto.descripcion.toLowerCase().contains('os') ||
+            concepto.descripcion.toLowerCase().contains('pami'),
         orElse: () => ConceptoRecibo(descripcion: '', remunerativo: 0));
 
     // Verificación de porcentajes
     if (sueldoBasico != null && sueldoBasico > 0) {
-      final porcentajeJubilacion = ((aporteJubilacion.remunerativo ?? 0) / sueldoBasico) * 100;
+      final porcentajeJubilacion =
+          ((aporteJubilacion.remunerativo ?? 0) / sueldoBasico) * 100;
       if (porcentajeJubilacion < 10 || porcentajeJubilacion > 12) {
-        itemsRevisar.add('Aporte jubilatorio irregular: ${porcentajeJubilacion.toStringAsFixed(1)}% (debería ser 11%)');
+        itemsRevisar.add(
+            'Aporte jubilatorio irregular: ${porcentajeJubilacion.toStringAsFixed(1)}% (debería ser 11%)');
       }
-      
-      final porcentajeObraSocial = ((aporteObraSocial.remunerativo ?? 0) / sueldoBasico) * 100;
+
+      final porcentajeObraSocial =
+          ((aporteObraSocial.remunerativo ?? 0) / sueldoBasico) * 100;
       if (porcentajeObraSocial < 2.5 || porcentajeObraSocial > 3.5) {
-        itemsRevisar.add('Aporte obra social irregular: ${porcentajeObraSocial.toStringAsFixed(1)}% (debería ser 3%)');
+        itemsRevisar.add(
+            'Aporte obra social irregular: ${porcentajeObraSocial.toStringAsFixed(1)}% (debería ser 3%)');
       }
     }
 
     // Verificación de conceptos obligatorios
     final conceptosObligatorios = ['presentismo', 'antiguedad', 'asignacion'];
-    final faltantes = conceptosObligatorios.where((concepto) =>
-        !r.conceptos.any((conceptoRecibo) => conceptoRecibo.descripcion.toLowerCase().contains(concepto)));
-    
+    final faltantes = conceptosObligatorios.where((concepto) => !r.conceptos
+        .any((conceptoRecibo) =>
+            conceptoRecibo.descripcion.toLowerCase().contains(concepto)));
+
     if (faltantes.isNotEmpty) {
-      alertasGraves.add('❌ CONCEPTOS FALTANTES: No se detectaron: ${faltantes.join(', ').toUpperCase()}');
-      alertasGraves.add('Estos conceptos son obligatorios por ley en todo recibo de sueldo');
+      alertasGraves.add(
+          '❌ CONCEPTOS FALTANTES: No se detectaron: ${faltantes.join(', ').toUpperCase()}');
+      alertasGraves.add(
+          'Estos conceptos son obligatorios por ley en todo recibo de sueldo');
     }
 
     return {
@@ -224,7 +246,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           children: [
             Icon(Icons.school, color: AppColors.primary),
             SizedBox(width: 12),
-            Text('¿Cómo funciona esta app?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+            Text('¿Cómo funciona esta app?',
+                style: TextStyle(
+                    color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
         content: SingleChildScrollView(
@@ -237,14 +261,21 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 16),
-              _buildAcademiaItem('📱 Sacale foto a tu recibo', 'Usá la cámara para escanear tu recibo de sueldo'),
-              _buildAcademiaItem('🔍 La app lee todo automático', 'Reconoce solo los números y conceptos importantes'),
-              _buildAcademiaItem('⚖️ Chequeamos si está bien', 'Comparamos con lo que deberías cobrar según tu convenio'),
-              _buildAcademiaItem('📊 Te decimos qué revisar', 'Te mostramos si falta algo o si está todo correcto'),
+              _buildAcademiaItem('📱 Sacale foto a tu recibo',
+                  'Usá la cámara para escanear tu recibo de sueldo'),
+              _buildAcademiaItem('🔍 La app lee todo automático',
+                  'Reconoce solo los números y conceptos importantes'),
+              _buildAcademiaItem('⚖️ Chequeamos si está bien',
+                  'Comparamos con lo que deberías cobrar según tu convenio'),
+              _buildAcademiaItem('📊 Te decimos qué revisar',
+                  'Te mostramos si falta algo o si está todo correcto'),
               const SizedBox(height: 16),
               const Text(
                 '¡Tocá cualquier cosa que no entiendas en tu recibo y te explicamos qué es!',
-                style: TextStyle(color: AppColors.primary, fontSize: 12, fontStyle: FontStyle.italic),
+                style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic),
               ),
             ],
           ),
@@ -252,7 +283,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido', style: TextStyle(color: AppColors.primary)),
+            child: const Text('Entendido',
+                style: TextStyle(color: AppColors.primary)),
           ),
         ],
       ),
@@ -278,8 +310,14 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(titulo, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500, fontSize: 12)),
-                Text(descripcion, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                Text(titulo,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12)),
+                Text(descripcion,
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 11)),
               ],
             ),
           ),
@@ -310,11 +348,11 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       InputImage inputImage;
       if (kIsWeb) {
         // En web no usamos path de archivo real para ML Kit
-        inputImage = InputImage.fromFilePath('web_dummy_path'); 
+        inputImage = InputImage.fromFilePath('web_dummy_path');
       } else {
         inputImage = InputImage.fromFilePath(imagenFile.path);
       }
-      
+
       final texto = await _ocrService.procesarImagen(inputImage);
       setState(() => _textoOcr = texto);
 
@@ -330,7 +368,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       final cctEjemplo = CctSimplificado(nombre: 'Ejemplo CCT');
 
       // 5. Verificar
-      final resultado = await _verificacionService.verificarRecibo(reciboEscaneado, cctEjemplo);
+      final resultado = await _verificacionService.verificarRecibo(
+          reciboEscaneado, cctEjemplo);
 
       setState(() {
         _resultado = resultado;
@@ -358,262 +397,556 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Verificador de Recibo', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text('Verificador de Recibo',
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.bold)),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.glassFillStrong,
+                color: AppColors.glassFill,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.glassBorder),
+                border: Border.all(color: AppColors.glassBorder, width: 1),
               ),
-              child: const Icon(Icons.menu, color: AppColors.textPrimary, size: 22),
+              child: Icon(Icons.menu, color: AppColors.textPrimary, size: 20),
             ),
             onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
           ),
         ],
       ),
       endDrawer: _buildMenuHamburguesa(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Sección de datos leídos (ahora arriba del todo)
-            if (_mostrarDatosLeidos && _textoOcr.isNotEmpty)
-              _buildDatosLeidosWidget(),
-            
-            _buildDatosActualizadosWidget(),
-            
-            // Selector de convenio
-            _buildSelectorConvenio(),
-            
-            // Banner interactivo de la academia
-            if (_mostrarBannerAcademia && _resultado == null)
-              _buildBannerAcademia(),
-            
-            if (_estaProcesando)
-              Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    const SizedBox(height: 16),
-                    Text('Procesando recibo...', style: TextStyle(color: AppColors.textPrimary)),
-                  ],
-                ),
-              )
-            else ...[
-              if (_resultado == null)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        const Icon(Icons.document_scanner_outlined, size: 80, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Escaneá tu recibo de sueldo y descubrí si tu liquidación es correcta.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: _escanearYVerificar,
-                          icon: const Icon(Icons.camera_alt),
-                          label: const Text('Escanear Recibo de Sueldo'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildResultadoWidget(),
-                ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.background,
+              AppColors.backgroundLight,
             ],
-          ],
+          ),
         ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              // Sección de datos leídos
+              if (_mostrarDatosLeidos && _textoOcr.isNotEmpty)
+                _buildDatosLeidosWidget(),
+
+              // Banner de datos actualizados
+              _buildDatosActualizadosWidget(),
+
+              // Selector de convenio
+              _buildSelectorConvenio(),
+
+              // Banner de la academia
+              if (_mostrarBannerAcademia && _resultado == null)
+                _buildBannerAcademia(),
+
+              if (_estaProcesando)
+                _buildLoadingState()
+              else if (_resultado == null)
+                _buildInitialState()
+              else
+                _buildResultadoWidget(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.glassFill,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.glassBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              strokeWidth: 3,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Analizando tu recibo...',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Estamos verificando cada concepto de tu liquidación',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInitialState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        children: [
+          // Tarjeta principal de escaneo
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: AppColors.glassFill,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.glassBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3), width: 2),
+                  ),
+                  child: Icon(
+                    Icons.document_scanner_outlined,
+                    size: 50,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Verificá tu recibo de sueldo',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Escaneá tu recibo y descubrí si tu liquidación es correcta según tu convenio laboral',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 25),
+                ElevatedButton(
+                  onPressed: _escanearYVerificar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.camera_alt, size: 20),
+                      SizedBox(width: 10),
+                      Text('Escanear Recibo',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Información adicional
+          const SizedBox(height: 25),
+          Text(
+            '• Analizamos todos los conceptos de tu recibo\n• Verificamos contra tu convenio laboral\n• Te mostramos qué revisar con tu empleador',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildResultadoWidget() {
     if (_resultado == null) return const SizedBox.shrink();
-    
+
     final analisisConvenio = _analizarPagoConvenio();
 
     return Column(
       children: [
+        // Imagen del recibo escaneado
         if (_rutaImagen != null)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: kIsWeb
-                ? Image.network(_rutaImagen!, height: 200, fit: BoxFit.cover)
-                : Image.file(
-                    File(_rutaImagen!),
-                    height: 200,
-                    fit: BoxFit.cover,
-                  ),
-          ),
-        const SizedBox(height: 24),
-        Card(
-          color: _resultado!.esCorrecto ? Colors.green.shade50 : Colors.red.shade50,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      _resultado!.esCorrecto ? Icons.check_circle : Icons.error,
-                      color: _resultado!.esCorrecto ? Colors.green : Colors.red,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _resultado!.esCorrecto
-                            ? 'Tu recibo parece correcto'
-                            : 'Se encontraron inconsistencias',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                if (_resultado!.inconsistencias.isNotEmpty) ...[
-                  const Divider(),
-                  const Text('Inconsistencias:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ..._resultado!.inconsistencias.map((e) => ListTile(
-                        leading: const Icon(Icons.warning, color: Colors.orange, size: 16),
-                        title: Text(e, style: const TextStyle(fontSize: 14)),
-                        dense: true,
-                      )),
-                ],
-                if (_resultado!.sugerencias.isNotEmpty) ...[
-                  const Divider(),
-                  const Text('Sugerencias:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ..._resultado!.sugerencias.map((e) => ListTile(
-                        leading: const Icon(Icons.info, color: Colors.blue, size: 16),
-                        title: Text(e, style: const TextStyle(fontSize: 14)),
-                        dense: true,
-                      )),
-                ],
-                
-                // Análisis según convenio
-                const Divider(),
-                const Text('Análisis según tu convenio:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...analisisConvenio['detalles'].map((detalle) => ListTile(
-                      leading: const Icon(Icons.analytics, color: Colors.purple, size: 16),
-                      title: Text(detalle, style: const TextStyle(fontSize: 14)),
-                      dense: true,
-                    )),
-                
-                if (analisisConvenio['items_revisar'].isNotEmpty) ...[
-                  const Divider(),
-                  const Text('Items para revisar:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                  ...analisisConvenio['items_revisar'].map((item) => ListTile(
-                        leading: const Icon(Icons.warning, color: Colors.orange, size: 16),
-                        title: Text(item, style: const TextStyle(fontSize: 14, color: Colors.orange)),
-                        dense: true,
-                      )),
-                ],
-
-                // Alertas graves (errores críticos)
-                if (analisisConvenio['alertas_graves'].isNotEmpty) ...[                  
-                  const Divider(),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade300),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.error_outline, color: Colors.red, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'ALERTAS GRAVES - REVISIÓN URGENTE',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        ...analisisConvenio['alertas_graves'].map((alerta) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Text(
-                                '• $alerta',
-                                style: const TextStyle(color: Colors.red, fontSize: 14),
-                              ),
-                            )),
-                      ],
-                    ),
-                  ),
-                ],
               ],
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: kIsWeb
+                  ? Image.network(_rutaImagen!, height: 220, fit: BoxFit.cover)
+                  : Image.file(
+                      File(_rutaImagen!),
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
+            ),
+          ),
+
+        // Tarjeta principal de resultados
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.glassFill,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Estado principal
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _resultado!.esCorrecto
+                          ? Colors.green.withOpacity(0.15)
+                          : Colors.orange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _resultado!.esCorrecto
+                            ? Colors.green.withOpacity(0.3)
+                            : Colors.orange.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      _resultado!.esCorrecto
+                          ? Icons.check_circle
+                          : Icons.warning,
+                      color:
+                          _resultado!.esCorrecto ? Colors.green : Colors.orange,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _resultado!.esCorrecto
+                          ? '✅ Recibo verificado correctamente'
+                          : '⚠️ Se encontraron inconsistencias',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Inconsistencias
+              if (_resultado!.inconsistencias.isNotEmpty) ...[
+                _buildSectionHeader('📋 Inconsistencias detectadas'),
+                const SizedBox(height: 12),
+                ..._resultado!.inconsistencias.map((e) => _buildListItem(
+                      Icons.warning,
+                      Colors.orange,
+                      e,
+                    )),
+                const SizedBox(height: 20),
+              ],
+
+              // Sugerencias
+              if (_resultado!.sugerencias.isNotEmpty) ...[
+                _buildSectionHeader('💡 Sugerencias'),
+                const SizedBox(height: 12),
+                ..._resultado!.sugerencias.map((e) => _buildListItem(
+                      Icons.lightbulb_outline,
+                      Colors.blue,
+                      e,
+                    )),
+                const SizedBox(height: 20),
+              ],
+
+              // Análisis según convenio
+              _buildSectionHeader('📊 Análisis según tu convenio'),
+              const SizedBox(height: 12),
+              ...analisisConvenio['detalles'].map((detalle) => _buildListItem(
+                    Icons.analytics,
+                    Colors.purple,
+                    detalle,
+                  )),
+
+              // Items para revisar
+              if (analisisConvenio['items_revisar'].isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildSectionHeader('🔍 Items para revisar con tu empleador'),
+                const SizedBox(height: 12),
+                ...analisisConvenio['items_revisar']
+                    .map((item) => _buildListItem(
+                          Icons.search,
+                          Colors.orange,
+                          item,
+                        )),
+              ],
+
+              // Alertas graves
+              if (analisisConvenio['alertas_graves'].isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.red.withOpacity(0.3), width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.error_outline,
+                              color: Colors.red, size: 22),
+                          const SizedBox(width: 10),
+                          Text(
+                            '🚨 Alertas graves - Revisión urgente',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ...analisisConvenio['alertas_graves']
+                          .map((alerta) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Text(
+                                  '• $alerta',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              )),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        const SizedBox(height: 16),
+
+        const SizedBox(height: 20),
+
+        // Widgets adicionales
         _buildProyeccionesWidget(),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _buildMetasUnidadesWidget(),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _buildEstimadorLiquidacionWidget(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         _buildBannerAcademia(),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton.icon(
-              onPressed: _escanearYVerificar,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Escanear Otro Recibo'),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TeacherReceiptScanScreen(),
+
+        // Botones de acción
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _escanearYVerificar,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                );
-              },
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Escanear QR'),
-            ),
-          ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.refresh, size: 18),
+                    SizedBox(width: 8),
+                    Text('Escanear otro recibo',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TeacherReceiptScanScreen(),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: BorderSide(color: AppColors.glassBorder),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.qr_code_scanner, size: 18),
+                    SizedBox(width: 8),
+                    Text('Escanear QR'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        ExpansionTile(
-          title: const Text('Texto extraído del recibo (OCR)'),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              color: Colors.grey.shade200,
-              width: double.infinity,
-              child: Text(_textoOcr),
+
+        // Texto OCR
+        Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: AppColors.glassFill,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
+          ),
+          child: ExpansionTile(
+            title: Text(
+              '📄 Texto extraído del recibo (OCR)',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ],
-        )
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                width: double.infinity,
+                child: Text(
+                  _textoOcr,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  Widget _buildListItem(IconData icon, Color color, String text) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -657,13 +990,19 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: (0.1 * 255).round().toDouble()),
+                color: Colors.orange
+                    .withValues(alpha: (0.1 * 255).round().toDouble()),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withValues(alpha: (0.3 * 255).round().toDouble())),
+                border: Border.all(
+                    color: Colors.orange
+                        .withValues(alpha: (0.3 * 255).round().toDouble())),
               ),
               child: Text(
                 'Ajuste necesario para no perder poder: ${ajusteReq.toStringAsFixed(1)}% mensual',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.orange[900]),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange[900]),
               ),
             ),
             const SizedBox(height: 12),
@@ -672,7 +1011,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 Expanded(
                   child: TextField(
                     controller: _ipcController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
                       labelText: 'IPC mensual (%)',
                       border: OutlineInputBorder(),
@@ -689,7 +1029,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 Expanded(
                   child: TextField(
                     controller: _ajusteController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
                       labelText: 'Ajuste mensual (%)',
                       border: OutlineInputBorder(),
@@ -721,31 +1062,37 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: epaColor(epa3).withValues(alpha: (0.15 * 255).round().toDouble()),
+                    color: epaColor(epa3)
+                        .withValues(alpha: (0.15 * 255).round().toDouble()),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.shield, color: epaColor(epa3)),
                       const SizedBox(width: 8),
-                      Text('EPA 3m: ${epa3.toStringAsFixed(2)} • ${epaLabel(epa3)}'),
+                      Text(
+                          'EPA 3m: ${epa3.toStringAsFixed(2)} • ${epaLabel(epa3)}'),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: epaColor(epa6).withValues(alpha: (0.15 * 255).round().toDouble()),
+                    color: epaColor(epa6)
+                        .withValues(alpha: (0.15 * 255).round().toDouble()),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.shield, color: epaColor(epa6)),
                       const SizedBox(width: 8),
-                      Text('EPA 6m: ${epa6.toStringAsFixed(2)} • ${epaLabel(epa6)}'),
+                      Text(
+                          'EPA 6m: ${epa6.toStringAsFixed(2)} • ${epaLabel(epa6)}'),
                     ],
                   ),
                 ),
@@ -783,7 +1130,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     return (r.totalRemunerativo + r.totalNoRemunerativo) - r.totalDeducciones;
   }
 
-  double _proyectado(double neto, double ipcMensualPct, double ajusteMensualPct, int meses) {
+  double _proyectado(
+      double neto, double ipcMensualPct, double ajusteMensualPct, int meses) {
     if (neto <= 0) return 0.0;
     final crecimiento = pow(1 + (ajusteMensualPct / 100), meses);
     return neto * crecimiento;
@@ -797,8 +1145,12 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   }
 
   Widget _buildDatosActualizadosWidget() {
-    String doc = _fechaDocentes != null ? '${_fechaDocentes!.day.toString().padLeft(2, '0')}/${_fechaDocentes!.month.toString().padLeft(2, '0')}/${_fechaDocentes!.year}' : 'sin fecha';
-    String san = _fechaSanidad != null ? '${_fechaSanidad!.day.toString().padLeft(2, '0')}/${_fechaSanidad!.month.toString().padLeft(2, '0')}/${_fechaSanidad!.year}' : 'sin fecha';
+    String doc = _fechaDocentes != null
+        ? '${_fechaDocentes!.day.toString().padLeft(2, '0')}/${_fechaDocentes!.month.toString().padLeft(2, '0')}/${_fechaDocentes!.year}'
+        : 'sin fecha';
+    String san = _fechaSanidad != null
+        ? '${_fechaSanidad!.day.toString().padLeft(2, '0')}/${_fechaSanidad!.month.toString().padLeft(2, '0')}/${_fechaSanidad!.year}'
+        : 'sin fecha';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -811,7 +1163,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         children: [
           const Icon(Icons.update, color: Colors.grey),
           const SizedBox(width: 8),
-          Text('Datos actualizados • Docentes: $doc • Sanidad: $san • Fuente: INDEC/Paritarias'),
+          Text(
+              'Datos actualizados • Docentes: $doc • Sanidad: $san • Fuente: INDEC/Paritarias'),
         ],
       ),
     );
@@ -831,7 +1184,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Metas en Unidades (SMVM)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text('Metas en Unidades (SMVM)',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 12,
@@ -867,7 +1221,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               children: [
                 const Text(
                   '⚠ Aviso Legal: Este cálculo es una estimación aproximada y no tiene validez legal. Consultá con un profesional para una liquidación exacta.',
-                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.red),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.red),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -894,7 +1251,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                     final scaffoldContext = context;
                     final picked = await showDatePicker(
                       context: scaffoldContext,
-                      initialDate: DateTime.now().subtract(const Duration(days: 365)),
+                      initialDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
                       firstDate: DateTime(1980),
                       lastDate: DateTime.now(),
                       helpText: 'Fecha de Ingreso',
@@ -910,10 +1268,13 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 ),
                 if (_fechaIngreso != null) ...[
                   const Divider(height: 32),
-                  _buildFilaLiquidacion('SAC Proporcional (est.)', _calcularSacProporcional()),
-                  _buildFilaLiquidacion('Vacaciones Proporcionales (est.)', _calcularVacacionesProporcionales()),
+                  _buildFilaLiquidacion(
+                      'SAC Proporcional (est.)', _calcularSacProporcional()),
+                  _buildFilaLiquidacion('Vacaciones Proporcionales (est.)',
+                      _calcularVacacionesProporcionales()),
                   if (_motivoCese == 'Despido') ...[
-                    _buildFilaLiquidacion('Indemnización Antigüedad', _calcularIndemnizacionAntiguedad()),
+                    _buildFilaLiquidacion('Indemnización Antigüedad',
+                        _calcularIndemnizacionAntiguedad()),
                     _buildFilaLiquidacion('Preaviso', _netoActual()),
                   ],
                   const Divider(),
@@ -931,7 +1292,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     );
   }
 
-  Widget _buildFilaLiquidacion(String label, double monto, {bool esTotal = false}) {
+  Widget _buildFilaLiquidacion(String label, double monto,
+      {bool esTotal = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -961,7 +1323,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     // Estimación simple: medio sueldo por semestre
     // Calculamos días desde el último semestre (enero o julio)
     final hoy = DateTime.now();
-    final inicioSemestre = hoy.month <= 6 ? DateTime(hoy.year, 1, 1) : DateTime(hoy.year, 7, 1);
+    final inicioSemestre =
+        hoy.month <= 6 ? DateTime(hoy.year, 1, 1) : DateTime(hoy.year, 7, 1);
     final dias = hoy.difference(inicioSemestre).inDays;
     return (_netoActual() / 2) * (dias / 182.5);
   }
@@ -983,14 +1346,14 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   }
 
   double _calcularTotalLiquidacion() {
-    double total = _calcularSacProporcional() + _calcularVacacionesProporcionales();
+    double total =
+        _calcularSacProporcional() + _calcularVacacionesProporcionales();
     if (_motivoCese == 'Despido') {
-      total += _calcularIndemnizacionAntiguedad() + _netoActual(); // Antigüedad + 1 mes preaviso
+      total += _calcularIndemnizacionAntiguedad() +
+          _netoActual(); // Antigüedad + 1 mes preaviso
     }
     return total;
   }
-
-
 
   void _mostrarManualUsuario() {
     final helpContent = AppHelp.getHelpContent('verificador_recibo');
@@ -1016,7 +1379,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: AppColors.glassFillStrong,
-                border: Border(bottom: BorderSide(color: AppColors.glassBorder)),
+                border:
+                    Border(bottom: BorderSide(color: AppColors.glassBorder)),
               ),
               child: const Text(
                 'Verificador de Recibo',
@@ -1059,7 +1423,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 Navigator.pop(context); // Cerrar menú
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const TeacherReceiptScanScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const TeacherReceiptScanScreen()),
                 );
               },
             ),
@@ -1116,8 +1481,11 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   context: context,
                   builder: (context) => AlertDialog(
                     backgroundColor: AppColors.backgroundCard,
-                    title: const Text('Verificador de Recibo', style: TextStyle(color: AppColors.textPrimary)),
-                    content: const Text('Sistema profesional para verificación de recibos de sueldo según convenios nacionales vigentes.', style: TextStyle(color: AppColors.textSecondary)),
+                    title: const Text('Verificador de Recibo',
+                        style: TextStyle(color: AppColors.textPrimary)),
+                    content: const Text(
+                        'Sistema profesional para verificación de recibos de sueldo según convenios nacionales vigentes.',
+                        style: TextStyle(color: AppColors.textSecondary)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
@@ -1209,10 +1577,19 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Datos Leídos del Recibo', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                const Text('Datos Leídos del Recibo',
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold)),
                 IconButton(
-                  icon: Icon(_mostrarDatosLeidos ? Icons.visibility_off : Icons.visibility, size: 20, color: AppColors.textSecondary),
-                  onPressed: () => setState(() => _mostrarDatosLeidos = !_mostrarDatosLeidos),
+                  icon: Icon(
+                      _mostrarDatosLeidos
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      size: 20,
+                      color: AppColors.textSecondary),
+                  onPressed: () => setState(
+                      () => _mostrarDatosLeidos = !_mostrarDatosLeidos),
                 ),
               ],
             ),
@@ -1227,7 +1604,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 ),
                 child: Text(
                   _textoOcr,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1257,14 +1635,17 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Seleccionar Convenio', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+            const Text('Seleccionar Convenio',
+                style: TextStyle(
+                    color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: _convenioSeleccionado,
               items: _conveniosDisponibles.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
-                  child: Text(value, style: const TextStyle(color: AppColors.textPrimary)),
+                  child: Text(value,
+                      style: const TextStyle(color: AppColors.textPrimary)),
                 );
               }).toList(),
               onChanged: (val) {
@@ -1272,7 +1653,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               },
               dropdownColor: AppColors.backgroundCard,
               decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 filled: true,
                 fillColor: AppColors.backgroundLight,
               ),
@@ -1290,8 +1672,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.backgroundCard,
-        title: const Text('Agregar Datos Manualmente', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Funcionalidad en desarrollo - Próximamente', style: TextStyle(color: AppColors.textSecondary)),
+        title: const Text('Agregar Datos Manualmente',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text('Funcionalidad en desarrollo - Próximamente',
+            style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1308,8 +1692,11 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.backgroundCard,
-        title: const Text('Ajustar Margen OCR', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Margen de error aumentado al 15% para cámaras de baja calidad', style: TextStyle(color: AppColors.textSecondary)),
+        title: const Text('Ajustar Margen OCR',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text(
+            'Margen de error aumentado al 15% para cámaras de baja calidad',
+            style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1320,8 +1707,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     );
   }
 
-
-
   Widget _buildBannerAcademia() {
     return GestureDetector(
       onTap: () {
@@ -1330,17 +1715,24 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       },
       child: Card(
         elevation: 4,
-        shadowColor: AppColors.primary.withValues(alpha: (0.3 * 255).round().toDouble()),
+        shadowColor:
+            AppColors.primary.withValues(alpha: (0.3 * 255).round().toDouble()),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             gradient: LinearGradient(
-              colors: [AppColors.primary.withValues(alpha: (0.1 * 255).round().toDouble()), AppColors.backgroundLight],
+              colors: [
+                AppColors.primary
+                    .withValues(alpha: (0.1 * 255).round().toDouble()),
+                AppColors.backgroundLight
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(color: AppColors.primary.withValues(alpha: (0.3 * 255).round().toDouble())),
+            border: Border.all(
+                color: AppColors.primary
+                    .withValues(alpha: (0.3 * 255).round().toDouble())),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -1353,11 +1745,15 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: (0.2 * 255).round().toDouble()),
+                        color: AppColors.primary
+                            .withValues(alpha: (0.2 * 255).round().toDouble()),
                         borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: (0.5 * 255).round().toDouble())),
+                        border: Border.all(
+                            color: AppColors.primary.withValues(
+                                alpha: (0.5 * 255).round().toDouble())),
                       ),
-                      child: Icon(Icons.school, color: AppColors.primary, size: 28),
+                      child: Icon(Icons.school,
+                          color: AppColors.primary, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -1384,8 +1780,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close, size: 18, color: AppColors.textSecondary),
-                      onPressed: () => setState(() => _mostrarBannerAcademia = false),
+                      icon: Icon(Icons.close,
+                          size: 18, color: AppColors.textSecondary),
+                      onPressed: () =>
+                          setState(() => _mostrarBannerAcademia = false),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -1394,7 +1792,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'Tocá cualquier número o palabra de tu recibo que no entiendas y te explicamos qué es.',
-                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                  style:
+                      TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -1411,7 +1810,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                   ),
                 ),
               ],
