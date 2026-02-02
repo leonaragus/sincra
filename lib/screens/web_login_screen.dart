@@ -146,6 +146,26 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12))),
                       const SizedBox(height: 16),
                       SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _ingresarEmail, child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Iniciar sesión'))),
+                      
+                      // Botón temporal para testing - BORRAR DESPUÉS
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _loading ? null : () {
+                            _email.text = 'test@ejemplo.com';
+                            _password.text = 'test1234';
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Credenciales de prueba cargadas. Click en \"Iniciar sesión\"')),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.orange,
+                            side: const BorderSide(color: Colors.orange),
+                          ),
+                          child: const Text('🔧 MODO PRUEBA - Cargar credenciales'),
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 24),
                     TextButton(onPressed: () => setState(() { _modoCodigo = !_modoCodigo; _error = null; }), child: Text(_modoCodigo ? 'Usar Email / Contraseña' : 'Vincular con código')),
