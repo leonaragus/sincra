@@ -152,11 +152,11 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: _loading ? null : () {
+                          onPressed: _loading ? null : () async {
                             _email.text = 'test@ejemplo.com';
                             _password.text = 'test1234';
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Credenciales de prueba cargadas. Click en \"Iniciar sesión\"')),
+                            // Iniciar sesión automáticamente después de cargar credenciales
+                            await _ingresarEmail();
                             );
                           },
                           style: OutlinedButton.styleFrom(
