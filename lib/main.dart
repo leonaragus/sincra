@@ -5,6 +5,7 @@ import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/user_type_selection_screen.dart';
 import 'screens/verificador_recibos_screen.dart';
+import 'screens/web_login_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/home': (context) => const HomeScreen(),
         '/verificador': (context) => const VerificadorRecibosScreen(),
+        '/web-login': (context) => const WebLoginScreen(),
       },
     );
   }
