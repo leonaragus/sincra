@@ -96,8 +96,8 @@ class SubscriptionService {
     final planType = plan['plan_type'] ?? 'free';
 
     
-    // Verificador de recibo siempre accesible
-    if (feature == 'verificador_recibo') return true;
+    // Verificador de recibo solo para plan free
+    if (feature == 'verificador_recibo') return planType == 'free';
     
     // Para funciones de liquidación, verificar que no sea free
     if (feature == 'liquidacion' && planType == 'free') return false;

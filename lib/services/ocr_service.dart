@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tesseract_ocr/tesseract_ocr.dart';
 
 class OcrService {
   final ImagePicker _imagePicker = ImagePicker();
@@ -18,9 +21,15 @@ class OcrService {
 
   Future<String> procesarImagen(InputImage inputImage) async {
     if (kIsWeb) {
-      // MOCK PARA WEB: Como ML Kit no funciona en web, devolvemos un texto de prueba
-      await Future.delayed(const Duration(seconds: 1));
-      return "RECIBO DE HABERES\nPERIODO: 01/2026\n\nConceptos:\nSueldo Básico   1.200.000,00\nAntigüedad      120.000,00\n\nDeducciones:\nJubilación (11%) 132.000,00\nLey 19032 (3%)   36.000,00\nObra Social (3%) 36.000,00\n\nNETO A COBRAR:  1.116.000,00";
+      // USAR TESSERACT PARA WEB - OCR REAL
+      try {
+        // Convertir InputImage a Uint8List para Tesseract
+        final imageBytes = await _inputImageToUint8List(inputImage);
+        return await _procesarConTesseract(imageBytes);
+      } catch (e) {
+        print("Error con Tesseract en web: $e");
+        return "Error: No se pudo procesar la imagen con OCR.";
+      }
     }
 
     try {
@@ -30,6 +39,40 @@ class OcrService {
       print("Error al procesar imagen con OCR: $e");
       return "Error: No se pudo leer el texto de la imagen.";
     }
+  }
+
+  Future<String> _procesarConTesseract(Uint8List imageBytes) async {
+    try {
+      // Configurar Tesseract para español de Argentina
+      final resultado = await TesseractOcr.extractText(
+        imageBytes: imageBytes,
+        language: "spa", // Español
+        args: {
+          'psm': '6',    // Modo de segmentación para documentos
+          'oem': '1',    // Motor OCR LSTM (más preciso)
+        }
+      );
+      
+      return resultado.isNotEmpty ? resultado : "No se pudo detectar texto en la imagen.";
+    } catch (e) {
+      print("Error en Tesseract: $e");
+      return "Error en el procesamiento OCR: $e";
+    }
+  }
+
+  Future<Uint8List> _inputImageToUint8List(InputImage inputImage) async {
+    // Para web, normalmente inputImage.bytes ya está disponible
+    if (inputImage.bytes != null) {
+      return Uint8List.fromList(inputImage.bytes!);
+    }
+    
+    // Fallback: cargar desde filePath si es necesario
+    if (inputImage.filePath != null) {
+      final file = File(inputImage.filePath!);
+      return await file.readAsBytes();
+    }
+    
+    throw Exception("No se pudo obtener bytes de la imagen");
   }
 
   // Helper para que el usuario elija la fuente. Se puede poner en un Dialog.
