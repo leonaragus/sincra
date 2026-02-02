@@ -8,6 +8,7 @@ import '../services/hybrid_store.dart';
 import 'convenios_screen.dart';
 import '../models/empresa.dart';
 import '../services/api_service.dart';
+import '../services/subscription_service.dart';
 import '../theme/app_colors.dart';
 import 'empleado_screen.dart';
 import 'lista_empleados_screen.dart';
@@ -498,7 +499,18 @@ class HomeScreenState extends State<HomeScreen> {
               subtitle: 'Escaneá y verificá tu liquidación',
               icon: Icons.document_scanner_outlined,
               iconColor: AppColors.accentPink,
-              onTap: () {
+              onTap: () async {
+                final tieneAcceso = await SubscriptionService.hasAccessToFeature('verificador_recibo');
+                if (!tieneAcceso) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Esta función solo está disponible en el plan gratuito'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
+                }
+                
                 Navigator.push(
                   context,
                   MaterialPageRoute(
