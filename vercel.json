@@ -8,6 +8,12 @@
     { "source": "/manifest.json", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] }
   ],
   "routes": [
+    { "src": "/flutter_bootstrap.js", "dest": "/flutter_bootstrap.js" },
+    { "src": "/flutter.js", "dest": "/flutter.js" },
+    { "src": "/main.dart.js", "dest": "/main.dart.js" },
+    { "src": "/manifest.json", "dest": "/manifest.json" },
+    { "src": "/favicon.png", "dest": "/favicon.png" },
+    { "src": "/canvaskit/(.*)", "dest": "/canvaskit/$1" },
     { "handle": "filesystem" },
     { "src": "/(.*\\.(?:css|js|png|jpe?g|gif|svg|webp|ico|json|wasm|map|txt|ttf|woff2?))", "dest": "/$1" },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
