@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "if [ ! -d flutter ]; then git clone https://github.com/flutter/flutter.git --depth 1 -b stable; fi && ./flutter/bin/flutter pub get && ./flutter/bin/flutter build web --release --base-href \"/\"",
-  "outputDirectory": "build/web",
+  "buildCommand": "if [ ! -d flutter ]; then git clone https://github.com/flutter/flutter.git --depth 1 -b stable; fi && ./flutter/bin/flutter pub get && ./flutter/bin/flutter build web --release --base-href \"/\" && rm -rf public && mkdir -p public && cp -r build/web/* public",
+  "outputDirectory": "public",
   "headers": [
     { "source": "/flutter_bootstrap.js", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] },
     { "source": "/manifest.json", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] }
