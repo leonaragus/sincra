@@ -1,4 +1,4 @@
-name: Build and Deploy Flutter Web to Vercel
+name: Build and Deploy Flutter Web to Vercel Final
 
 on:
   push:
