@@ -19,14 +19,8 @@ jobs:
         cache: true
         cache-key: flutter-pub-cache
     
-    - name: Clean flutter cache
-      run: flutter clean
-    
-    - name: Install dependencies with force refresh
-      run: flutter pub get --force
-    
-    - name: Build web release
-      run: flutter build web --release --web-renderer html
+    - name: Build web release (skip dependency resolution)
+      run: flutter build web --release --no-pub
     
     - name: Deploy to Firebase
       uses: FirebaseExtended/action-hosting-deploy@v0
