@@ -1,0 +1,20 @@
+{
+  "name": "Flutter Web Builder",
+  "image": "mcr.microsoft.com/devcontainers/dart:1-3.3-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/flutter:1": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dart-code.flutter",
+        "dart-code.dart-code"
+      ]
+    }
+  },
+  "forwardPorts": [5000, 3000],
+  "postCreateCommand": "flutter pub get",
+  "remoteUser": "vscode"
+}
