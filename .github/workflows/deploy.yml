@@ -1,0 +1,32 @@
+name: Build and Deploy Flutter Web to Vercel
+
+on:
+  push:
+    branches:
+      - main # O la rama que uses (ej. master, develop)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --release --web-renderer html
+
+      - name: Deploy to Vercel
+        uses: ali-master/vercel-action@v1.2.0
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: ./build/web
+
