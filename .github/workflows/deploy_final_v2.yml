@@ -20,7 +20,8 @@ jobs:
 
       - name: Build web
         # Usa el comando sin especificar el renderer, dejando que Flutter lo decida por defecto (auto)
-        run: flutter build web --release 
+        run: flutter build web --release --web-renderer auto
+
 
       - name: Deploy to Vercel
         uses: BetaHuhn/deploy-to-vercel@v1
