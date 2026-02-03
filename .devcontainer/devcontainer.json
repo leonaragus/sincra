@@ -1,7 +1,8 @@
 {
   "name": "Flutter Web Builder",
-  "image": "mcr.microsoft.com/devcontainers/dart:1-3.3-bullseye",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
+    "ghcr.io/devcontainers/features/dart:1": {},
     "ghcr.io/devcontainers/features/flutter:1": {
       "version": "latest"
     }
