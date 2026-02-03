@@ -72,6 +72,12 @@
 @import shared_preferences_foundation;
 #endif
 
+#if __has_include(<tesseract_ocr/TesseractOcrPlugin.h>)
+#import <tesseract_ocr/TesseractOcrPlugin.h>
+#else
+@import tesseract_ocr;
+#endif
+
 #if __has_include(<url_launcher_ios/URLLauncherPlugin.h>)
 #import <url_launcher_ios/URLLauncherPlugin.h>
 #else
@@ -92,6 +98,7 @@
   [OpenFilePlugin registerWithRegistrar:[registry registrarForPlugin:@"OpenFilePlugin"]];
   [FPPSharePlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSharePlusPlugin"]];
   [SharedPreferencesPlugin registerWithRegistrar:[registry registrarForPlugin:@"SharedPreferencesPlugin"]];
+  [TesseractOcrPlugin registerWithRegistrar:[registry registrarForPlugin:@"TesseractOcrPlugin"]];
   [URLLauncherPlugin registerWithRegistrar:[registry registrarForPlugin:@"URLLauncherPlugin"]];
 }
 

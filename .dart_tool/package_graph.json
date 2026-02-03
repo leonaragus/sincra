@@ -27,6 +27,7 @@
         "share_plus",
         "shared_preferences",
         "supabase_flutter",
+        "tesseract_ocr",
         "url_launcher"
       ],
       "devDependencies": [
@@ -139,6 +140,16 @@
         "supabase",
         "url_launcher",
         "web"
+      ]
+    },
+    {
+      "name": "tesseract_ocr",
+      "version": "0.5.0",
+      "dependencies": [
+        "flutter",
+        "path",
+        "path_provider",
+        "plugin_platform_interface"
       ]
     },
     {
