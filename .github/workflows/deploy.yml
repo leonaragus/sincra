@@ -1,10 +1,10 @@
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
         with:
+          # Importante: para que Vercel no intente su propio build
+          vercel-args: '--prebuilt'
+          # Especifica la carpeta de salida que busca Vercel
+          working-directory: ./build/web
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          # Especifica la carpeta de salida que busca Vercel
-          working-directory: ./build/web
-          # Importante: para que Vercel no intente su propio build
-          vercel-args: '--prebuilt'
