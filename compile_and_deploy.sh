@@ -2,6 +2,7 @@
 
 echo "🚀 INICIANDO COMPILACIÓN Y DEPLOY AUTOMÁTICO EN CODESPACES"
 echo "============================================================"
+set -e
 
 # Cargar configuración automática si existe
 if [ -f ".env.codespaces" ]; then
@@ -31,7 +32,7 @@ flutter clean
 
 # Instalar dependencias (forzado para evitar problemas)
 echo "📦 Instalando dependencias..."
-flutter pub get --force
+flutter pub get
 
 # Compilar versión web release (sin resolución de dependencias)
 echo "🔨 Compilando versión web release..."
@@ -49,10 +50,11 @@ if [ -d "build/web" ]; then
     echo "🔐 Autenticando con Firebase..."
     
     if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
-        echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-token.json
-        echo "🚀 Haciendo deploy usando Service Account..."
-        firebase deploy --only hosting --project $FIREBASE_PROJECT_ID --token "$(cat /tmp/firebase-token.json)"
-        rm -f /tmp/firebase-token.json
+        echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-sa.json
+        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
+        echo "🚀 Haciendo deploy usando Service Account (ADC)..."
+        firebase deploy --only hosting --project $FIREBASE_PROJECT_ID
+        rm -f /tmp/firebase-sa.json
     elif [ -n "$FIREBASE_TOKEN" ]; then
         echo "🚀 Haciendo deploy usando Firebase Token..."
         firebase deploy --only hosting --project $FIREBASE_PROJECT_ID --token "$FIREBASE_TOKEN"
