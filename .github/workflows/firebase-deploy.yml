@@ -15,21 +15,22 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.22.0'
+        flutter-version: '3.24.0'
         cache: true
-        cache-key: flutter-pub-cache
     
     - name: Install dependencies
-      run: flutter pub get
+      run: flutter pub get --force
 
     - name: Build web release
-      run: flutter build web --release
+      run: |
+        flutter config --enable-web
+        flutter build web --release --no-pub
     
     - name: Deploy to Firebase
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
         repoToken: '${{ secrets.GITHUB_TOKEN }}'
         firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-        projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+        projectId: sincra
         channelId: live
         entryPoint: build/web
