@@ -1,7 +1,7 @@
 # Flutter/Dart specific
 .dart_tool/
-.packages
-pubspec.lock
+# pubspec.lock is kept for CI reproducibility
+#.packages
 flutter_export_environment.sh
 .flutter-plugins
 .flutter-plugins-dependencies
