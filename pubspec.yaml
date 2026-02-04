@@ -30,7 +30,7 @@ dependencies:
   mobile_scanner: ^7.1.4
   
   # OCR para web - Tesseract.js
-  tesseract_ocr: ^1.0.0
+  flutter_tesseract_ocr: ^0.4.3
 
   # Capa híbrida local/nube
   supabase_flutter: ^2.8.0

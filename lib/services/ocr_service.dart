@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tesseract_ocr/tesseract_ocr.dart';
+import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
 
 class OcrService {
   final ImagePicker _imagePicker = ImagePicker();
@@ -44,8 +44,8 @@ class OcrService {
   Future<String> _procesarConTesseract(Uint8List imageBytes) async {
     try {
       // Configurar Tesseract para español de Argentina
-      final resultado = await TesseractOcr.extractText(
-        imageBytes: imageBytes,
+      final resultado = await FlutterTesseractOcr.extractText(
+        '/', // dummy path for web, bytes are used
         language: "spa", // Español
         args: {
           'psm': '6',    // Modo de segmentación para documentos

@@ -15,6 +15,7 @@
         "fl_chart",
         "flutter",
         "flutter_localizations",
+        "flutter_tesseract_ocr",
         "google_mlkit_text_recognition",
         "http",
         "image_picker",
@@ -27,7 +28,6 @@
         "share_plus",
         "shared_preferences",
         "supabase_flutter",
-        "tesseract_ocr",
         "url_launcher"
       ],
       "devDependencies": [
@@ -140,16 +140,6 @@
         "supabase",
         "url_launcher",
         "web"
-      ]
-    },
-    {
-      "name": "tesseract_ocr",
-      "version": "0.5.0",
-      "dependencies": [
-        "flutter",
-        "path",
-        "path_provider",
-        "plugin_platform_interface"
       ]
     },
     {
@@ -1394,6 +1384,15 @@
       "version": "1.0.0",
       "dependencies": [
         "fixnum"
+      ]
+    },
+    {
+      "name": "flutter_tesseract_ocr",
+      "version": "0.4.30",
+      "dependencies": [
+        "flutter",
+        "path",
+        "path_provider"
       ]
     }
   ],
