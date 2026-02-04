@@ -143,6 +143,15 @@
       ]
     },
     {
+      "name": "flutter_tesseract_ocr",
+      "version": "0.4.30",
+      "dependencies": [
+        "flutter",
+        "path",
+        "path_provider"
+      ]
+    },
+    {
       "name": "mobile_scanner",
       "version": "7.1.4",
       "dependencies": [
@@ -1384,15 +1393,6 @@
       "version": "1.0.0",
       "dependencies": [
         "fixnum"
-      ]
-    },
-    {
-      "name": "flutter_tesseract_ocr",
-      "version": "0.4.30",
-      "dependencies": [
-        "flutter",
-        "path",
-        "path_provider"
       ]
     }
   ],

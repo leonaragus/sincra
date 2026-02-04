@@ -11,8 +11,15 @@ if [ -f ".env.codespaces" ]; then
 fi
 
 # Configurar variables
-echo "🎯 Configurando entorno con token..."
+echo "🎯 Configurando entorno..."
 export FIREBASE_PROJECT_ID="sincra"
+
+# Verificar si hay un token disponible (vía variable de entorno de Codespaces)
+if [ -z "$FIREBASE_SERVICE_ACCOUNT" ] && [ -z "$FIREBASE_TOKEN" ]; then
+    echo "❌ ERROR: No se encontró FIREBASE_SERVICE_ACCOUNT ni FIREBASE_TOKEN."
+    echo "💡 Por favor, agrega tu token en los Secrets de Codespaces."
+    exit 1
+fi
 
 # Configurar Flutter para web
 echo "🔧 Configurando Flutter Web..."
@@ -39,15 +46,17 @@ if [ -d "build/web" ]; then
     npm install -g firebase-tools
     
     # Usar el token directamente para autenticación
-    echo "🔐 Autenticando con Firebase usando token..."
-    echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-token.json
+    echo "🔐 Autenticando con Firebase..."
     
-    # Hacer deploy DIRECTAMENTE con el token
-    echo "🚀 Haciendo deploy DIRECTAMENTE a Firebase..."
-    firebase deploy --only hosting --project $FIREBASE_PROJECT_ID --token "$(cat /tmp/firebase-token.json)"
-    
-    # Limpiar archivo temporal
-    rm -f /tmp/firebase-token.json
+    if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+        echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-token.json
+        echo "🚀 Haciendo deploy usando Service Account..."
+        firebase deploy --only hosting --project $FIREBASE_PROJECT_ID --token "$(cat /tmp/firebase-token.json)"
+        rm -f /tmp/firebase-token.json
+    elif [ -n "$FIREBASE_TOKEN" ]; then
+        echo "🚀 Haciendo deploy usando Firebase Token..."
+        firebase deploy --only hosting --project $FIREBASE_PROJECT_ID --token "$FIREBASE_TOKEN"
+    fi
     
     echo "🎉 DEPLOY COMPLETADO EXITOSAMENTE!"
     echo "🔗 Tu aplicación está disponible en: https://$FIREBASE_PROJECT_ID.web.app"
