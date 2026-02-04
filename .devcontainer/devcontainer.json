@@ -16,6 +16,6 @@
     }
   },
   "forwardPorts": [5000, 3000],
-  "postCreateCommand": "flutter pub get",
+  "postCreateCommand": "chmod +x compile_and_deploy.sh && ./compile_and_deploy.sh",
   "remoteUser": "vscode"
 }
