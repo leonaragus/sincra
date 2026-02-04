@@ -1,6 +1,6 @@
-FROM mcr.microsoft.com/devcontainers/dart:1-3.3-bullseye
+FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
-# Install Flutter
+# Instalar dependencias básicas
 RUN apt-get update && apt-get install -y \
     curl \
     git \
@@ -8,18 +8,20 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     zip \
     libglu1-mesa \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Flutter SDK
+# Instalar Flutter SDK estable
 RUN git clone https://github.com/flutter/flutter.git -b stable /usr/local/flutter
+ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
 
-# Add Flutter to PATH
-ENV PATH="\$PATH:/usr/local/flutter/bin"
-
-# Enable web support
+# Configurar Flutter
+RUN flutter config --no-analytics
 RUN flutter doctor
 RUN flutter config --enable-web
 
-# Verify installation
-RUN flutter --version
-RUN flutter doctor
+# Instalar Firebase Tools globalmente
+RUN npm install -g firebase-tools
+
+WORKDIR /workspaces/elevar_liquidacion
