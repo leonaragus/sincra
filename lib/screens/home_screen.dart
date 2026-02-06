@@ -316,7 +316,36 @@ class HomeScreenState extends State<HomeScreen> {
       return const Center(child: Text('No hay módulos disponibles.'));
     }
 
-    return Column(children: modules);
+    final width = MediaQuery.sizeOf(context).width;
+    final crossAxisCount = width >= 1100
+        ? 3
+        : width >= 760
+            ? 2
+            : 1;
+
+    if (crossAxisCount == 1) {
+      return Column(
+        children: [
+          for (var i = 0; i < modules.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            modules[i],
+          ],
+        ],
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: crossAxisCount == 3 ? 2.2 : 2.0,
+      ),
+      itemCount: modules.length,
+      itemBuilder: (context, index) => modules[index],
+    );
   }
 
   @override
@@ -706,63 +735,62 @@ class HomeScreenState extends State<HomeScreen> {
     required VoidCallback onTap,
     bool isHighlighted = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: isHighlighted ? AppColors.glassFillStrong : AppColors.glassFill,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isHighlighted ? AppColors.glassBorder.withOpacity(0.9) : AppColors.glassBorder,
-                width: 1,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isHighlighted ? AppColors.glassFillStrong : AppColors.glassFill,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isHighlighted ? AppColors.glassBorder.withOpacity(0.9) : AppColors.glassBorder,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.glassBorder, width: 1),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 22),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 22),
+                ],
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.glassBorder, width: 1),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 22),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
                 ),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 22),
-              ],
-            ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
