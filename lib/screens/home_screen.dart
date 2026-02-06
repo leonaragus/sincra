@@ -458,7 +458,7 @@ class HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 12),
             const Text(
-              'RRHH App',
+              'Sincra',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
