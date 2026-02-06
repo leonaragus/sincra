@@ -147,22 +147,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       const SizedBox(height: 16),
                       SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _ingresarEmail, child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Iniciar sesión'))),
                       
-                      // Botón temporal para testing - BORRAR DESPUÉS
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: _loading ? null : () {
-                            // Saltear autenticación e ir directo al HomeScreen
-                            Navigator.pushReplacementNamed(context, '/home');
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.orange,
-                            side: const BorderSide(color: Colors.orange),
-                          ),
-                          child: const Text('🔧 MODO PRUEBA - Cargar credenciales'),
-                        ),
-                      ),
+
                     ],
                     const SizedBox(height: 24),
                     TextButton(onPressed: () => setState(() { _modoCodigo = !_modoCodigo; _error = null; }), child: Text(_modoCodigo ? 'Usar Email / Contraseña' : 'Vincular con código')),

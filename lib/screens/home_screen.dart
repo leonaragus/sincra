@@ -136,7 +136,6 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<Empresa> _crearEmpresaDesdeMap(Map<String, String> empresaMap) async {
-    // Cargar convenios de la empresa si existen
     final prefs = await SharedPreferences.getInstance();
     final razonSocial = empresaMap['razonSocial'] ?? '';
     final conveniosJson = prefs.getString('empresa_convenios_$razonSocial');
@@ -189,9 +188,158 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _navegarVerificadorRecibo() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const VerificadorReciboScreen(),
+      ),
+    );
+  }
+
+  // NUEVO: módulos filtrados por plan, sin scroll, arriba
+  Future<List<Widget>> _buildModuleList() async {
+    final plan = await SubscriptionService.getCurrentUserPlan();
+    final planType = (plan?['plan_type'] ?? 'free').toString();
+    final isFree = planType == 'free';
+
+    if (isFree) {
+      // Plan free: solo Verificador de Recibo, arriba, grande
+      return [
+        _buildModernCard(
+          title: 'Verificador de Recibo',
+          subtitle: 'Escaneá y verificá tu liquidación',
+          icon: Icons.document_scanner_outlined,
+          iconColor: AppColors.accentPink,
+          isHighlighted: true,
+          onTap: _navegarVerificadorRecibo,
+        ),
+      ];
+    } else {
+      // Planes de pago: todos menos Verificador, apilados arriba
+      return [
+        _buildModernCard(
+          title: 'Tu Empresa',
+          subtitle: 'Configura los datos de tu empresa',
+          icon: Icons.business_center,
+          iconColor: AppColors.accentBlue,
+          onTap: () => _navegarAEmpresa(null),
+        ),
+        _buildModernCard(
+          title: 'Liquidador Final',
+          subtitle: 'Genera las liquidaciones de empleados',
+          icon: Icons.calculate,
+          iconColor: AppColors.primary,
+          isHighlighted: true,
+          onTap: _irALiquidador,
+        ),
+        _buildModernCard(
+          title: 'Convenios',
+          subtitle: 'Gestiona los convenios laborales',
+          icon: Icons.description,
+          iconColor: AppColors.accentYellow,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ConveniosScreen())),
+        ),
+        _buildModernCard(
+          title: 'Liquidación Docente 2026',
+          subtitle: 'Sistema federal de liquidación docente',
+          icon: Icons.school,
+          iconColor: AppColors.accentEmerald,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherInterfaceScreen())),
+        ),
+        _buildModernCard(
+          title: 'Liquidación Sanidad 2026',
+          subtitle: 'Sistema de liquidación para sanidad',
+          icon: Icons.local_hospital,
+          iconColor: AppColors.accentPink,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SanidadInterfaceScreen())),
+        ),
+        _buildModernCard(
+          title: 'Gestión de Empleados',
+          subtitle: 'Base de datos completa de empleados',
+          icon: Icons.people,
+          iconColor: AppColors.accentBlue,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionEmpleadosScreen())),
+        ),
+        _buildModernCard(
+          title: 'Liquidación Masiva',
+          subtitle: 'Procesa múltiples empleados en paralelo',
+          icon: Icons.bolt,
+          iconColor: AppColors.accentOrange,
+          isHighlighted: true,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LiquidacionMasivaScreen())),
+        ),
+        _buildModernCard(
+          title: 'Dashboard Gerencial',
+          subtitle: 'Reportes y gráficos ejecutivos',
+          icon: Icons.dashboard,
+          iconColor: const Color(0xFF9333EA),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardGerencialScreen())),
+        ),
+        _buildModernCard(
+          title: 'Conceptos Recurrentes',
+          subtitle: 'Vales, sindicato, embargos automáticos',
+          icon: Icons.receipt_long,
+          iconColor: AppColors.accentEmerald,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionConceptosScreen())),
+        ),
+        _buildModernCard(
+          title: 'Ausencias y Licencias',
+          subtitle: 'Gestión de ausencias con aprobación',
+          icon: Icons.event_busy,
+          iconColor: const Color(0xFF14B8A6),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionAusenciasScreen())),
+        ),
+        _buildModernCard(
+          title: 'Préstamos',
+          subtitle: 'Préstamos con cuotas automáticas',
+          icon: Icons.attach_money,
+          iconColor: const Color(0xFF6366F1),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionPrestamosScreen())),
+        ),
+        _buildModernCard(
+          title: 'Biblioteca CCT',
+          subtitle: 'Convenios actualizados vía robot BAT',
+          icon: Icons.library_books,
+          iconColor: const Color(0xFF92400E),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BibliotecaCCTScreen())),
+        ),
+        _buildModernCard(
+          title: 'Dashboard de Riesgos',
+          subtitle: 'Alertas y advertencias del sistema',
+          icon: Icons.warning_amber,
+          iconColor: Colors.red[700]!,
+          isHighlighted: true,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRiesgosScreen())),
+        ),
+      ];
+    }
+  }
+
+  // Módulos arriba, sin scroll
+  Widget _buildMainButtons() {
+    return FutureBuilder<List<Widget>>(
+      future: _buildModuleList(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final modules = snapshot.data!;
+        if (modules.isEmpty) {
+          return const Center(child: Text('No hay módulos disponibles para tu plan.'));
+        }
+        // Sin GridView: tarjetas apiladas arriba, visibles sin scroll
+        return Column(
+          children: modules,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light.copyWith(
           statusBarColor: Colors.transparent,
@@ -208,30 +356,51 @@ class HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 _buildHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 24),
-                        _buildMainButtons(),
-                        if (_empresas.isNotEmpty) ...[
-                          const SizedBox(height: 32),
-                          _buildEmpresasSection(),
-                        ],
-                      ],
+                // Módulos arriba, sin scroll
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: _buildMainButtons(),
+                ),
+                // Empresas debajo (si hay)
+                if (_empresas.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _buildEmpresasSection(),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          final helpContent = AppHelp.getHelpContent('HomeScreen');
+          AppHelp.showHelpDialog(
+            context,
+            helpContent['title']!,
+            helpContent['content']!,
+          );
+        },
+        backgroundColor: const Color(0xFF6366F1),
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 8,
+        child: const Icon(
+          Icons.help_outline,
+          size: 28,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
+  // Resto de métodos sin cambios
   Widget _buildHeader() {
     return Container(
       decoration: BoxDecoration(
@@ -312,311 +481,6 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainButtons() {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isTablet = screenWidth > 600;
-    final isDesktop = screenWidth > 900;
-    
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = isDesktop ? 3 : (isTablet ? 2 : 1);
-        final childAspectRatio = isDesktop ? 1.2 : (isTablet ? 1.1 : 1.0);
-        
-        return GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: childAspectRatio,
-          children: [
-            _buildModernCard(
-              title: 'Tu Empresa',
-              subtitle: 'Configura los datos de tu empresa',
-              icon: Icons.business_center,
-              iconColor: AppColors.accentBlue,
-              onTap: () => _navegarAEmpresa(null),
-            ),
-            _buildModernCard(
-              title: 'Liquidador Final',
-              subtitle: 'Genera las liquidaciones de empleados',
-              icon: Icons.calculate,
-              iconColor: AppColors.primary,
-              isHighlighted: true,
-              onTap: _irALiquidador,
-            ),
-            _buildModernCard(
-              title: 'Convenios',
-              subtitle: 'Gestiona los convenios laborales',
-              icon: Icons.description,
-              iconColor: AppColors.accentYellow,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ConveniosScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Liquidación Docente 2026',
-              subtitle: 'Sistema federal de liquidación docente',
-              icon: Icons.school,
-              iconColor: AppColors.accentEmerald,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TeacherInterfaceScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Liquidación Sanidad 2026',
-              subtitle: 'Sistema de liquidación para sanidad',
-              icon: Icons.local_hospital,
-              iconColor: AppColors.accentPink,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SanidadInterfaceScreen(),
-                  ),
-                );
-              },
-            ),
-            
-            // === SPRINT 2 + 3: NUEVAS FUNCIONALIDADES ===
-            
-            _buildModernCard(
-              title: 'Gestión de Empleados',
-              subtitle: 'Base de datos completa de empleados',
-              icon: Icons.people,
-              iconColor: AppColors.accentBlue,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GestionEmpleadosScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Liquidación Masiva',
-              subtitle: 'Procesa múltiples empleados en paralelo',
-              icon: Icons.bolt,
-              iconColor: AppColors.accentOrange,
-              isHighlighted: true,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LiquidacionMasivaScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Dashboard Gerencial',
-              subtitle: 'Reportes y gráficos ejecutivos',
-              icon: Icons.dashboard,
-              iconColor: Color(0xFF9333EA), // Purple
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DashboardGerencialScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Conceptos Recurrentes',
-              subtitle: 'Vales, sindicato, embargos automáticos',
-              icon: Icons.receipt_long,
-              iconColor: AppColors.accentEmerald,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GestionConceptosScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Ausencias y Licencias',
-              subtitle: 'Gestión de ausencias con aprobación',
-              icon: Icons.event_busy,
-              iconColor: Color(0xFF14B8A6), // Teal
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GestionAusenciasScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Préstamos',
-              subtitle: 'Préstamos con cuotas automáticas',
-              icon: Icons.attach_money,
-              iconColor: Color(0xFF6366F1), // Indigo
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GestionPrestamosScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Biblioteca CCT',
-              subtitle: 'Convenios actualizados vía robot BAT',
-              icon: Icons.library_books,
-              iconColor: Color(0xFF92400E), // Brown
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BibliotecaCCTScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildModernCard(
-              title: 'Verificador de Recibo',
-              subtitle: 'Escaneá y verificá tu liquidación',
-              icon: Icons.document_scanner_outlined,
-              iconColor: AppColors.accentPink,
-              onTap: () async {
-                final tieneAcceso = await SubscriptionService.hasAccessToFeature('verificador_recibo');
-                if (!tieneAcceso) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Esta función solo está disponible en el plan gratuito'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  return;
-                }
-                
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const VerificadorReciboScreen(),
-                  ),
-                );
-              },
-            ),
-            
-            // === SPRINT 4 + 5: VALIDACIONES Y ALERTAS ===
-            
-            _buildModernCard(
-              title: 'Dashboard de Riesgos',
-              subtitle: 'Alertas y advertencias del sistema',
-              icon: Icons.warning_amber,
-              iconColor: Colors.red[700]!,
-              isHighlighted: true,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DashboardRiesgosScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildModernCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color iconColor,
-    required VoidCallback onTap,
-    bool isHighlighted = false,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isHighlighted
-                  ? AppColors.primary.withOpacity(0.5)
-                  : AppColors.glassBorder,
-              width: isHighlighted ? 2 : 1,
-            ),
-            color: isHighlighted
-                ? AppColors.primary.withOpacity(0.2)
-                : AppColors.glassFill,
-            gradient: isHighlighted
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary.withOpacity(0.2),
-                      AppColors.accentOrange.withOpacity(0.15),
-                    ],
-                  )
-                : null,
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: isHighlighted ? 32 : 24,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: isHighlighted ? 18 : 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -806,35 +670,4 @@ class HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: _buildBody(),
-      // Botón flotante de ayuda general
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final helpContent = AppHelp.getHelpContent('HomeScreen');
-          AppHelp.showHelpDialog(
-            context,
-            helpContent['title']!,
-            helpContent['content']!,
-          );
-        },
-        backgroundColor: const Color(0xFF6366F1),
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 8,
-        child: const Icon(
-          Icons.help_outline,
-          size: 28,
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
-  }
-
 }
