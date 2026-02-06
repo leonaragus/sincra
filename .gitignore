@@ -22,6 +22,8 @@ linux/build/
 windows/build/
 web/build/
 
+.firebase/
+
 # OS specific
 .DS_Store
 Thumbs.db
