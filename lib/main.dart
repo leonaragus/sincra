@@ -7,8 +7,11 @@ import 'screens/user_type_selection_screen.dart';
 import 'screens/verificador_recibos_screen.dart';
 import 'screens/web_login_screen.dart';
 import 'theme/app_theme.dart';
+import 'package:url_strategy/url_strategy.dart'; // Import agregado
 
 void main() {
+  setPathUrlStrategy(); // Función agregada aquí
+
   FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
   PlatformDispatcher.instance.onError = (error, stack) => true;
 

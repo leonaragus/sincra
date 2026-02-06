@@ -23,6 +23,7 @@ dependencies:
   http: ^1.2.0
   intl: ^0.20.2
   url_launcher: ^6.2.5
+  url_strategy: ^0.2.0 # Dependencia agregada
   decimal: ^3.0.1
 
   # Escaneo de recibos docente: OCR on-device + QR
@@ -44,12 +45,16 @@ dependencies:
   # Google Play Billing para suscripciones (Play Store)
   in_app_purchase: ^3.1.7
   collection: ^1.18.0
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_native_splash: ^2.4.1
+  isar_generator: ^3.1.0+1
+  build_runner: ^2.4.13
   # Para Isar en móvil/desktop: isar_generator + build_runner, crear lib/db/syncra_entity.dart y ejecutar build_runner
   # isar_generator: ^3.1.0+1
   # build_runner: ^2.4.9
@@ -72,4 +77,4 @@ flutter_native_splash:
 
   # Assets para Tesseract OCR (modelos de idioma)
   assets:
-    - assets/tessdata/
+    - assets/
