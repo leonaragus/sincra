@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
         Locale('en'),
       ],
       locale: const Locale('es', 'AR'),
-      home: const SplashScreen(),
+      home: const HomeScreen(),
       routes: {
         '/home': (context) => const HomeScreen(),
         '/verificador': (context) => const VerificadorRecibosScreen(),
