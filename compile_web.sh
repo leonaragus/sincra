@@ -16,7 +16,7 @@ flutter pub get
 
 # Compilar para web (release mode)
 echo "🔨 Compilando versión web release..."
-flutter build web --release --no-pub
+flutter build web --release --no-pub --pwa-strategy=none
 
 echo "✅ Compilación completada exitosamente!"
 echo "📁 Los archivos están en: build/web/"
