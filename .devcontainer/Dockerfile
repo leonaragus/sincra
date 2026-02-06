@@ -23,5 +23,4 @@ RUN flutter config --enable-web
 
 # Instalar Firebase Tools globalmente
 RUN npm install -g firebase-tools
-
-WORKDIR /workspaces/elevar_liquidacion
+WORKDIR /workspaces/sincra

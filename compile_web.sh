@@ -1,6 +1,7 @@
 #!/bin/bash
 
 echo "🚀 Iniciando compilación Flutter Web en Codespace"
+set -e
 
 # Configurar Flutter para web
 flutter config --enable-web
@@ -11,7 +12,7 @@ flutter clean
 
 # Forzar reinstalación de dependencias (evita problemas de RAM)
 echo "📦 Reinstalando dependencias..."
-flutter pub get --force
+flutter pub get
 
 # Compilar para web (release mode)
 echo "🔨 Compilando versión web release..."
@@ -43,7 +44,17 @@ fi
 
 # Hacer deploy a Firebase Hosting
 echo "🌐 Haciendo deploy a Firebase Hosting..."
-firebase deploy --only hosting --token "$FIREBASE_TOKEN" --project "sincra"
+if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+    echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-sa.json
+    export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
+    firebase deploy --only hosting --project "sincra"
+    rm -f /tmp/firebase-sa.json
+elif [ -n "$FIREBASE_TOKEN" ]; then
+    firebase deploy --only hosting --token "$FIREBASE_TOKEN" --project "sincra"
+else
+    echo "❌ ERROR: No se encontró FIREBASE_SERVICE_ACCOUNT ni FIREBASE_TOKEN."
+    exit 1
+fi
 
 echo "🎉 DEPLOY COMPLETADO EXITOSAMENTE!"
 echo "🌐 Tu app está disponible en: https://sincra.web.app"
