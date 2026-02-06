@@ -8,7 +8,6 @@ import '../services/hybrid_store.dart';
 import 'convenios_screen.dart';
 import '../models/empresa.dart';
 import '../services/api_service.dart';
-import '../services/subscription_service.dart';
 import '../theme/app_colors.dart';
 import 'empleado_screen.dart';
 import 'lista_empleados_screen.dart';
@@ -39,12 +38,18 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   List<Map<String, String>> _empresas = [];
+  Future<void>? _initialSync;
 
   @override
   void initState() {
     super.initState();
     _cargarEmpresas();
-    _maybeShowUpdateSnackBar();
+    _initialSync = _syncAndMaybeShowSnackBar();
+  }
+
+  Future<void> _syncAndMaybeShowSnackBar() async {
+    await ApiService.syncOrLoadLocal();
+    await _maybeShowUpdateSnackBar();
   }
 
   Future<void> _maybeShowUpdateSnackBar() async {
@@ -208,6 +213,13 @@ class HomeScreenState extends State<HomeScreen> {
         onTap: () => _navegarAEmpresa(null),
       ),
       _buildModernCard(
+        title: 'Verificador de Recibo',
+        subtitle: 'Escaneá y verificá tu liquidación',
+        icon: Icons.document_scanner_outlined,
+        iconColor: AppColors.accentPink,
+        onTap: _navegarVerificadorRecibo,
+      ),
+      _buildModernCard(
         title: 'Liquidador Final',
         subtitle: 'Genera las liquidaciones de empleados',
         icon: Icons.calculate,
@@ -294,13 +306,6 @@ class HomeScreenState extends State<HomeScreen> {
         isHighlighted: true,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRiesgosScreen())),
       ),
-      _buildModernCard(
-        title: 'Verificador de Recibo',
-        subtitle: 'Escaneá y verificá tu liquidación',
-        icon: Icons.document_scanner_outlined,
-        iconColor: AppColors.accentPink,
-        onTap: _navegarVerificadorRecibo,
-      ),
     ];
   }
 
@@ -310,10 +315,8 @@ class HomeScreenState extends State<HomeScreen> {
     if (modules.isEmpty) {
       return const Center(child: Text('No hay módulos disponibles.'));
     }
-    // Sin GridView: tarjetas apiladas arriba, visibles sin scroll
-    return Column(
-      children: modules,
-    );
+
+    return Column(children: modules);
   }
 
   @override
@@ -336,21 +339,66 @@ class HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 _buildHeader(),
-                // Módulos arriba, sin scroll
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: _buildMainButtons(),
-                ),
-                // Empresas debajo (si hay)
-                if (_empresas.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildEmpresasSection(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1100),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            FutureBuilder<void>(
+                              future: _initialSync,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState != ConnectionState.done) return const SizedBox.shrink();
+                                final status = ApiService.lastSyncStatus;
+                                if (status == null) return const SizedBox.shrink();
+                                final dataUpdateDate = status.dataUpdateDate;
+                                if (status.success != true || dataUpdateDate == null) return const SizedBox.shrink();
+
+                                final dateText = "${dataUpdateDate.day.toString().padLeft(2, '0')}/${dataUpdateDate.month.toString().padLeft(2, '0')}/${dataUpdateDate.year}";
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.glassFill,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: AppColors.glassBorder, width: 1),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.update, color: AppColors.textPrimary, size: 18),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            'Convenios actualizados al $dateText',
+                                            style: const TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildMainButtons(),
+                            if (_empresas.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              _buildEmpresasSection(),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -410,7 +458,7 @@ class HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 12),
             const Text(
-              'Syncra Arg',
+              'RRHH App',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
