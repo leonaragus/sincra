@@ -1,5 +1,20 @@
 {
   "projects": {
     "default": "sincra"
+<<<<<<< HEAD
+  },
+  "targets": {
+    "sincra": {
+      "hosting": {
+        "site-principal": [
+          "sincra"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
+=======
   }
 }
+>>>>>>> 9fc429f831c3fed97887c03f8effe2571f907f4e
