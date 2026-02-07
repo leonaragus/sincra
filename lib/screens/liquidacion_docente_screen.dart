@@ -29,6 +29,7 @@ import '../utils/pdf_recibo.dart';
 import '../utils/formatters.dart';
 import '../widgets/teacher_receipt_preview_widget.dart';
 import 'teacher_receipt_scan_screen.dart';
+import '../utils/app_help.dart';
 
 class LiquidacionDocenteScreen extends StatefulWidget {
   final String? cuitInstitucion;
@@ -1108,6 +1109,15 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     );
   }
 
+  void _mostrarAyuda() {
+    final helpContent = AppHelp.getHelpContent('LiquidadorFinalScreen');
+    AppHelp.showHelpDialog(
+      context,
+      helpContent['title']!,
+      helpContent['content']!,
+    );
+  }
+
   @override
   void dispose() {
     _nombreController.dispose();
@@ -1135,6 +1145,21 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
         elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
         title: Text('Liquidación${(widget.razonSocial ?? '').isNotEmpty ? ' · ${widget.razonSocial}' : ''}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+              ),
+              child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
+            ),
+            tooltip: 'Ayuda',
+            onPressed: _mostrarAyuda,
+          ),
+        ],
       ),
       persistentFooterButtons: [
         TextButton(onPressed: _exportarLsd, child: const Text('Exportar LSD')),

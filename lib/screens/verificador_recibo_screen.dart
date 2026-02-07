@@ -1783,42 +1783,4 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                       icon: Icon(Icons.close,
                           size: 18, color: AppColors.textSecondary),
                       onPressed: () =>
-                          setState(() => _mostrarBannerAcademia = false),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Tocá cualquier número o palabra de tu recibo que no entiendas y te explicamos qué es.',
-                  style:
-                      TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() => _mostrarBannerAcademia = false);
-                    _mostrarInfoAcademia();
-                  },
-                  icon: const Icon(Icons.lightbulb_outline, size: 18),
-                  label: const Text('Aprender cómo funciona'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+                          setState(() =>

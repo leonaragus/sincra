@@ -13,6 +13,7 @@ import '../widgets/selector_formato_recibo_dialog.dart';
 import '../utils/validadores.dart';
 import '../data/rnos_docentes_data.dart';
 import 'dart:ui';
+import '../utils/app_help.dart';
 
 class EmpresaScreen extends StatefulWidget {
   final String? razonSocial;
@@ -226,6 +227,15 @@ class EmpresaScreenState extends State<EmpresaScreen> {
         selection: TextSelection.collapsed(offset: selectionOffset),
       );
     }
+  }
+
+  void _mostrarAyuda() {
+    final helpContent = AppHelp.getHelpContent('EmpresaScreen');
+    AppHelp.showHelpDialog(
+      context,
+      helpContent['title']!,
+      helpContent['content']!,
+    );
   }
 
   void _mostrarBuscadorRNOS() {
@@ -492,6 +502,21 @@ class EmpresaScreenState extends State<EmpresaScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+              ),
+              child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
+            ),
+            tooltip: 'Ayuda',
+            onPressed: _mostrarAyuda,
+          ),
+        ],
       ),
       body: Form(
         key: _formKey,

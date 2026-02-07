@@ -22,6 +22,7 @@ import '../services/liquidacion_historial_service.dart';
 import '../utils/validaciones_arca.dart';
 import '../utils/pdf_recibo.dart';
 import '../theme/app_colors.dart';
+import '../utils/app_help.dart';
 import 'institucion_form_screen.dart';
 import 'lista_legajos_sanidad_screen.dart';
 import 'sanidad_receipt_scan_screen.dart';
@@ -381,6 +382,15 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
           },
         );
       },
+    );
+  }
+
+  void _mostrarAyuda() {
+    final helpContent = AppHelp.getHelpContent('sanidad_interface');
+    AppHelp.showHelpDialog(
+      context,
+      helpContent['title']!,
+      helpContent['content']!,
     );
   }
 
@@ -1702,6 +1712,23 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               ),
               tooltip: 'Ajustes Locales (Paritarias)',
               onPressed: _handleAbrirMaestro,
+            ),
+          ),
+          // Botón de Ayuda
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                ),
+                child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
+              ),
+              tooltip: 'Ayuda',
+              onPressed: _mostrarAyuda,
             ),
           ),
         ],

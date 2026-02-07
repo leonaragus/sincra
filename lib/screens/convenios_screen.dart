@@ -6,6 +6,7 @@ import '../models/cct_completo.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/cct_detail_dialog.dart';
+import '../utils/app_help.dart';
 
 class ConveniosScreen extends StatefulWidget {
   const ConveniosScreen({super.key});
@@ -130,6 +131,15 @@ class _ConveniosScreenState extends State<ConveniosScreen> {
     );
   }
 
+  void _mostrarAyuda() {
+    final helpContent = AppHelp.getHelpContent('ConveniosScreen');
+    AppHelp.showHelpDialog(
+      context,
+      helpContent['title']!,
+      helpContent['content']!,
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -219,6 +229,43 @@ class _ConveniosScreenState extends State<ConveniosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.glassFillStrong,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Convenios Colectivos',
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+              ),
+              child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
+            ),
+            tooltip: 'Ayuda',
+            onPressed: _mostrarAyuda,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _agregarConvenio,
         backgroundColor: AppColors.glassFillStrong,
