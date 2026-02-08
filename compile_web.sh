@@ -22,8 +22,15 @@ echo "✅ Compilación completada exitosamente!"
 echo "📁 Los archivos están en: build/web/"
 echo "🌐 Para probar localmente: flutter run -d web-server --web-port 5000"
 
-# Mostrar información del build
-ls -la build/web/ | head -10
+# Mostrar información del build (compatible Windows/Linux)
+echo "📊 Contenido del directorio build/web/:"
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    # Windows
+    dir build/web/ | select -first 10
+else
+    # Linux/Mac
+    ls -la build/web/ | head -10
+fi
 
 echo "🚀 Iniciando deploy automático a Firebase..."
 
