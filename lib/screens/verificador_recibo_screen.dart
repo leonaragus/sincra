@@ -45,8 +45,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   DateTime? _fechaIngreso;
   String _motivoCese = 'Renuncia'; // 'Renuncia' o 'Despido'
 
-  // Nuevas variables para funcionalidad mejorada
-  bool _mostrarDatosLeidos = true;
+  // Variables para funcionalidad mejorada
+  bool _mostrarDatosLeidos = false; // Cambiado a false por defecto
   String _convenioSeleccionado = 'Docente Federal';
   final List<String> _conveniosDisponibles = [
     'Docente Federal',
@@ -55,9 +55,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     'Gastronomía',
     'Construcción'
   ];
-
-  // Variables para análisis de pago
-  bool _mostrarBannerAcademia = true;
 
   /// Controlador para el menú hamburguesa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -111,6 +108,774 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     } catch (_) {}
   }
 
+  Future<void> _escanearYVerificar() async {
+    setState(() {
+      _estaProcesando = true;
+      _rutaImagen = null;
+      _textoOcr = '';
+      _resultado = null;
+      _recibo = null;
+    });
+
+    try {
+      // 1. Obtener imagen
+      final imagenFile = await _ocrService.obtenerImagen();
+      if (imagenFile == null) {
+        setState(() => _estaProcesando = false);
+        return;
+      }
+      setState(() => _rutaImagen = imagenFile.path);
+
+      // 2. Procesar con OCR
+      InputImage inputImage;
+      if (kIsWeb) {
+        // En web no usamos path de archivo real para ML Kit
+        inputImage = InputImage.fromFilePath('web_dummy_path');
+      } else {
+        inputImage = InputImage.fromFilePath(imagenFile.path);
+      }
+
+      final texto = await _ocrService.procesarImagen(inputImage);
+      setState(() => _textoOcr = texto);
+
+      // 3. Parsear el texto
+      final reciboEscaneado = await _verificacionService.parsearTextoOcr(texto);
+      setState(() {
+        _recibo = reciboEscaneado;
+      });
+
+      // 4. Identificar CCT (aquí usamos uno de ejemplo)
+      // En la versión real, deberías buscar en la base de datos de CCTs
+      // o pedirle al usuario que lo seleccione.
+      final cctEjemplo = CctSimplificado(nombre: 'Ejemplo CCT');
+
+      // 5. Verificar
+      final resultado = await _verificacionService.verificarRecibo(
+          reciboEscaneado, cctEjemplo);
+
+      setState(() {
+        _resultado = resultado;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _estaProcesando = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Verificador de Recibo',
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.glassFill,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.glassBorder, width: 1),
+              ),
+              child: Icon(Icons.menu, color: AppColors.textPrimary, size: 20),
+            ),
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+          ),
+        ],
+      ),
+      endDrawer: _buildMenuHamburguesa(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.background,
+              AppColors.backgroundLight,
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              // Selector de convenio
+              _buildSelectorConvenio(),
+
+              if (_estaProcesando)
+                _buildLoadingState()
+              else if (_resultado == null)
+                _buildInitialState()
+              else
+                _buildResultadoWidget(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.glassFill,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.glassBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              strokeWidth: 3,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Analizando tu recibo...',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Detectando conceptos de tu liquidación',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 15,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.glassFillStrong,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.glassBorder, width: 1),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '¿Qué estamos haciendo?',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '• Leyendo el texto de tu recibo\n• Identificando sueldo básico, jubilación, obra social\n• Verificando contra tu convenio laboral\n• Detectando posibles errores o faltantes',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInitialState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        children: [
+          // Tarjeta principal de escaneo
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: AppColors.glassFill,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.glassBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3), width: 2),
+                  ),
+                  child: Icon(
+                    Icons.document_scanner_outlined,
+                    size: 50,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Verificá tu recibo de sueldo',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Escaneá tu recibo y descubrí si tu liquidación es correcta según tu convenio laboral',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 25),
+                ElevatedButton(
+                  onPressed: _escanearYVerificar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.camera_alt, size: 20),
+                      SizedBox(width: 10),
+                      Text('Escanear Recibo',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Información adicional simplificada
+          const SizedBox(height: 25),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.glassFillStrong,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.glassBorder, width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '¿Qué hace esta app?',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildSimpleInfoItem('📱', 'Lee tu recibo automáticamente'),
+                _buildSimpleInfoItem('🔍', 'Detecta todos los conceptos'),
+                _buildSimpleInfoItem('⚖️', 'Compara con tu convenio'),
+                _buildSimpleInfoItem('📊', 'Te dice qué revisar'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimpleInfoItem(String emoji, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultadoWidget() {
+    if (_resultado == null) return const SizedBox.shrink();
+
+    final analisisConvenio = _analizarPagoConvenio();
+
+    return Column(
+      children: [
+        // Imagen del recibo escaneado
+        if (_rutaImagen != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: kIsWeb
+                  ? Image.network(_rutaImagen!, height: 220, fit: BoxFit.cover)
+                  : Image.file(
+                      File(_rutaImagen!),
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
+            ),
+          ),
+
+        // Tarjeta principal de resultados
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.glassFill,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Estado principal
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _resultado!.esCorrecto
+                          ? Colors.green.withOpacity(0.15)
+                          : Colors.orange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _resultado!.esCorrecto
+                            ? Colors.green.withOpacity(0.3)
+                            : Colors.orange.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      _resultado!.esCorrecto
+                          ? Icons.check_circle
+                          : Icons.warning,
+                      color:
+                          _resultado!.esCorrecto ? Colors.green : Colors.orange,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _resultado!.esCorrecto
+                          ? '✅ Recibo verificado correctamente'
+                          : '⚠️ Se encontraron inconsistencias',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Resumen de conceptos detectados
+              if (_recibo != null && _recibo!.conceptos.isNotEmpty) ...[
+                _buildSectionHeader('📋 Conceptos detectados'),
+                const SizedBox(height: 12),
+                _buildResumenConceptos(),
+                const SizedBox(height: 20),
+              ],
+
+              // Inconsistencias
+              if (_resultado!.inconsistencias.isNotEmpty) ...[
+                _buildSectionHeader('⚠️ Inconsistencias detectadas'),
+                const SizedBox(height: 12),
+                ..._resultado!.inconsistencias.map((e) => _buildListItem(
+                      Icons.warning,
+                      Colors.orange,
+                      e,
+                    )),
+                const SizedBox(height: 20),
+              ],
+
+              // Sugerencias
+              if (_resultado!.sugerencias.isNotEmpty) ...[
+                _buildSectionHeader('💡 Sugerencias'),
+                const SizedBox(height: 12),
+                ..._resultado!.sugerencias.map((e) => _buildListItem(
+                      Icons.lightbulb_outline,
+                      Colors.blue,
+                      e,
+                    )),
+                const SizedBox(height: 20),
+              ],
+
+              // Análisis según convenio
+              _buildSectionHeader('📊 Análisis según tu convenio'),
+              const SizedBox(height: 12),
+              ...analisisConvenio['detalles'].map((detalle) => _buildListItem(
+                    Icons.analytics,
+                    Colors.purple,
+                    detalle,
+                  )),
+
+              // Items para revisar
+              if (analisisConvenio['items_revisar'].isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildSectionHeader('🔍 Items para revisar con tu empleador'),
+                const SizedBox(height: 12),
+                ...analisisConvenio['items_revisar']
+                    .map((item) => _buildListItem(
+                          Icons.search,
+                          Colors.orange,
+                          item,
+                        )),
+              ],
+
+              // Alertas graves
+              if (analisisConvenio['alertas_graves'].isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.red.withOpacity(0.3), width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.error_outline,
+                              color: Colors.red, size: 22),
+                          const SizedBox(width: 10),
+                          Text(
+                            '🚨 Alertas graves - Revisión urgente',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ...analisisConvenio['alertas_graves']
+                          .map((alerta) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Text(
+                                  '• $alerta',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              )),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Widgets adicionales
+        _buildProyeccionesWidget(),
+        const SizedBox(height: 16),
+        _buildMetasUnidadesWidget(),
+        const SizedBox(height: 16),
+        _buildEstimadorLiquidacionWidget(),
+
+        // Botones de acción
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _escanearYVerificar,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.refresh, size: 18),
+                    SizedBox(width: 8),
+                    Text('Escanear otro recibo',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TeacherReceiptScanScreen(),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: BorderSide(color: AppColors.glassBorder),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.qr_code_scanner, size: 18),
+                    SizedBox(width: 8),
+                    Text('Escanear QR'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Texto OCR - AHORA SIEMPRE VISIBLE
+        Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: AppColors.glassFill,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '📄 Texto extraído del recibo (OCR)',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundLight.withOpacity(0.5),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  _textoOcr,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  Widget _buildListItem(IconData icon, Color color, String text) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+         ),
+        ],
+      ),
+    );
+  }
+
+  // NUEVO WIDGET: Resumen de conceptos detectados
+  Widget _buildResumenConceptos() {
+    if (_recibo == null || _recibo!.conceptos.isEmpty) return const SizedBox.shrink();
+    
+    final conceptosAgrupados = <String, double>{};
+    for (final concepto in _recibo!.conceptos) {
+      if (concepto.remunerativo != null && concepto.remunerativo! > 0) {
+        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.remunerativo!;
+      }
+      if (concepto.noRemunerativo != null && concepto.noRemunerativo! > 0) {
+        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.noRemunerativo!;
+      }
+      if (concepto.deduccion != null && concepto.deduccion! > 0) {
+        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.deduccion!;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '✅ Detectados ${conceptosAgrupados.length} conceptos',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...conceptosAgrupados.entries.take(5).map((entry) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                entry.key,
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                '\$${entry.value.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        )),
+        if (conceptosAgrupados.length > 5) ...[
+          const SizedBox(height: 4),
+          Text(
+            '... y ${conceptosAgrupados.length - 5} más',
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Resto de métodos permanecen iguales...
+  
   // Helper method to extract basic salary from conceptos
   double? _obtenerSueldoBasico(ReciboEscaneado recibo) {
     final sueldoBasicoConcepto = recibo.conceptos.firstWhere(
@@ -236,680 +1001,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     };
   }
 
-  // Función para mostrar información de la academia
-  void _mostrarInfoAcademia() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: AppColors.primary),
-            SizedBox(width: 12),
-            Text('¿Cómo funciona esta app?',
-                style: TextStyle(
-                    color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Con esta app podés entender tu recibo de sueldo y ver si te pagaron bien.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              _buildAcademiaItem('📱 Sacale foto a tu recibo',
-                  'Usá la cámara para escanear tu recibo de sueldo'),
-              _buildAcademiaItem('🔍 La app lee todo automático',
-                  'Reconoce solo los números y conceptos importantes'),
-              _buildAcademiaItem('⚖️ Chequeamos si está bien',
-                  'Comparamos con lo que deberías cobrar según tu convenio'),
-              _buildAcademiaItem('📊 Te decimos qué revisar',
-                  'Te mostramos si falta algo o si está todo correcto'),
-              const SizedBox(height: 16),
-              const Text(
-                '¡Tocá cualquier cosa que no entiendas en tu recibo y te explicamos qué es!',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido',
-                style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Widget auxiliar para items de la academia
-  Widget _buildAcademiaItem(String titulo, String descripcion) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.glassFillStrong,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check_circle, size: 16, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(titulo,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12)),
-                Text(descripcion,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _escanearYVerificar() async {
-    setState(() {
-      _estaProcesando = true;
-      _rutaImagen = null;
-      _textoOcr = '';
-      _resultado = null;
-      _recibo = null;
-    });
-
-    try {
-      // 1. Obtener imagen
-      final imagenFile = await _ocrService.obtenerImagen();
-      if (imagenFile == null) {
-        setState(() => _estaProcesando = false);
-        return;
-      }
-      setState(() => _rutaImagen = imagenFile.path);
-
-      // 2. Procesar con OCR
-      InputImage inputImage;
-      if (kIsWeb) {
-        // En web no usamos path de archivo real para ML Kit
-        inputImage = InputImage.fromFilePath('web_dummy_path');
-      } else {
-        inputImage = InputImage.fromFilePath(imagenFile.path);
-      }
-
-      final texto = await _ocrService.procesarImagen(inputImage);
-      setState(() => _textoOcr = texto);
-
-      // 3. Parsear el texto
-      final reciboEscaneado = await _verificacionService.parsearTextoOcr(texto);
-      setState(() {
-        _recibo = reciboEscaneado;
-      });
-
-      // 4. Identificar CCT (aquí usamos uno de ejemplo)
-      // En la versión real, deberías buscar en la base de datos de CCTs
-      // o pedirle al usuario que lo seleccione.
-      final cctEjemplo = CctSimplificado(nombre: 'Ejemplo CCT');
-
-      // 5. Verificar
-      final resultado = await _verificacionService.verificarRecibo(
-          reciboEscaneado, cctEjemplo);
-
-      setState(() {
-        _resultado = resultado;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _estaProcesando = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Verificador de Recibo',
-            style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.glassFill,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.glassBorder, width: 1),
-              ),
-              child: Icon(Icons.menu, color: AppColors.textPrimary, size: 20),
-            ),
-            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-          ),
-        ],
-      ),
-      endDrawer: _buildMenuHamburguesa(),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.background,
-              AppColors.backgroundLight,
-            ],
-          ),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              // Sección de datos leídos
-              if (_mostrarDatosLeidos && _textoOcr.isNotEmpty)
-                _buildDatosLeidosWidget(),
-
-              // Banner de datos actualizados
-              _buildDatosActualizadosWidget(),
-
-              // Selector de convenio
-              _buildSelectorConvenio(),
-
-              // Banner de la academia
-              if (_mostrarBannerAcademia && _resultado == null)
-                _buildBannerAcademia(),
-
-              if (_estaProcesando)
-                _buildLoadingState()
-              else if (_resultado == null)
-                _buildInitialState()
-              else
-                _buildResultadoWidget(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.glassFill,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.glassBorder, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              strokeWidth: 3,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Analizando tu recibo...',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Estamos verificando cada concepto de tu liquidación',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInitialState() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
-        children: [
-          // Tarjeta principal de escaneo
-          Container(
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
-              color: AppColors.glassFill,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.glassBorder, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppColors.primary.withOpacity(0.3), width: 2),
-                  ),
-                  child: Icon(
-                    Icons.document_scanner_outlined,
-                    size: 50,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Verificá tu recibo de sueldo',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Escaneá tu recibo y descubrí si tu liquidación es correcta según tu convenio laboral',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 15,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 25),
-                ElevatedButton(
-                  onPressed: _escanearYVerificar,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.camera_alt, size: 20),
-                      SizedBox(width: 10),
-                      Text('Escanear Recibo',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Información adicional
-          const SizedBox(height: 25),
-          Text(
-            '• Analizamos todos los conceptos de tu recibo\n• Verificamos contra tu convenio laboral\n• Te mostramos qué revisar con tu empleador',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultadoWidget() {
-    if (_resultado == null) return const SizedBox.shrink();
-
-    final analisisConvenio = _analizarPagoConvenio();
-
-    return Column(
-      children: [
-        // Imagen del recibo escaneado
-        if (_rutaImagen != null)
-          Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: kIsWeb
-                  ? Image.network(_rutaImagen!, height: 220, fit: BoxFit.cover)
-                  : Image.file(
-                      File(_rutaImagen!),
-                      height: 220,
-                      fit: BoxFit.cover,
-                    ),
-            ),
-          ),
-
-        // Tarjeta principal de resultados
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.glassFill,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.glassBorder, width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 15,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Estado principal
-              Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: _resultado!.esCorrecto
-                          ? Colors.green.withOpacity(0.15)
-                          : Colors.orange.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _resultado!.esCorrecto
-                            ? Colors.green.withOpacity(0.3)
-                            : Colors.orange.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: Icon(
-                      _resultado!.esCorrecto
-                          ? Icons.check_circle
-                          : Icons.warning,
-                      color:
-                          _resultado!.esCorrecto ? Colors.green : Colors.orange,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      _resultado!.esCorrecto
-                          ? '✅ Recibo verificado correctamente'
-                          : '⚠️ Se encontraron inconsistencias',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // Inconsistencias
-              if (_resultado!.inconsistencias.isNotEmpty) ...[
-                _buildSectionHeader('📋 Inconsistencias detectadas'),
-                const SizedBox(height: 12),
-                ..._resultado!.inconsistencias.map((e) => _buildListItem(
-                      Icons.warning,
-                      Colors.orange,
-                      e,
-                    )),
-                const SizedBox(height: 20),
-              ],
-
-              // Sugerencias
-              if (_resultado!.sugerencias.isNotEmpty) ...[
-                _buildSectionHeader('💡 Sugerencias'),
-                const SizedBox(height: 12),
-                ..._resultado!.sugerencias.map((e) => _buildListItem(
-                      Icons.lightbulb_outline,
-                      Colors.blue,
-                      e,
-                    )),
-                const SizedBox(height: 20),
-              ],
-
-              // Análisis según convenio
-              _buildSectionHeader('📊 Análisis según tu convenio'),
-              const SizedBox(height: 12),
-              ...analisisConvenio['detalles'].map((detalle) => _buildListItem(
-                    Icons.analytics,
-                    Colors.purple,
-                    detalle,
-                  )),
-
-              // Items para revisar
-              if (analisisConvenio['items_revisar'].isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _buildSectionHeader('🔍 Items para revisar con tu empleador'),
-                const SizedBox(height: 12),
-                ...analisisConvenio['items_revisar']
-                    .map((item) => _buildListItem(
-                          Icons.search,
-                          Colors.orange,
-                          item,
-                        )),
-              ],
-
-              // Alertas graves
-              if (analisisConvenio['alertas_graves'].isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.red.withOpacity(0.3), width: 1.5),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.error_outline,
-                              color: Colors.red, size: 22),
-                          const SizedBox(width: 10),
-                          Text(
-                            '🚨 Alertas graves - Revisión urgente',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      ...analisisConvenio['alertas_graves']
-                          .map((alerta) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                child: Text(
-                                  '• $alerta',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              )),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Widgets adicionales
-        _buildProyeccionesWidget(),
-        const SizedBox(height: 16),
-        _buildMetasUnidadesWidget(),
-        const SizedBox(height: 16),
-        _buildEstimadorLiquidacionWidget(),
-        const SizedBox(height: 20),
-        _buildBannerAcademia(),
-
-        // Botones de acción
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: _escanearYVerificar,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.refresh, size: 18),
-                    SizedBox(width: 8),
-                    Text('Escanear otro recibo',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TeacherReceiptScanScreen(),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  side: BorderSide(color: AppColors.glassBorder),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.qr_code_scanner, size: 18),
-                    SizedBox(width: 8),
-                    Text('Escanear QR'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Texto OCR
-        Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          decoration: BoxDecoration(
-            color: AppColors.glassFill,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.glassBorder, width: 1),
-          ),
-          child: ExpansionTile(
-            title: Text(
-              '📄 Texto extraído del recibo (OCR)',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                width: double.infinity,
-                child: Text(
-                  _textoOcr,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
@@ -944,7 +1035,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 height: 1.4,
               ),
             ),
-          ),
+         ),
         ],
       ),
     );
@@ -1142,32 +1233,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     final i = pow(1 + (ipcMensualPct / 100), meses);
     final ratio = (a / i);
     return ratio;
-  }
-
-  Widget _buildDatosActualizadosWidget() {
-    String doc = _fechaDocentes != null
-        ? '${_fechaDocentes!.day.toString().padLeft(2, '0')}/${_fechaDocentes!.month.toString().padLeft(2, '0')}/${_fechaDocentes!.year}'
-        : 'sin fecha';
-    String san = _fechaSanidad != null
-        ? '${_fechaSanidad!.day.toString().padLeft(2, '0')}/${_fechaSanidad!.month.toString().padLeft(2, '0')}/${_fechaSanidad!.year}'
-        : 'sin fecha';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.update, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text(
-              'Datos actualizados • Docentes: $doc • Sanidad: $san • Fuente: INDEC/Paritarias'),
-        ],
-      ),
-    );
   }
 
   Widget _buildMetasUnidadesWidget() {
@@ -1539,7 +1604,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-  }) {
+   }) {
     return ListTile(
       leading: Container(
         width: 40,
@@ -1561,67 +1626,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    );
-  }
-
-  /// Widget para mostrar datos leídos (ahora arriba del todo)
-  Widget _buildDatosLeidosWidget() {
-    return Card(
-      color: AppColors.backgroundCard,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Datos Leídos del Recibo',
-                    style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold)),
-                IconButton(
-                  icon: Icon(
-                      _mostrarDatosLeidos
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      size: 20,
-                      color: AppColors.textSecondary),
-                  onPressed: () => setState(
-                      () => _mostrarDatosLeidos = !_mostrarDatosLeidos),
-                ),
-              ],
-            ),
-            if (_mostrarDatosLeidos) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.glassBorder),
-                ),
-                child: Text(
-                  _textoOcr,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: _agregarDatosManuales,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Agregar Datos Manualmente'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 
@@ -1666,26 +1670,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     );
   }
 
-  /// Método para agregar datos manualmente
-  void _agregarDatosManuales() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
-        title: const Text('Agregar Datos Manualmente',
-            style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Funcionalidad en desarrollo - Próximamente',
-            style: TextStyle(color: AppColors.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Método para ajustar margen OCR
   void _mostrarAjustesOcr() {
     showDialog(
@@ -1707,117 +1691,92 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     );
   }
 
-  Widget _buildBannerAcademia() {
-    return GestureDetector(
-      onTap: () {
-        setState(() => _mostrarBannerAcademia = false);
-        _mostrarInfoAcademia();
-      },
-      child: Card(
-        elevation: 4,
-        shadowColor:
-            AppColors.primary.withValues(alpha: (0.3 * 255).round().toDouble()),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary
-                    .withValues(alpha: (0.1 * 255).round().toDouble()),
-                AppColors.backgroundLight
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border.all(
-                color: AppColors.primary
-                    .withValues(alpha: (0.3 * 255).round().toDouble())),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    // Logo de la academia
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary
-                            .withValues(alpha: (0.2 * 255).round().toDouble()),
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
-                            color: AppColors.primary.withValues(
-                                alpha: (0.5 * 255).round().toDouble())),
-                      ),
-                      child: Icon(Icons.school,
-                          color: AppColors.primary, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Academia Elevar',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            '¿No entendés algo de tu recibo?',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close,
-                          size: 18, color: AppColors.textSecondary),
-                      onPressed: () =>
-                          setState(() => _mostrarBannerAcademia = false),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Tocá cualquier número o palabra de tu recibo que no entiendas y te explicamos qué es.',
-                  style:
-                      TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() => _mostrarBannerAcademia = false);
-                    _mostrarInfoAcademia();
-                  },
-                  icon: const Icon(Icons.lightbulb_outline, size: 18),
-                  label: const Text('Aprender cómo funciona'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
+  /// Método para mostrar información de la academia
+  void _mostrarInfoAcademia() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.backgroundLight,
+        title: const Row(
+          children: [
+            Icon(Icons.school, color: AppColors.primary),
+            SizedBox(width: 12),
+            Text('¿Cómo funciona esta app?',
+                style: TextStyle(
+                    color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Con esta app podés entender tu recibo de sueldo y ver si te pagaron bien.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              _buildAcademiaItem('📱 Sacale foto a tu recibo',
+                  'Usá la cámara para escanear tu recibo de sueldo'),
+              _buildAcademiaItem('🔍 La app lee todo automático',
+                  'Reconoce todos los conceptos importantes'),
+              _buildAcademiaItem('⚖️ Chequeamos si está bien',
+                  'Comparamos con lo que deberías cobrar según tu convenio'),
+              _buildAcademiaItem('📊 Te decimos qué revisar',
+                  'Te mostramos si falta algo o si está todo correcto'),
+              const SizedBox(height: 16),
+              const Text(
+                '¡Tocá cualquier concepto que no entiendas y te explicamos qué es!',
+                style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic),
+              ),
+            ],
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido',
+                style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget auxiliar para items de la academia
+  Widget _buildAcademiaItem(String titulo, String descripcion) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.glassFillStrong,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check_circle, size: 16, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(titulo,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12)),
+                Text(descripcion,
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
