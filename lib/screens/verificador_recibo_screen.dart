@@ -767,45 +767,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimary,
-      ),
-    );
-  }
 
-  Widget _buildListItem(IconData icon, Color color, String text) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.2), width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-         ),
-        ],
-      ),
-    );
-  }
 
   // NUEVO WIDGET: Resumen de conceptos detectados
   Widget _buildResumenConceptos() {
@@ -819,8 +781,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       if (concepto.noRemunerativo != null && concepto.noRemunerativo! > 0) {
         conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.noRemunerativo!;
       }
-      if (concepto.deduccion != null && concepto.deduccion! > 0) {
-        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.deduccion!;
+      if (concepto.deducciones != null && concepto.deducciones! > 0) {
+        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.deducciones!;
       }
     }
 

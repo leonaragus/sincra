@@ -444,4 +444,133 @@ class VerificacionReciboService {
     };
     return mapaDescripciones[tipoConcepto] ?? tipoConcepto;
   }
+
+  /// Verifica un recibo escaneado contra un CCT y devuelve el resultado de validación
+  Future<ResultadoVerificacion> verificarRecibo(
+      ReciboEscaneado recibo, CctSimplificado cct) async {
+    final inconsistencias = <String>[];
+    final sugerencias = <String>[];
+    
+    // 1. Verificar que el recibo tenga conceptos
+    if (recibo.conceptos.isEmpty) {
+      inconsistencias.add('El recibo no contiene conceptos válidos');
+      return ResultadoVerificacion(
+        esCorrecto: false,
+        inconsistencias: inconsistencias,
+        sugerencias: sugerencias,
+      );
+    }
+    
+    // 2. Verificar porcentajes de deducciones contra el CCT
+    _verificarPorcentajesDeducciones(recibo, cct, inconsistencias, sugerencias);
+    
+    // 3. Verificar consistencia de montos
+    _verificarConsistenciaMontos(recibo, inconsistencias, sugerencias);
+    
+    // 4. Verificar conceptos básicos obligatorios
+    _verificarConceptosObligatorios(recibo, inconsistencias, sugerencias);
+    
+    return ResultadoVerificacion(
+      esCorrecto: inconsistencias.isEmpty,
+      inconsistencias: inconsistencias,
+      sugerencias: sugerencias,
+    );
+  }
+  
+  void _verificarPorcentajesDeducciones(
+      ReciboEscaneado recibo, 
+      CctSimplificado cct, 
+      List<String> inconsistencias, 
+      List<String> sugerencias) {
+    // Implementar verificación de porcentajes según CCT
+    final totalRemunerativo = recibo.conceptos.fold<double>(0.0, 
+        (sum, concepto) => sum + (concepto.remunerativo ?? 0.0));
+    
+    if (totalRemunerativo > 0) {
+      // Verificar jubilación (debería ser ~11%)
+      final totalJubilacion = recibo.conceptos.fold<double>(0.0, 
+          (sum, concepto) => concepto.descripcion.toLowerCase().contains('jubilacion') 
+              ? sum + (concepto.deducciones ?? 0.0) 
+              : sum);
+      
+      final porcentajeJubilacion = (totalJubilacion / totalRemunerativo) * 100;
+      if (porcentajeJubilacion < cct.jubilacionPct - 1 || 
+          porcentajeJubilacion > cct.jubilacionPct + 1) {
+        inconsistencias.add('Porcentaje de jubilación (${porcentajeJubilacion.toStringAsFixed(1)}%) '
+            'no coincide con el CCT (${cct.jubilacionPct}%)');
+      }
+      
+      // Verificar obra social (debería ser ~3%)
+      final totalObraSocial = recibo.conceptos.fold<double>(0.0, 
+          (sum, concepto) => concepto.descripcion.toLowerCase().contains('obra social') 
+              ? sum + (concepto.deducciones ?? 0.0) 
+              : sum);
+      
+      final porcentajeObraSocial = (totalObraSocial / totalRemunerativo) * 100;
+      if (porcentajeObraSocial < cct.obraSocialPct - 0.5 || 
+          porcentajeObraSocial > cct.obraSocialPct + 0.5) {
+        inconsistencias.add('Porcentaje de obra social (${porcentajeObraSocial.toStringAsFixed(1)}%) '
+            'no coincide con el CCT (${cct.obraSocialPct}%)');
+      }
+    }
+  }
+  
+  void _verificarConsistenciaMontos(
+      ReciboEscaneado recibo, 
+      List<String> inconsistencias, 
+      List<String> sugerencias) {
+    // Verificar que los montos sean positivos
+    for (final concepto in recibo.conceptos) {
+      if ((concepto.remunerativo ?? 0) < 0 || 
+          (concepto.noRemunerativo ?? 0) < 0 || 
+          (concepto.deducciones ?? 0) < 0) {
+        inconsistencias.add('Concepto "${concepto.descripcion}" tiene montos negativos');
+      }
+    }
+    
+    // Verificar que el total neto sea razonable
+    final totalBruto = recibo.conceptos.fold<double>(0.0, 
+        (sum, concepto) => sum + (concepto.remunerativo ?? 0.0) + (concepto.noRemunerativo ?? 0.0));
+    
+    final totalDeducciones = recibo.conceptos.fold<double>(0.0, 
+        (sum, concepto) => sum + (concepto.deducciones ?? 0.0));
+    
+    final totalNeto = totalBruto - totalDeducciones;
+    
+    if (totalNeto < 0) {
+      inconsistencias.add('El total neto no puede ser negativo');
+    }
+    
+    if (totalDeducciones > totalBruto * 0.5) {
+      sugerencias.add('Las deducciones representan más del 50% del total bruto - verificar');
+    }
+  }
+  
+  void _verificarConceptosObligatorios(
+      ReciboEscaneado recibo, 
+      List<String> inconsistencias, 
+      List<String> sugerencias) {
+    // Verificar conceptos básicos que deberían estar en cualquier recibo
+    final tieneSueldoBasico = recibo.conceptos.any((concepto) => 
+        concepto.descripcion.toLowerCase().contains('sueldo básico') ||
+        concepto.descripcion.toLowerCase().contains('sueldo basico'));
+    
+    if (!tieneSueldoBasico) {
+      inconsistencias.add('No se encontró concepto de Sueldo Básico');
+    }
+    
+    final tieneJubilacion = recibo.conceptos.any((concepto) => 
+        concepto.descripcion.toLowerCase().contains('jubilacion'));
+    
+    if (!tieneJubilacion) {
+      sugerencias.add('No se detectó descuento por jubilación - verificar');
+    }
+    
+    final tieneObraSocial = recibo.conceptos.any((concepto) => 
+        concepto.descripcion.toLowerCase().contains('obra social'));
+    
+    if (!tieneObraSocial) {
+      sugerencias.add('No se detectó descuento por obra social - verificar');
+    }
+  }
 }

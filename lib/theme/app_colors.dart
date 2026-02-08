@@ -36,6 +36,15 @@ class AppColors {
   static const Color pastelBlue = Color(0xFFdbeafe); // blue-100
   static const Color pastelMint = Color(0xFFdcfce7); // green-100
   static const Color pastelOrange = Color(0xFFfed7aa); // orange-100
+  static const Color pastelYellow = Color(0xFFfef08a); // yellow-100
+  static const Color pastelPink = Color(0xFFfbcfe8); // pink-100
+  
+  // Colores de acento mejorados
+  static const Color accentBlue = Color(0xFF3b82f6); // blue-500
+  static const Color accentPink = Color(0xFFec4899); // pink-500
+  static const Color accentYellow = Color(0xFFf59e0b); // amber-500
+  static const Color accentEmerald = Color(0xFF10b981); // emerald-500
+  static const Color accentOrange = Color(0xFFf97316); // orange-500
   
   // Gradientes mejorados
   static const LinearGradient primaryGradient = LinearGradient(
