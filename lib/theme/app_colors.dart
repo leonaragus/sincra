@@ -31,6 +31,7 @@ class AppColors {
   static const Color surface = Color(0xFF1e293b); // slate-800
   static const Color surfaceLight = Color(0xFF334155); // slate-700
   static const Color border = Color(0xFF475569); // slate-600
+  static const Color backgroundDark = Color(0xFF0f172a); // slate-900
   
   // Colores pastel que faltaban (agregados para compatibilidad)
   static const Color pastelBlue = Color(0xFFdbeafe); // blue-100
@@ -45,6 +46,8 @@ class AppColors {
   static const Color accentYellow = Color(0xFFf59e0b); // amber-500
   static const Color accentEmerald = Color(0xFF10b981); // emerald-500
   static const Color accentOrange = Color(0xFFf97316); // orange-500
+  static const Color accentGreen = Color(0xFF22c55e); // green-500
+  static const Color accentRed = Color(0xFFef4444); // red-500
   
   // Gradientes mejorados
   static const LinearGradient primaryGradient = LinearGradient(

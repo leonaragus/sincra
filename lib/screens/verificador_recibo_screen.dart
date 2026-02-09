@@ -10,8 +10,13 @@ import 'package:syncra_arg/models/recibo_escaneado.dart';
 import 'package:syncra_arg/services/hybrid_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncra_arg/services/parametros_legales_service.dart';
+import 'package:syncra_arg/services/conceptos_explicaciones_service.dart';
+import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
+import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
 import 'package:syncra_arg/utils/app_help.dart';
+import 'package:syncra_arg/utils/conceptos_builder.dart';
 import 'package:syncra_arg/theme/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class VerificadorReciboScreen extends StatefulWidget {
   const VerificadorReciboScreen({super.key});
@@ -47,13 +52,37 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
 
   // Variables para funcionalidad mejorada
   bool _mostrarDatosLeidos = false; // Cambiado a false por defecto
-  String _convenioSeleccionado = 'Docente Federal';
+  String? _convenioSeleccionado = null; // Hacer opcional
   final List<String> _conveniosDisponibles = [
     'Docente Federal',
     'Sanidad',
     'Comercio',
     'Gastronomía',
-    'Construcción'
+    'Construcción',
+    'Metalúrgico',
+    'Textil',
+    'Químico',
+    'Plásticos',
+    'Alimentación',
+    'Transporte',
+    'Petróleo',
+    'Bancario',
+    'Seguros',
+    'Empleados de Comercio',
+    'Rural',
+    'Vidrio',
+    'Papel',
+    'GrÁficos',
+    'Farmacia',
+    'Hotelería',
+    'Turismo',
+    'Servicios',
+    'Call Center',
+    'Tecnología',
+    'Administración Pública',
+    'Salud',
+    'Educación Privada',
+    'No sé mi convenio' // Opción para usuarios que no conocen su convenio
   ];
 
   /// Controlador para el menú hamburguesa
@@ -135,11 +164,34 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         inputImage = InputImage.fromFilePath(imagenFile.path);
       }
 
-      final texto = await _ocrService.procesarImagen(inputImage);
-      setState(() => _textoOcr = texto);
+      final resultadoOcr = await _ocrService.procesarImagen(inputImage);
+      setState(() {
+        _textoOcr = resultadoOcr.texto;
+        _estaProcesando = false;
+      });
 
-      // 3. Parsear el texto
-      final reciboEscaneado = await _verificacionService.parsearTextoOcr(texto);
+      // 3. Parsear el texto - intentamos parsear incluso si el OCR fue parcial
+      ReciboEscaneado reciboEscaneado;
+      try {
+        reciboEscaneado = await _verificacionService.parsearTextoOcr(resultadoOcr.textoCrudo);
+      } catch (e) {
+        // Si falla el parseo, intentamos con el texto formateado
+        try {
+          reciboEscaneado = await _verificacionService.parsearTextoOcr(resultadoOcr.texto);
+        } catch (e2) {
+          // Si todo falla, mostramos mensaje amigable
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('⚠️ Leímos el recibo pero no pudimos extraer todos los datos. Revisá los datos manualmente.')),
+            );
+          }
+          // Creamos un recibo vacío para que el usuario pueda ver lo que se leyó
+          reciboEscaneado = ReciboEscaneado(
+            sueldoNeto: 0,
+            conceptos: [],
+          );
+        }
+      }
       setState(() {
         _recibo = reciboEscaneado;
       });
@@ -548,10 +600,85 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               const SizedBox(height: 20),
 
               // Resumen de conceptos detectados
-              if (_recibo != null && _recibo!.conceptos.isNotEmpty) ...[
+              if (_recibo != null && _recibo!.conceptos.isNotEmpty) ...[                
+                // Botón de acceso al glosario
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GlosarioConceptosScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.help_outline, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '¿No entiendes algún concepto? Consulta nuestro glosario',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Botón de acceso a información del convenio
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ConoceTuConvenioScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.accentGreen.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.business_center, color: AppColors.accentGreen, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '¿Quieres conocer tu convenio? Ver detalles completos',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios, color: AppColors.accentGreen, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
                 _buildSectionHeader('📋 Conceptos detectados'),
                 const SizedBox(height: 12),
-                _buildResumenConceptos(),
+                ConceptosBuilder.buildResumenConceptos(_recibo, context),
                 const SizedBox(height: 20),
               ],
 
@@ -751,13 +878,55 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                     bottomRight: Radius.circular(12),
                   ),
                 ),
-                child: Text(
-                  _textoOcr,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                    fontFamily: 'monospace',
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.text_snippet, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Texto detectado por OCR:',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.glassBorder, width: 1),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          _textoOcr.isNotEmpty ? _textoOcr : 'No se detectó texto',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_textoOcr.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Caracteres detectados: ${_textoOcr.length}',
+                        style: TextStyle(
+                          color: AppColors.textSecondary.withOpacity(0.7),
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -867,49 +1036,62 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     detalles.add('Total neto: ${r.sueldoNeto.toStringAsFixed(2)}');
 
     // Análisis específico por convenio con valores de referencia 2026
-    switch (_convenioSeleccionado) {
-      case 'Docente Federal':
-        detalles.add('Convenio: Docente Federal (Nacional)');
-        detalles.add('Categoría: Maestro de Grado - Jornada Completa');
-        detalles.add('Referencia 2026: 650.000 - 850.000');
+    if (_convenioSeleccionado == null || _convenioSeleccionado == 'No sé mi convenio') {
+      detalles.add('Convenio: No especificado');
+      detalles.add('Te ayudamos a verificar valores generales');
+      detalles.add('Verificamos porcentajes estándar de aportes');
+      
+      // Verificaciones generales para usuarios que no conocen su convenio
+      if (sueldoBasico != null && sueldoBasico < 400000) {
+        alertasGraves.add(
+            '⚠️ SUELDO MUY BAJO: Tu básico está por debajo de referencia general');
+        itemsRevisar.add('Consultá con tu empleador sobre tu convenio aplicable');
+      }
+    } else {
+      switch (_convenioSeleccionado) {
+        case 'Docente Federal':
+          detalles.add('Convenio: Docente Federal (Nacional)');
+          detalles.add('Categoría: Maestro de Grado - Jornada Completa');
+          detalles.add('Referencia 2026: 650.000 - 850.000');
 
-        if (sueldoBasico != null && sueldoBasico < 600000) {
-          alertasGraves.add(
-              '⚠️ SUELDO CRÍTICAMENTE BAJO: Tu básico está muy por debajo del piso docente');
-          alertasGraves
-              .add('Urgente: Contactá a tu delegado gremial inmediatamente');
-        } else if (sueldoBasico != null && sueldoBasico < 650000) {
-          itemsRevisar.add(
-              'Sueldo básico bajo para docente federal (debería ser > 650.000)');
-        }
-        break;
+          if (sueldoBasico != null && sueldoBasico < 600000) {
+            alertasGraves.add(
+                '⚠️ SUELDO CRÍTICAMENTE BAJO: Tu básico está muy por debajo del piso docente');
+            alertasGraves
+                .add('Urgente: Contactá a tu delegado gremial inmediatamente');
+          } else if (sueldoBasico != null && sueldoBasico < 650000) {
+            itemsRevisar.add(
+                'Sueldo básico bajo para docente federal (debería ser > 650.000)');
+          }
+          break;
 
-      case 'Sanidad':
-        detalles.add('Convenio: Sanidad (UPCN/Sindicato)');
-        detalles.add('Categoría: Enfermero Profesional');
-        detalles.add('Referencia 2026: 580.000 - 720.000');
+        case 'Sanidad':
+          detalles.add('Convenio: Sanidad (UPCN/Sindicato)');
+          detalles.add('Categoría: Enfermero Profesional');
+          detalles.add('Referencia 2026: 580.000 - 720.000');
 
-        if (sueldoBasico != null && sueldoBasico < 550000) {
-          alertasGraves.add(
-              '⚠️ SUELDO BAJO: Tu básico está por debajo del convenio de sanidad');
-          itemsRevisar.add('Revisá con recursos humanos tu categorización');
-        }
-        break;
+          if (sueldoBasico != null && sueldoBasico < 550000) {
+            alertasGraves.add(
+                '⚠️ SUELDO BAJO: Tu básico está por debajo del convenio de sanidad');
+            itemsRevisar.add('Revisá con recursos humanos tu categorización');
+          }
+          break;
 
-      case 'Comercio':
-        detalles.add('Convenio: Comercio (FAECYS)');
-        detalles.add('Categoría: Dependiente - 8hs');
-        detalles.add('Referencia 2026: 520.000 - 620.000');
+        case 'Comercio':
+          detalles.add('Convenio: Comercio (FAECYS)');
+          detalles.add('Categoría: Dependiente - 8hs');
+          detalles.add('Referencia 2026: 520.000 - 620.000');
 
-        if (sueldoBasico != null && sueldoBasico < 500000) {
-          itemsRevisar.add(
-              'Sueldo básico bajo para convenio de comercio (mínimo 520.000)');
-        }
-        break;
+          if (sueldoBasico != null && sueldoBasico < 500000) {
+            itemsRevisar.add(
+                'Sueldo básico bajo para convenio de comercio (mínimo 520.000)');
+          }
+          break;
 
-      default:
-        detalles.add('Convenio: $_convenioSeleccionado');
-        detalles.add('Verificá con tu sindicato los valores de referencia');
+        default:
+          detalles.add('Convenio: $_convenioSeleccionado');
+          detalles.add('Verificá con tu sindicato los valores de referencia');
+      }
     }
 
     // Verificación de aportes básicos (porcentajes aproximados)
@@ -1538,7 +1720,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Convenio: $_convenioSeleccionado',
+                    'Convenio: ${_convenioSeleccionado ?? "No especificado"}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -1601,21 +1783,51 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Seleccionar Convenio',
+            const Text('¿Conocés tu convenio colectivo?',
                 style: TextStyle(
-                    color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _convenioSeleccionado,
-              items: _conveniosDisponibles.map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value,
-                      style: const TextStyle(color: AppColors.textPrimary)),
-                );
-              }).toList(),
+                    color: AppColors.textPrimary, 
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16)),
+            const SizedBox(height: 4),
+            const Text(
+              'Seleccioná tu convenio si lo conocés. Si no estás seguro, podés elegir "No sé mi convenio" y te ayudaremos igual.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              value: _convenioSeleccionado,
+              items: [
+                // Opción por defecto para usuarios que no conocen su convenio
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text(
+                    'No sé mi convenio - Ayúdame a verificar igual',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+                // Separador visual
+                const DropdownMenuItem<String?>(
+                  value: '',
+                  enabled: false,
+                  child: Divider(height: 1, color: AppColors.border),
+                ),
+                // Todos los convenios disponibles
+                ..._conveniosDisponibles.where((c) => c != 'No sé mi convenio').map((String value) {
+                  return DropdownMenuItem<String?>(
+                    value: value,
+                    child: Text(value,
+                        style: const TextStyle(color: AppColors.textPrimary)),
+                  );
+                }).toList(),
+              ],
               onChanged: (val) {
-                if (val != null) setState(() => _convenioSeleccionado = val);
+                setState(() => _convenioSeleccionado = val);
               },
               dropdownColor: AppColors.backgroundCard,
               decoration: InputDecoration(
@@ -1623,6 +1835,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                     OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 filled: true,
                 fillColor: AppColors.backgroundLight,
+                hint: const Text('Seleccionar convenio (opcional)'),
               ),
               style: const TextStyle(color: AppColors.textPrimary),
             ),
@@ -1663,7 +1876,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           children: [
             Icon(Icons.school, color: AppColors.primary),
             SizedBox(width: 12),
-            Text('¿Cómo funciona esta app?',
+            Text('Elevar Formación Técnica',
                 style: TextStyle(
                     color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
           ],
@@ -1674,7 +1887,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Con esta app podés entender tu recibo de sueldo y ver si te pagaron bien.',
+                '¡Aprendé a liquidar sueldos con nuestro curso especializado!',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 16),
@@ -1688,11 +1901,21 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   'Te mostramos si falta algo o si está todo correcto'),
               const SizedBox(height: 16),
               const Text(
-                '¡Tocá cualquier concepto que no entiendas y te explicamos qué es!',
+                '💼 Curso de Liquidación de Sueldos',
                 style: TextStyle(
                     color: AppColors.primary,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '• Formación completa y práctica\n'
+                '• Aprendé con casos reales\n'
+                '• Certificación oficial\n'
+                '• Modalidad presencial y online',
+                style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12),
               ),
             ],
           ),
@@ -1701,7 +1924,25 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Entendido',
-                style: TextStyle(color: AppColors.primary)),
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _abrirWhatsApp();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.chat, size: 18),
+                SizedBox(width: 8),
+                Text('Contactar por WhatsApp'),
+              ],
+            ),
           ),
         ],
       ),
@@ -1741,5 +1982,22 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         ],
       ),
     );
+  }
+
+  /// Método para abrir WhatsApp con el número de contacto
+  Future<void> _abrirWhatsApp() async {
+    const numero = '5492995484312'; // Número de Elevar Formación Técnica
+    final url = 'https://wa.me/$numero';
+    
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo abrir WhatsApp'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 }
