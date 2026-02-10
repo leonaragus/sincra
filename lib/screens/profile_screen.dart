@@ -304,6 +304,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _launchPrivacyPolicy() async {
+    const url = 'https://syncra-arg.web.app/privacy-policy';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    }
+  }
+
+  void _showLicenses() {
+    showLicensePage(
+      context: context,
+      applicationName: 'Syncra Arg',
+      applicationVersion: '1.0.0',
+      applicationIcon: const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: Icon(Icons.verified_user, size: 48),
+      ),
+    );
+  }
+
   Widget _buildSupportSection() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -337,7 +356,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             leading: const Icon(Icons.privacy_tip, color: AppColors.primary),
             title: const Text('Políticas de Privacidad'),
             subtitle: const Text('Términos y condiciones'),
-            onTap: () {},
+            onTap: _launchPrivacyPolicy,
+            contentPadding: EdgeInsets.zero,
+          ),
+          
+          ListTile(
+            leading: const Icon(Icons.description, color: Colors.blueGrey),
+            title: const Text('Licencias'),
+            subtitle: const Text('Software de código abierto'),
+            onTap: _showLicenses,
+            contentPadding: EdgeInsets.zero,
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.info_outline, color: Colors.grey),
+            title: const Text('Versión de la App'),
+            subtitle: const Text('1.0.0'),
             contentPadding: EdgeInsets.zero,
           ),
           
