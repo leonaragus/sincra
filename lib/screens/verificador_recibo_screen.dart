@@ -460,7 +460,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextButton.icon(
+                ElevatedButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -469,21 +469,24 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.library_books, color: AppColors.primary),
+                  icon: const Icon(Icons.library_books, color: Colors.white),
                   label: const Text(
                     'Biblioteca de Convenios',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: 16,
                     ),
                   ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: AppColors.glassBorder),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    elevation: 4,
                   ),
                 ),
               ],
@@ -1795,6 +1798,20 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => const TeacherReceiptScanScreen()),
+                );
+              },
+            ),
+
+            _buildMenuItem(
+              icon: Icons.library_books,
+              label: 'Biblioteca de Convenios',
+              onTap: () {
+                Navigator.pop(context); // Cerrar menú
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ConoceTuConvenioScreen(),
+                  ),
                 );
               },
             ),

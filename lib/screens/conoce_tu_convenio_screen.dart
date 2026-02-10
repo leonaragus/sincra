@@ -215,105 +215,248 @@ class _ConoceTuConvenioScreenState extends State<ConoceTuConvenioScreen> {
     }
 
     final convenio = _convenioSeleccionado!;
+    // Si la categoría seleccionada no pertenece al convenio actual, usar la primera
+    if (_categoriaSeleccionada != null && 
+        !convenio.categorias.any((c) => c.id == _categoriaSeleccionada)) {
+      _categoriaSeleccionada = convenio.categorias.isNotEmpty ? convenio.categorias.first.id : null;
+    }
+    
     final categoria = _categoriaSeleccionada != null
         ? convenio.categorias.firstWhere(
             (c) => c.id == _categoriaSeleccionada,
             orElse: () => convenio.categorias.first,
           )
-        : convenio.categorias.first;
+        : (convenio.categorias.isNotEmpty ? convenio.categorias.first : null);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.backgroundCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.glassBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  convenio.nombre,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      convenio.nombre,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'CCT ${convenio.numeroCCT}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.download, color: AppColors.primary),
-                onPressed: _descargarPDF,
-                tooltip: 'Descargar PDF completo',
               ),
             ],
           ),
           
-          const SizedBox(height: 8),
-          Text(
-            'CCT ${convenio.numeroCCT}',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             convenio.descripcion,
             style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
+              color: AppColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
             ),
           ),
           
-          const SizedBox(height: 16),
-          const Text(
-            'Categoría:',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            categoria.nombre,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 16,
-            ),
-          ),
+          const SizedBox(height: 24),
           
-          const SizedBox(height: 16),
-          const Text(
-            'Salario Base:',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
+          // Sección de Descarga PDF Destacada
+          if (convenio.pdfUrl != null && convenio.pdfUrl!.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.description, color: AppColors.primary),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Documentación Oficial',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _descargarPDF,
+                      icon: const Icon(Icons.download),
+                      label: const Text('Descargar CCT Completo (PDF)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'ℹ️ Se descargará el documento oficial completo del convenio',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '\{categoria.basico.toStringAsFixed(2)}',
-            style: const TextStyle(
-              color: AppColors.accentGreen,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+            const Divider(height: 32, color: AppColors.border),
+          ],
           
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _mostrarDetallesCompletos,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+          if (convenio.categorias.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.calculate_outlined, color: AppColors.textSecondary, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Escalas Salariales (Ejemplo)',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            child: const Text('Ver todos los parámetros'),
+            const SizedBox(height: 12),
+            const Text(
+              'Seleccioná una categoría para ver el básico vigente:',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundLight,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _categoriaSeleccionada,
+                  isExpanded: true,
+                  dropdownColor: AppColors.backgroundCard,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  items: convenio.categorias.map((cat) {
+                    return DropdownMenuItem<String>(
+                      value: cat.id,
+                      child: Text(
+                        cat.nombre,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _categoriaSeleccionada = val;
+                    });
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          if (categoria != null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.accentGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.accentGreen.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Salario Básico Vigente',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        '\$${categoria.salarioBase.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                        style: const TextStyle(
+                          color: AppColors.accentGreen,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (categoria.descripcion != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      categoria.descripcion!,
+                      style: TextStyle(
+                        color: AppColors.textSecondary.withOpacity(0.8),
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+          
+          // Botón de PDF eliminado de aquí (movido arriba)
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: _mostrarDetallesCompletos,
+              child: const Text('Ver detalles técnicos y adicionales'),
+            ),
           ),
         ],
       ),
