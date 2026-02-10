@@ -22,6 +22,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
 import 'package:syncra_arg/services/pdf_report_service.dart';
 import 'package:syncra_arg/data/cct_argentina_completo.dart';
+import '../services/subscription_service.dart';
 
 class VerificadorReciboScreen extends StatefulWidget {
   const VerificadorReciboScreen({super.key});
@@ -152,6 +153,34 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   }
 
   Future<void> _escanearYVerificar() async {
+    // 0. Verificar cuota Freemium
+    final canScan = await SubscriptionService.canPerformOcrScan();
+    if (!canScan) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Límite de escaneos alcanzado'),
+          content: const Text(
+            'Has alcanzado el límite de escaneos OCR para tu plan actual. '
+            'Actualiza a Premium para continuar o espera al próximo mes.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                // Navegar a planes
+                Navigator.pushNamed(context, '/plans'); 
+              },
+              child: const Text('Ver Planes'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _estaProcesando = true;
       _rutaImagen = null;
@@ -167,6 +196,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         setState(() => _estaProcesando = false);
         return;
       }
+      
+      // Registrar uso de cuota
+      await SubscriptionService.registerOcrScan();
+
       setState(() => _rutaImagen = imagenFile.path);
 
       // 2. Procesar con OCR

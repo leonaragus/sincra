@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
+import 'openai_vision_service.dart';
 
 class OcrService {
   final ImagePicker _imagePicker = ImagePicker();
@@ -21,6 +22,33 @@ class OcrService {
 
   Future<OcrResult> procesarImagen(InputImage inputImage) async {
     try {
+      // 1. Intentar con OpenAI Vision si hay API Key configurada
+      final apiKey = await OpenAIVisionService.getApiKey();
+      if (apiKey != null && apiKey.isNotEmpty) {
+        try {
+          File? file;
+          if (inputImage.filePath != null) {
+            file = File(inputImage.filePath!);
+          } else if (inputImage.bytes != null) {
+            file = await _guardarImagenTemporal(Uint8List.fromList(inputImage.bytes!));
+          }
+          
+          if (file != null) {
+            final text = await OpenAIVisionService.analyzeReceipt(file);
+            return OcrResult(
+              texto: text,
+              exito: true,
+              confianza: 0.99, // Alta confianza en GPT-4o
+              textoCrudo: text,
+              esParcial: false,
+            );
+          }
+        } catch (e) {
+          print("OpenAI Vision falló, intentando OCR local: $e");
+          // Continuar con OCR local
+        }
+      }
+
       if (kIsWeb) {
         // USAR TESSERACT PARA WEB - OCR REAL
         final imageBytes = await _inputImageToUint8List(inputImage);

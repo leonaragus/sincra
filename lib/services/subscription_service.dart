@@ -5,6 +5,7 @@ import 'play_billing_service.dart';
 /// Servicio para gestionar suscripciones y niveles de acceso
 class SubscriptionService {
   static const String _subscriptionTable = 'user_subscriptions';
+  static const String _quotaTable = 'user_quotas';
   
   /// Niveles de suscripción disponibles
   static const Map<String, Map<String, dynamic>> subscriptionPlans = {
@@ -13,10 +14,12 @@ class SubscriptionService {
       'price': 0,
       'companies_limit': 0,
       'employees_per_company': 0,
+      'ocr_scans_limit': 3, // 3 escaneos por mes
       'features': [
         'Verificador de recibos gratuito',
         'Acceso ilimitado a verificación',
-        'Sin funciones de liquidación'
+        'Sin funciones de liquidación',
+        '3 escaneos OCR inteligentes / mes'
       ],
       'excluded': ['Liquidación de sueldos', 'Gestión de empresas', 'Empleados']
     },
@@ -25,13 +28,15 @@ class SubscriptionService {
       'price': 15000,
       'companies_limit': 2,
       'employees_per_company': 15,
+      'ocr_scans_limit': 50, // 50 escaneos por mes
       'trial_days': 30,
       'features': [
         '2 empresas máximo',
         '15 empleados por empresa',
         'Todas las funciones de liquidación',
         'Soporte prioritario',
-        '30 días gratis de prueba'
+        '30 días gratis de prueba',
+        '50 escaneos OCR inteligentes / mes'
       ],
       'excluded': ['Verificador de recibo']
     },
@@ -40,6 +45,7 @@ class SubscriptionService {
       'price': 35000,
       'companies_limit': 10,
       'employees_per_company': 50,
+      'ocr_scans_limit': 200, // 200 escaneos por mes
       'trial_days': 30,
       'features': [
         '10 empresas máximo',
@@ -47,7 +53,8 @@ class SubscriptionService {
         'Todas las funciones de liquidación',
         'Soporte premium',
         '30 días gratis de prueba',
-        'Reportes avanzados'
+        'Reportes avanzados',
+        '200 escaneos OCR inteligentes / mes'
       ],
       'excluded': ['Verificador de recibo']
     },
@@ -56,6 +63,7 @@ class SubscriptionService {
       'price': 75000,
       'companies_limit': -1, // Ilimitado
       'employees_per_company': -1, // Ilimitado
+      'ocr_scans_limit': -1, // Ilimitado
       'trial_days': 30,
       'features': [
         'Empresas ilimitadas',
@@ -64,11 +72,90 @@ class SubscriptionService {
         'Soporte 24/7',
         '30 días gratis de prueba',
         'API access',
-        'Custom integrations'
+        'Custom integrations',
+        'Escaneos OCR ilimitados'
       ],
       'excluded': ['Verificador de recibo']
     }
   };
+
+  /// Verificar si el usuario puede realizar un escaneo OCR
+  static Future<bool> canPerformOcrScan() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return false;
+
+    // Obtener plan
+    final plan = await getCurrentUserPlan();
+    final planType = plan?['plan_type'] ?? 'free';
+    final limit = subscriptionPlans[planType]?['ocr_scans_limit'] as int? ?? 3;
+
+    // Si es ilimitado
+    if (limit == -1) return true;
+
+    // Obtener consumo del mes actual
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+    
+    // Consultar tabla de cuotas o registros de uso
+    // Asumimos una tabla 'ocr_usage_logs' o similar
+    try {
+      final response = await Supabase.instance.client
+          .from('ocr_usage_logs')
+          .select('id')
+          .eq('user_id', user.id)
+          .gte('created_at', startOfMonth)
+          .count();
+      
+      final used = response.count;
+      return used < limit;
+    } catch (e) {
+      // Si falla la consulta (ej. tabla no existe), permitimos por defecto para no bloquear UX
+      // o implementamos fallback local.
+      return true; 
+    }
+  }
+
+  /// Registrar un escaneo OCR realizado
+  static Future<void> registerOcrScan() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await Supabase.instance.client.from('ocr_usage_logs').insert({
+        'user_id': user.id,
+        'created_at': DateTime.now().toIso8601String(),
+        'scan_type': 'ocr_vision', // o 'local'
+      });
+    } catch (e) {
+      // Silent error
+    }
+  }
+
+  /// Obtener uso de OCR del mes actual
+  static Future<Map<String, int>> getOcrUsage() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return {'used': 0, 'limit': 0};
+
+    final plan = await getCurrentUserPlan();
+    final planType = plan?['plan_type'] ?? 'free';
+    final limit = subscriptionPlans[planType]?['ocr_scans_limit'] as int? ?? 3;
+
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+
+    try {
+      final response = await Supabase.instance.client
+          .from('ocr_usage_logs')
+          .select('id')
+          .eq('user_id', user.id)
+          .gte('created_at', startOfMonth)
+          .count();
+      
+      return {'used': response.count, 'limit': limit};
+    } catch (e) {
+      return {'used': 0, 'limit': limit};
+    }
+  }
 
   /// Obtener el plan actual del usuario
   static Future<Map<String, dynamic>?> getCurrentUserPlan() async {

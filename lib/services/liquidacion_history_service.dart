@@ -65,4 +65,32 @@ class LiquidacionHistoryService {
       return [];
     }
   }
+
+  /// Recupera una liquidación específica por período
+  static Future<LiquidacionOmniResult?> obtenerLiquidacionPorPeriodo({
+    required String cuitInstitucion,
+    required String cuilEmpleado,
+    required String periodo, // "Marzo 2026"
+  }) async {
+    try {
+      final cuit = cuitInstitucion.replaceAll(RegExp(r'[^\d]'), '');
+      final cuil = cuilEmpleado.replaceAll(RegExp(r'[^\d]'), '');
+      final periodoKey = periodo.replaceAll(' ', '_').toLowerCase();
+      final key = "${cuit}_${cuil}_$periodoKey";
+
+      final response = await _supabase
+          .from('syncra_entities')
+          .select('data')
+          .eq('type', 'historico_liquidaciones')
+          .eq('key', key)
+          .maybeSingle();
+
+      if (response == null) return null;
+      
+      return LiquidacionOmniResult.fromJson(response['data']);
+    } catch (e) {
+      print("Error al recuperar liquidación por periodo: $e");
+      return null;
+    }
+  }
 }

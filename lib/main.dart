@@ -7,6 +7,8 @@ import 'screens/web_login_screen.dart';
 import 'theme/app_theme.dart';
 import 'package:url_strategy/url_strategy.dart'; // Import agregado
 
+import 'screens/plan_selection_screen.dart'; // Import agregado
+
 void main() {
   setPathUrlStrategy(); // Función agregada aquí
 
@@ -41,6 +43,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/verificador': (context) => const VerificadorRecibosScreen(),
         '/web-login': (context) => const WebLoginScreen(),
+        '/plans': (context) => const PlanSelectionScreen(),
       },
     );
   }

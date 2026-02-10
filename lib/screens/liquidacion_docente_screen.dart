@@ -30,6 +30,11 @@ import '../utils/formatters.dart';
 import '../widgets/teacher_receipt_preview_widget.dart';
 import 'teacher_receipt_scan_screen.dart';
 import '../utils/app_help.dart';
+import '../services/contabilidad_service.dart';
+import '../services/contabilidad_config_service.dart';
+import '../models/contabilidad/mapeo_contable.dart';
+import '../services/liquidacion_history_service.dart';
+import '../services/retroactivo_service.dart';
 
 class LiquidacionDocenteScreen extends StatefulWidget {
   final String? cuitInstitucion;
@@ -1004,6 +1009,296 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     );
   }
 
+  Future<void> _guardarEnHistorial() async {
+    if (_resultado == null) return;
+    if ((_cuitSeleccionado ?? '').isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seleccione una institución')));
+      return;
+    }
+
+    setState(() => _savingMaestro = true);
+    final success = await LiquidacionHistoryService.guardarLiquidacion(
+      cuitInstitucion: _cuitSeleccionado!,
+      liquidacion: _resultado!,
+    );
+    setState(() => _savingMaestro = false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(success ? 'Liquidación guardada en historial' : 'Error al guardar en historial'),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ));
+    }
+  }
+
+  Future<void> _abrirCalculadoraRetroactivo() async {
+    if ((_cuitSeleccionado ?? '').isEmpty || (_legajoSeleccionadoCuil ?? '').isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seleccione institución y empleado')));
+      return;
+    }
+
+    // 1. Seleccionar periodo
+    final periods = List.generate(12, (i) {
+      final d = DateTime.now().subtract(Duration(days: 30 * (i + 1)));
+      return DateFormat('MMMM yyyy', 'es_AR').format(d);
+    });
+    
+    String? selectedPeriod;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Seleccionar Período a Reliquidar'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: periods.length,
+            itemBuilder: (c, i) => ListTile(
+              title: Text(periods[i]),
+              onTap: () {
+                selectedPeriod = periods[i];
+                Navigator.pop(ctx);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (selectedPeriod == null || !mounted) return;
+
+    // 2. Cargar original
+    setState(() => _calculando = true);
+    final original = await LiquidacionHistoryService.obtenerLiquidacionPorPeriodo(
+      cuitInstitucion: _cuitSeleccionado!,
+      cuilEmpleado: _legajoSeleccionadoCuil!,
+      periodo: selectedPeriod!,
+    );
+    setState(() => _calculando = false);
+
+    if (original == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se encontró liquidación para ese período')));
+      }
+      return;
+    }
+
+    // 3. Mostrar diálogo de ajuste
+    // Usamos variables locales para el estado del diálogo
+    final basicoCtrl = TextEditingController(text: original.sueldoBasico.toString());
+    final viCtrl = TextEditingController(text: original.input.valorIndiceOverride?.toString() ?? '');
+    
+    // ignore: use_build_context_synchronously
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          // Recalcular diferencia en tiempo real (simulado) o al botón
+          return AlertDialog(
+            title: Text('Ajuste Retroactivo - $selectedPeriod'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Valores Originales:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Básico: \$${original.sueldoBasico.toStringAsFixed(2)}'),
+                  Text('Neto: \$${original.netoACobrar.toStringAsFixed(2)}'),
+                  const Divider(),
+                  const Text('Nuevos Valores (Simulación):', style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextField(
+                    controller: basicoCtrl,
+                    decoration: const InputDecoration(labelText: 'Nuevo Sueldo Básico'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  TextField(
+                    controller: viCtrl,
+                    decoration: const InputDecoration(labelText: 'Nuevo Valor Índice (opcional)'),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+              ElevatedButton(
+                onPressed: () {
+                  // Calcular
+                  final nuevoBasico = double.tryParse(basicoCtrl.text);
+                  final nuevoVi = double.tryParse(viCtrl.text);
+                  
+                  // Crear input modificado
+                  // Necesitamos copiar el input original y modificarlo. 
+                  // DocenteOmniInput no tiene copyWith, recreamos usando JSON.
+                  final jsonInput = original.input.toJson();
+                  if (nuevoBasico != null) jsonInput['sueldoBasicoOverride'] = nuevoBasico;
+                  if (nuevoVi != null) jsonInput['valorIndiceOverride'] = nuevoVi;
+                  
+                  final nuevoInput = DocenteOmniInput.fromJson(jsonInput);
+                  
+                  final resultado = RetroactivoService.calcularRetroactivo(
+                    original: original,
+                    nuevoInput: nuevoInput,
+                  );
+                  
+                  Navigator.pop(ctx);
+                  _mostrarResultadoRetroactivo(resultado, selectedPeriod!);
+                },
+                child: const Text('Calcular Diferencia'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _mostrarResultadoRetroactivo(ResultadoRetroactivo res, String periodo) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Resultado Retroactivo'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ...res.detalles.map((d) => ListTile(
+                title: Text(d.concepto),
+                subtitle: Text('Ant: ${d.original.toStringAsFixed(2)} -> Nuevo: ${d.nuevo.toStringAsFixed(2)}'),
+                trailing: Text(
+                  d.diferencia > 0 ? '+${d.diferencia.toStringAsFixed(2)}' : d.diferencia.toStringAsFixed(2),
+                  style: TextStyle(color: d.diferencia >= 0 ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
+                ),
+              )),
+              const Divider(),
+              ListTile(
+                title: const Text('Dif. Remunerativa (Bruto)'),
+                trailing: Text(res.diferenciaBruto.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                title: const Text('Dif. No Remunerativa'),
+                trailing: Text(res.diferenciaNoRemunerativo.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                title: const Text('Dif. Neta Estimada'),
+                trailing: Text(res.diferenciaNeto.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+          ElevatedButton(
+            onPressed: () {
+              // Aplicar a liquidación actual
+              setState(() {
+                if (res.diferenciaBruto > 0) {
+                  _conceptosPropios.add(ConceptoPropioOmni(
+                    codigo: 'RETRO_REM',
+                    descripcion: 'Retroactivo Remunerativo $periodo',
+                    monto: res.diferenciaBruto,
+                    esRemunerativo: true,
+                  ));
+                }
+                if (res.diferenciaNoRemunerativo > 0) {
+                  _conceptosPropios.add(ConceptoPropioOmni(
+                    codigo: 'RETRO_NR',
+                    descripcion: 'Retroactivo No Rem. $periodo',
+                    monto: res.diferenciaNoRemunerativo,
+                    esRemunerativo: false,
+                  ));
+                }
+              });
+              _recalcular();
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conceptos retroactivos agregados')));
+            },
+            child: const Text('Aplicar a Liquidación Actual'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportarAsiento() async {
+    if (_resultado == null) return;
+
+    final perfil = await ContabilidadConfigService.cargarPerfil();
+    final asiento = ContabilidadService.generarAsientoDocente(
+      liquidaciones: [_resultado!],
+      perfil: perfil,
+    );
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Asiento Contable Preliminar'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Perfil: ${perfil.nombre}'),
+              const SizedBox(height: 10),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: asiento.items.length,
+                  itemBuilder: (c, i) {
+                    final item = asiento.items[i];
+                    return ListTile(
+                      title: Text('${item.cuentaCodigo} - ${item.cuentaNombre}'),
+                      subtitle: Text(
+                        'Debe: ${item.debe.toStringAsFixed(2)} | Haber: ${item.haber.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: item.debe > 0 ? Colors.blue : Colors.green,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const Divider(),
+              Text('Total Debe: ${asiento.totalDebe.toStringAsFixed(2)}'),
+              Text('Total Haber: ${asiento.totalHaber.toStringAsFixed(2)}'),
+              if (!asiento.balanceado)
+                const Text('¡Diferencia detectada!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+          ElevatedButton.icon(
+            onPressed: () async {
+              // Generar CSV
+              final csv = ContabilidadService.exportarHolistor(asiento, DateTime.now());
+              
+              // Guardar archivo
+              final directory = await getApplicationDocumentsDirectory();
+              final file = File('${directory.path}/asiento_docente_${DateTime.now().millisecondsSinceEpoch}.csv');
+              await file.writeAsString(csv);
+              
+              if (mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Exportado a: ${file.path}')),
+                );
+                // Abrir archivo (opcional, si hay visor)
+                 OpenFile.open(file.path);
+              }
+            },
+            icon: const Icon(Icons.save),
+            label: const Text('Guardar CSV (Holistor)'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _mostrarAyuda() {
     final helpContent = AppHelp.getHelpContent('LiquidadorFinalScreen');
     AppHelp.showHelpDialog(
@@ -1092,6 +1387,37 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
                       onPressed: _resultado != null ? _generarRecibo : null,
                       icon: const Icon(Icons.receipt, size: 20),
                       label: const Text('Generar Recibo'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Fila 1b: Exportar Asiento
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _resultado != null ? _exportarAsiento : null,
+                  icon: const Icon(Icons.account_balance_wallet, size: 20),
+                  label: const Text('Exportar Asiento Contable (Holistor)'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Fila 1c: Historial y Retroactivos
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _resultado != null ? _guardarEnHistorial : null,
+                      icon: const Icon(Icons.save_as, size: 20),
+                      label: const Text('Guardar Historial'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _abrirCalculadoraRetroactivo,
+                      icon: const Icon(Icons.history, size: 20),
+                      label: const Text('Calc. Retroactivo'),
                     ),
                   ),
                 ],

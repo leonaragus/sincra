@@ -10,6 +10,7 @@ import 'lista_legajos_docente_screen.dart';
 import 'liquidacion_docente_screen.dart';
 import 'opciones_liquidacion_docente_screen.dart';
 import 'profile_screen.dart';
+import 'contabilidad/configuracion_contable_screen.dart';
 
 class TeacherInterfaceScreen extends StatefulWidget {
   const TeacherInterfaceScreen({super.key});
@@ -361,6 +362,15 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
               onTap: () {
                 Navigator.pop(context); // Cerrar menú
                 _onOpcionesLiquidacionTap();
+              },
+            ),
+
+            _buildMenuItem(
+              icon: Icons.account_balance,
+              label: 'Configuración Contable',
+              onTap: () {
+                Navigator.pop(context); // Cerrar menú
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const ConfiguracionContableScreen()));
               },
             ),
 
