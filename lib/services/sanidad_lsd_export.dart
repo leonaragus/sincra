@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'sanidad_omni_engine.dart';
 import 'lsd_engine.dart';
+import 'lsd_mapping_service.dart';
 
 /// Códigos internos Sanidad (mapeo AFIP/ARCA)
 class SanidadLsdCodigos {
@@ -194,12 +195,19 @@ Future<String> sanidadOmniToLsdTxt({
   }
 
   // Registro 3 - Bases imponibles
-  final r3 = await LSDGenerator.generateRegistro3Bases(
+  // --- CORRECCIÓN ARCA 2026: Usar generador de 10 bases completas ---
+  final bases = List<double>.filled(10, 0.0);
+  bases[0] = liquidacion.baseImponibleTopeada; // Base 1
+  bases[1] = liquidacion.baseImponibleTopeada; // Base 2
+  bases[2] = liquidacion.baseImponibleTopeada; // Base 3
+  
+  // Base 9 (LRT) suele ser el Total Remunerativo (a veces sin tope, pero LSD valida consistencia)
+  // Para seguridad en validación "Base Inconsistente", usamos la misma que Base 1 si no hay diferencial.
+  bases[8] = liquidacion.baseImponibleTopeada; // Base 9 (Array index 8)
+
+  final r3 = LSDGenerator.generateRegistro3BasesArca2026(
     cuilEmpleado: cuil,
-    baseImponibleJubilacion: liquidacion.baseImponibleTopeada,
-    baseImponibleObraSocial: liquidacion.baseImponibleTopeada,
-    baseImponibleLey19032: liquidacion.baseImponibleTopeada,
-    totalRemunerativo: liquidacion.totalBrutoRemunerativo,
+    bases: bases,
   );
   sb.write(latin1.decode(r3));
   sb.write(LSDGenerator.eolLsd);
@@ -290,7 +298,35 @@ Future<String> generarPackARCASanidad({
     }
   }
   
-  // 3. Generar resumen TXT
+  // 3. Generar instructivo de mapeo AFIP
+  final codigosUsados = <String>{};
+  for (final liq in liquidaciones) {
+    if (liq.sueldoBasico > 0) codigosUsados.add(SanidadLsdCodigos.sueldoBasico);
+    if (liq.adicionalAntiguedad > 0) codigosUsados.add(SanidadLsdCodigos.antiguedad);
+    if (liq.nocturnidad > 0) codigosUsados.add(SanidadLsdCodigos.nocturnidad);
+    if (liq.falloCaja > 0) codigosUsados.add(SanidadLsdCodigos.falloCaja);
+    if (liq.adicionalTareaCriticaRiesgo > 0) codigosUsados.add(SanidadLsdCodigos.tareaCritica);
+    if (liq.aporteJubilacion > 0) codigosUsados.add(SanidadLsdCodigos.jubilacion);
+    if (liq.aporteObraSocial > 0) codigosUsados.add(SanidadLsdCodigos.obraSocial);
+    if (liq.aporteLey19032 > 0) codigosUsados.add(SanidadLsdCodigos.ley19032);
+    
+    for (final c in liq.conceptosPropios) {
+      final cod = c['codigo']?.toString() ?? '';
+      if (cod.isNotEmpty) {
+        codigosUsados.add(cod.length > 10 ? cod.substring(0, 10) : cod);
+      }
+    }
+  }
+  
+  final instructivo = LsdMappingService.generarInstructivo(codigosUsados.toList());
+  final instructivoBytes = utf8.encode(instructivo);
+  archive.addFile(ArchiveFile(
+    'INSTRUCTIVO_IMPORTANTE_AFIP.txt',
+    instructivoBytes.length,
+    instructivoBytes,
+  ));
+
+  // 4. Generar resumen TXT
   final resumen = _generarResumenLiquidaciones(liquidaciones, razonSocial, periodo);
   final resumenBytes = utf8.encode(resumen);
   archive.addFile(ArchiveFile(

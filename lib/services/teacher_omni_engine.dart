@@ -11,7 +11,6 @@ import '../core/payroll_core.dart';
 import '../models/teacher_types.dart';
 import '../models/teacher_constants.dart';
 import '../data/rnos_docentes_data.dart';
-import 'parametros_legales_service.dart';
 import 'hybrid_store.dart';
 
 /// Input para liquidación Omni
@@ -216,6 +215,7 @@ class LiquidacionOmniResult {
   final double adicionalSalarialCiudad;
   final double itemAula;
   final double estadoDocente;
+  final double presentismo;
   final double materialDidactico;
   final double fonid;
   final double conectividad;
@@ -269,6 +269,7 @@ class LiquidacionOmniResult {
     required this.adicionalSalarialCiudad,
     required this.itemAula,
     required this.estadoDocente,
+    this.presentismo = 0.0,
     required this.materialDidactico,
     required this.fonid,
     required this.conectividad,
@@ -317,6 +318,7 @@ class LiquidacionOmniResult {
       'adicionalSalarialCiudad': adicionalSalarialCiudad,
       'itemAula': itemAula,
       'estadoDocente': estadoDocente,
+      'presentismo': presentismo,
       'materialDidactico': materialDidactico,
       'fonid': fonid,
       'conectividad': conectividad,
@@ -366,6 +368,7 @@ class LiquidacionOmniResult {
       adicionalSalarialCiudad: (json['adicionalSalarialCiudad'] as num).toDouble(),
       itemAula: (json['itemAula'] as num).toDouble(),
       estadoDocente: (json['estadoDocente'] as num).toDouble(),
+      presentismo: (json['presentismo'] as num?)?.toDouble() ?? 0.0,
       materialDidactico: (json['materialDidactico'] as num).toDouble(),
       fonid: (json['fonid'] as num).toDouble(),
       conectividad: (json['conectividad'] as num).toDouble(),
@@ -927,6 +930,7 @@ class TeacherOmniEngine {
       adicionalSalarialCiudad: addCiudad,
       itemAula: montoItemAula,
       estadoDocente: estadoDoc,
+      presentismo: 0.0,
       materialDidactico: materialDidactico,
       fonid: fonid,
       conectividad: conectividad,

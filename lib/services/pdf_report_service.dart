@@ -2,7 +2,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:syncra_arg/models/recibo_escaneado.dart';
-import 'package:flutter/services.dart';
 
 class PdfReportService {
   static Future<void> generateAndDownloadReport({

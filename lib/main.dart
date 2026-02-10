@@ -2,8 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
-import 'screens/splash_screen.dart';
-import 'screens/user_type_selection_screen.dart';
 import 'screens/verificador_recibos_screen.dart';
 import 'screens/web_login_screen.dart';
 import 'theme/app_theme.dart';

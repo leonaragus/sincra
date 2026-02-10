@@ -15,6 +15,7 @@ import '../models/empleado.dart';
 import '../data/rnos_docentes_data.dart';
 import '../services/sanidad_omni_engine.dart';
 import '../services/sanidad_lsd_export.dart';
+import '../services/lsd_mapping_service.dart';
 import '../services/instituciones_service.dart';
 import '../services/costo_empleador_service.dart';
 import '../services/sanidad_paritarias_service.dart';
@@ -1342,6 +1343,89 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     }
   }
 
+  void _mostrarInstructivoArca() {
+    final codigosUsados = <String>{};
+    
+    // Si hay un resultado calculado (individual)
+    if (_resultado != null) {
+      if (_resultado!.sueldoBasico > 0) codigosUsados.add(SanidadLsdCodigos.sueldoBasico);
+      if (_resultado!.adicionalAntiguedad > 0) codigosUsados.add(SanidadLsdCodigos.antiguedad);
+      if (_resultado!.nocturnidad > 0) codigosUsados.add(SanidadLsdCodigos.nocturnidad);
+      if (_resultado!.falloCaja > 0) codigosUsados.add(SanidadLsdCodigos.falloCaja);
+      if (_resultado!.adicionalTareaCriticaRiesgo > 0) codigosUsados.add(SanidadLsdCodigos.tareaCritica);
+      
+      for (final c in _resultado!.conceptosPropios) {
+        final cod = c['codigo']?.toString() ?? '';
+        if (cod.isNotEmpty) {
+            codigosUsados.add(cod.length > 10 ? cod.substring(0, 10) : cod);
+        }
+      }
+    } 
+    
+    // Si hay legajos para masivo, agregar códigos comunes si la lista está vacía
+    if (codigosUsados.isEmpty && _legajosSanidad.isNotEmpty) {
+       codigosUsados.addAll([
+         SanidadLsdCodigos.sueldoBasico,
+         SanidadLsdCodigos.antiguedad,
+         SanidadLsdCodigos.jubilacion,
+         SanidadLsdCodigos.obraSocial,
+         SanidadLsdCodigos.ley19032,
+         SanidadLsdCodigos.cuotaSindical,
+       ]);
+    }
+    
+    // Fallback default
+    if (codigosUsados.isEmpty) {
+       codigosUsados.addAll([
+         SanidadLsdCodigos.sueldoBasico,
+         SanidadLsdCodigos.antiguedad,
+         SanidadLsdCodigos.jubilacion,
+         SanidadLsdCodigos.obraSocial,
+         SanidadLsdCodigos.ley19032
+       ]);
+    }
+
+    final instructivo = LsdMappingService.generarInstructivo(codigosUsados.toList());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+            children: [
+                Icon(Icons.info_outline, color: Colors.teal),
+                SizedBox(width: 8),
+                Text('Instructivo Asociación AFIP'),
+            ],
+        ),
+        content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        Text('Antes de subir el archivo a AFIP, debe asociar los conceptos por única vez:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        SizedBox(height: 10),
+                        Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                                color: Colors.teal.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.teal.withValues(alpha: 0.2)),
+                            ),
+                            child: SelectableText(instructivo, style: TextStyle(fontFamily: 'monospace', fontSize: 11)),
+                        ),
+                    ],
+                ),
+            ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+        ],
+      ),
+    );
+  }
+
   Future<void> _cargarInstituciones() async {
     final list = await InstitucionesService.getInstituciones();
     if (mounted) setState(() => _instituciones = list);
@@ -1760,6 +1844,20 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Fila 0: Instructivo ARCA (Ayuda previa a exportación)
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _mostrarInstructivoArca,
+                  icon: const Icon(Icons.info_outline, size: 18, color: Colors.teal),
+                  label: const Text('Instructivo ARCA: Asociación de Conceptos (Leer antes de subir)'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.teal,
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
               // Fila 1: Exportar individual
               Row(
                 children: [

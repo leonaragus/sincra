@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class AppHelp {
   static void showHelpDialog(BuildContext context, String title, String content) {

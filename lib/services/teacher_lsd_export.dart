@@ -40,6 +40,7 @@ class TeacherLsdCodigos {
   static const String itemAula = 'ITEM_AULA';
   static const String adicionalCiudad = 'ADIC_CIUDAD';
   static const String estadoDocente = 'EST_DOC';
+  static const String materialDidactico = 'MAT_DIDACT';
   static const String equiparacion13047 = 'EQUIP_13047';
   static const String fondoCompensador = 'FONDO_COMP';
   static const String plusUbicacion = 'PLUS_UBIC'; // Plus Ubicación/Ruralidad — AFIP Guía 4 Adicionales 011000
@@ -159,21 +160,36 @@ Future<String> teacherOmniToLsdTxt({
     sb.write(LSDGenerator.eolLsd);
   }
 
-  final r3 = await LSDGenerator.generateRegistro3Bases(
+  // --- CORRECCIÓN ARCA 2026: Usar generador de 10 bases completas ---
+  // Base 1: Sueldo (Jubilación)
+  // Base 2: Contribuciones SS (generalmente igual a Base 1)
+  // Base 3: Contribuciones OS (generalmente igual a Base 1)
+  // Las bases 4 (OS), 8 (Aporte OS) y 9 (LRT) se autocompletan en el motor si no se envían,
+  // pero las enviamos explícitamente para mayor seguridad.
+  final bases = List<double>.filled(10, 0.0);
+  bases[0] = liquidacion.baseImponibleTopeada; // Base 1
+  bases[1] = liquidacion.baseImponibleTopeada; // Base 2
+  bases[2] = liquidacion.baseImponibleTopeada; // Base 3
+  
+  // Base 9 (LRT) suele ser el Total Remunerativo (a veces sin tope, pero LSD valida consistencia)
+  // Para seguridad en validación "Base Inconsistente", usamos la misma que Base 1 si no hay diferencial.
+  bases[8] = liquidacion.baseImponibleTopeada; // Base 9 (Array index 8)
+
+  final r3 = LSDGenerator.generateRegistro3BasesArca2026(
     cuilEmpleado: cuil,
-    baseImponibleJubilacion: liquidacion.baseImponibleTopeada,
-    baseImponibleObraSocial: liquidacion.baseImponibleTopeada,
-    baseImponibleLey19032: liquidacion.baseImponibleTopeada,
-    totalRemunerativo: liquidacion.totalBrutoRemunerativo,
+    bases: bases,
   );
   sb.write(latin1.decode(r3));
   sb.write(LSDGenerator.eolLsd);
 
   final r4 = LSDGenerator.generateRegistro4(
     cuilEmpleado: cuil,
-    codigoRnos: liquidacion.input.codigoRnos ?? '126205',
+    // Para docentes, si no hay RNOS, sugerimos OSDOP (115404) en lugar de OSECAC (126205)
+    // OSECAC es el default del motor, aquí lo sobreescribimos si es nulo
+    codigoRnos: liquidacion.input.codigoRnos ?? '115404', 
     cantidadFamiliares: liquidacion.input.cargasFamiliares,
-    codigoActividad: liquidacion.input.codigoActividad,
+    // Actividad Enseñanza Privada (16) suele ser común, pero default 001 es Servicios Comunes
+    codigoActividad: liquidacion.input.codigoActividad ?? '016', 
     codigoPuesto: liquidacion.input.codigoPuesto,
     codigoCondicion: liquidacion.input.codigoCondicion,
     codigoModalidad: liquidacion.input.codigoModalidad,

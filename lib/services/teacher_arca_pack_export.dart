@@ -12,6 +12,7 @@ import 'teacher_omni_engine.dart';
 import 'teacher_lsd_export.dart';
 import 'lsd_engine.dart';
 import 'costo_empleador_service.dart';
+import 'lsd_mapping_service.dart';
 
 const String _eol = '\r\n';
 
@@ -268,6 +269,34 @@ Future<TeacherArcaPackResult> generarPackCompletoARCA2026({
   final f3 = File('$carpeta${Platform.pathSeparator}Recibo_${cuilLimpio}_$periodoShort.txt');
   await f3.writeAsString(_normalizarEol(recibo), encoding: latin1);
   archivos.add(f3.path);
+
+  // --- NUEVO: Generar instructivo de mapeo AFIP ---
+  final codigosUsados = <String>[];
+  // Agregar conceptos estándar si tienen monto > 0
+  if (liquidacion.sueldoBasico > 0) codigosUsados.add(TeacherLsdCodigos.sueldoBasico);
+  if (liquidacion.adicionalAntiguedad > 0) codigosUsados.add(TeacherLsdCodigos.antiguedad);
+  if (liquidacion.fonid > 0) codigosUsados.add(TeacherLsdCodigos.fonid);
+  if (liquidacion.conectividad > 0) codigosUsados.add(TeacherLsdCodigos.conectividad);
+  if (liquidacion.materialDidactico > 0) codigosUsados.add(TeacherLsdCodigos.materialDidactico);
+  if (liquidacion.adicionalZona > 0) codigosUsados.add(TeacherLsdCodigos.adicionalZona);
+  if (liquidacion.itemAula > 0) codigosUsados.add(TeacherLsdCodigos.itemAula);
+  if (liquidacion.estadoDocente > 0) codigosUsados.add(TeacherLsdCodigos.estadoDocente);
+  if (liquidacion.presentismo > 0) codigosUsados.add(TeacherLsdCodigos.presentismo);
+  // Agregar conceptos propios
+  for (final c in liquidacion.conceptosPropios) {
+    if (c.monto > 0) {
+      codigosUsados.add(c.codigo.length > 10 ? c.codigo.substring(0, 10) : c.codigo);
+    }
+  }
+  // Descuentos estándar
+  if (liquidacion.aporteJubilacion > 0) codigosUsados.add(TeacherLsdCodigos.jubilacion);
+  if (liquidacion.aporteObraSocial > 0) codigosUsados.add(TeacherLsdCodigos.obraSocial);
+  if (liquidacion.aportePami > 0) codigosUsados.add(TeacherLsdCodigos.ley19032);
+  
+  final instructivo = LsdMappingService.generarInstructivo(codigosUsados.toSet().toList());
+  final f4 = File('$carpeta${Platform.pathSeparator}INSTRUCTIVO_IMPORTANTE_AFIP.txt');
+  await f4.writeAsString(_normalizarEol(instructivo), encoding: utf8); // UTF8 para que se lea bien en cualquier editor moderno
+  archivos.add(f4.path);
 
   final costo = calcularCostoPatronal(liquidacion.totalBrutoRemunerativo, artPct: artPct, artCuotaFija: artCuotaFija);
 

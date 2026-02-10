@@ -9,7 +9,6 @@ import '../utils/image_bytes_reader.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
-import 'package:share_plus/share_plus.dart';
 import '../models/teacher_types.dart';
 import '../models/teacher_constants.dart';
 import '../models/empresa.dart';
@@ -18,6 +17,7 @@ import '../models/ocr_confirm_result.dart';
 import '../theme/app_colors.dart';
 import '../data/rnos_docentes_data.dart';
 import '../services/teacher_omni_engine.dart' show DocenteOmniInput, TeacherOmniEngine, ConceptoPropioOmni, LiquidacionOmniResult;
+import '../services/lsd_mapping_service.dart';
 import '../services/teacher_lsd_export.dart';
 import '../services/teacher_arca_pack_export.dart';
 import '../services/instituciones_service.dart';
@@ -841,57 +841,6 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     }
   }
 
-  Future<void> _descargarPackNeuquen() async {
-    showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator()));
-    try {
-      final c = await generarContenidosPackNeuquenEstres();
-      if (!mounted) return;
-      Navigator.pop(context);
-      _mostrarDialogoPackNeuquen(c);
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error Simulación Neuquén: $e')));
-    }
-  }
-
-  void _mostrarDialogoPackNeuquen(PackNeuquenEstresContenidos c) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Simulación Estrés Neuquén - Enero 2026'),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)), child: Text('Neto: \$${c.liquidacion.netoACobrar.toStringAsFixed(2)}\nCascada: Zona 40% + Ubicación 20% sobre D. Bases Reg 03 con tope 2026.', style: const TextStyle(fontSize: 12))),
-            const SizedBox(height: 12),
-            ExpansionTile(title: const Text('1. Conceptos_ARCA.txt (150 chars, Guía 4)'), children: [SizedBox(height: 220, child: SingleChildScrollView(child: SelectableText(c.conceptosTxt, style: const TextStyle(fontFamily: 'monospace', fontSize: 11))))]),
-            ExpansionTile(title: const Text('2. Liquidacion_LSD.txt (Reg 01, 02xN, 03, 04)'), children: [SizedBox(height: 220, child: SingleChildScrollView(child: SelectableText(c.liquidacionLsdTxt, style: const TextStyle(fontFamily: 'monospace', fontSize: 11))))]),
-            ExpansionTile(title: const Text('3. Recibo_Oficial.txt (Puntos e Índice)'), children: [SizedBox(height: 220, child: SingleChildScrollView(child: SelectableText(c.reciboOficialTxt, style: const TextStyle(fontFamily: 'monospace', fontSize: 11))))]),
-          ]),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
-          FilledButton(onPressed: () async {
-            try {
-              final dir = await getApplicationDocumentsDirectory();
-              final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-              final carpeta = '${dir.path}${Platform.pathSeparator}ARCA_Pack_Neuquen_ESTRES_$stamp';
-              await Directory(carpeta).create(recursive: true);
-              final f1 = File('$carpeta${Platform.pathSeparator}Conceptos_ARCA.txt');
-              await f1.writeAsString(c.conceptosTxt, encoding: latin1);
-              final f2 = File('$carpeta${Platform.pathSeparator}Liquidacion_LSD.txt');
-              await f2.writeAsString(c.liquidacionLsdTxt, encoding: latin1);
-              final f3 = File('$carpeta${Platform.pathSeparator}Recibo_Oficial.txt');
-              await f3.writeAsString(c.reciboOficialTxt, encoding: latin1);
-              await Share.shareXFiles([XFile(f1.path), XFile(f2.path), XFile(f3.path)]);
-              if (ctx.mounted) { Navigator.pop(ctx); ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Pack exportado y compartido: $carpeta'))); }
-            } catch (e) { if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error al compartir: $e'))); }
-          }, child: const Text('Descargar y compartir')),
-        ],
-      ),
-    );
-  }
-
   Future<void> _descargarPackCompletoARCA2026() async {
     final r = _resultado;
     if (r == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Calcule primero la liquidación'))); return; }
@@ -910,131 +859,77 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     }
   }
 
-  String _generarInformeCompletoTxt(LiquidacionOmniResult r) {
-    final cfg = JurisdiccionDBOmni.get(_jurisdiccion);
-    double valorIndiceEf;
-    bool usaOverride = _sueldoBasicoOverrideController.text.trim().isNotEmpty && r.sueldoBasico > 0;
-    int? ptsEfOverride;
-    if (usaOverride) {
-      final pts = NomencladorFederal2026.puntosPorTipo(_cargo);
-      final cant = int.tryParse(_cantCargosController.text) ?? 1;
-      final esHoraCat = NomencladorFederal2026.itemPorTipo(_cargo)?.esHoraCatedra ?? false;
-      ptsEfOverride = (!esHoraCat && cant > 1) ? (pts * cant) : pts;
-      valorIndiceEf = (ptsEfOverride > 0) ? (r.sueldoBasico / ptsEfOverride) : (cfg?.valorIndice ?? 0);
-    } else {
-      valorIndiceEf = _valorIndiceController.text.trim().isEmpty ? (cfg?.valorIndice ?? 0) : (double.tryParse(_valorIndiceController.text.replaceAll(',', '.')) ?? cfg?.valorIndice ?? 0);
-    }
-    final artPct = double.tryParse(_artPctController.text.replaceAll(',', '.')) ?? 3.5;
-    final artCuotaFija = double.tryParse(_artCuotaFijaController.text.replaceAll(',', '.')) ?? 800;
-    final costo = calcularCostoPatronal(r.totalBrutoRemunerativo, artPct: artPct, artCuotaFija: artCuotaFija);
-    final cargoDesc = NomencladorFederal2026.itemPorTipo(_cargo)?.descripcion ?? _cargo.name;
-    final jurisdiccionNombre = cfg?.nombre ?? _jurisdiccion.name;
-    final sb = StringBuffer();
-    sb.writeln('══════════════════════════════════════════════════════════════════════════════');
-    sb.writeln('   INFORME COMPLETO DE LIQUIDACIÓN DOCENTE');
-    sb.writeln('   ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}');
-    sb.writeln('══════════════════════════════════════════════════════════════════════════════');
-    sb.writeln('');
-    sb.writeln('--- DATOS DE LA INSTITUCIÓN ---');
-    sb.writeln('CUIT: ${_cuitEmpresaController.text}');
-    sb.writeln('Razón Social: ${_razonSocialController.text}');
-    sb.writeln('Domicilio: ${_domicilioController.text}');
-    sb.writeln('Jurisdicción: $jurisdiccionNombre');
-    sb.writeln('');
-    sb.writeln('--- DATOS DEL DOCENTE ---');
-    sb.writeln('Nombre: ${_nombreController.text}');
-    sb.writeln('CUIL: ${_cuilController.text}');
-    sb.writeln('Gestión: ${_tipoGestion == TipoGestion.publica ? 'Pública' : 'Privada'}');
-    sb.writeln('Cargo (Nomenclador 2026): $cargoDesc');
-    sb.writeln('Nivel: ${_nivel.name}');
-    sb.writeln('Zona desfavorable: ${_zona.name}');
-    sb.writeln('Nivel Ubicación / Ruralidad: ${_nivelUbicacion.name}');
-    sb.writeln('Valor del Punto / Índice efectivo: \$${valorIndiceEf.toStringAsFixed(2)}');
-    if (_esZonaPatagonica) sb.writeln('Zona Patagónica: Sí (plus aplicado según jurisdicción)');
-    sb.writeln('Cargas familiares: ${_cargasController.text}');
-    sb.writeln('Horas cátedra: ${_horasCatController.text}');
-    sb.writeln('Cant. cargos (FONID): ${_cantCargosController.text}');
-    sb.writeln('Fecha ingreso: ${DateFormat('dd/MM/yyyy').format(_fechaIngreso)}');
-    sb.writeln('Código RNOS: ${_codigoRnosController.text.isEmpty ? '-' : _codigoRnosController.text}');
-    sb.writeln('');
-    sb.writeln('--- HABERES REMUNERATIVOS ---');
-    _linea(sb, 'Sueldo básico', r.sueldoBasico);
-    _linea(sb, 'Adicional antigüedad', r.adicionalAntiguedad);
-    if (r.dto23315 > 0) _linea(sb, 'Ad. Rem. Bonif. Dto 233/15', r.dto23315);
-    if (r.ubicacionZona > 0) _linea(sb, 'Ubicación por Zona 10%', r.ubicacionZona);
-    _linea(sb, 'Ad. zona desfavorable', r.adicionalZona);
-    _linea(sb, 'Plus Zona Patagónica / Zona 40%', r.adicionalZonaPatagonica);
-    if (r.incDocenteLey25053 > 0) _linea(sb, 'Inc. Docente Ley 25053', r.incDocenteLey25053);
-    if (r.a5D33516 > 0) _linea(sb, 'A5 D335/16', r.a5D33516);
-    if (r.compFonid > 0) _linea(sb, 'Comp Fonid', r.compFonid);
-    if (r.ipcFonid > 0) _linea(sb, 'IPC FONID', r.ipcFonid);
-    _linea(sb, 'Plus Ubicación / Ruralidad', r.plusUbicacion);
-    _linea(sb, 'Estado Docente', r.estadoDocente);
-    _linea(sb, 'Material Didáctico', r.materialDidactico);
-    _linea(sb, 'FONID', r.fonid);
-    _linea(sb, 'Conectividad', r.conectividad);
-    _linea(sb, 'Horas cátedra', r.horasCatedra);
-    _linea(sb, 'Garantía Salarial Nacional', r.adicionalGarantiaSalarial);
-    sb.writeln('');
-    _linea(sb, 'TOTAL BRUTO REMUNERATIVO', r.totalBrutoRemunerativo, bold: true);
-    if (r.conectividadNacional > 0) _linea(sb, 'Conec. nacional (no rem)', r.conectividadNacional);
-    if (r.conectividadProvincial > 0) _linea(sb, 'Conect. provincial (no rem)', r.conectividadProvincial);
-    if (r.redondeoMonto > 0) _linea(sb, 'Redondeo (no rem)', r.redondeoMonto);
-    _linea(sb, 'Total no remunerativo', r.totalNoRemunerativo);
-    sb.writeln('');
-    sb.writeln('--- DESCUENTOS ---');
-    _linea(sb, 'Jubilación', -r.aporteJubilacion);
-    _linea(sb, 'Obra social (${r.porcentajeObraSocial.toStringAsFixed(1)}%)', -r.aporteObraSocial);
-    _linea(sb, 'PAMI (3%)', -r.aportePami);
-    if (r.dec13705 > 0) _linea(sb, 'Dec. Suplementario 137/05 2%', -r.dec13705);
-    _linea(sb, 'Impuesto a las Ganancias', -r.impuestoGanancias);
-    sb.writeln('');
-    _linea(sb, 'TOTAL DESCUENTOS', -r.totalDescuentos, bold: true);
-    sb.writeln('');
-    sb.writeln('--- NETO A COBRAR ---');
-    _linea(sb, 'NETO A COBRAR', r.netoACobrar, bold: true);
-    sb.writeln('');
-    sb.writeln('--- ANÁLISIS DE COSTO EMPLEADOR ---');
-    _linea(sb, 'Sueldo Bruto', costo.sueldoBruto);
-    _linea(sb, 'Contribuciones Patronales (30%)', costo.contribucionesPatronalesTotal);
-    _linea(sb, 'ART y Seguros', costo.artYSeguros);
-    _linea(sb, 'Provisión SAC y Vacaciones', costo.provisionSACYVacaciones);
-    _linea(sb, 'Cargas Sociales s/ Provisiones', costo.cargasSocialesSobreProvisiones);
-    sb.writeln('');
-    _linea(sb, 'TOTAL COSTO LABORAL REAL', costo.totalCostoLaboralReal, bold: true);
-    sb.writeln('══════════════════════════════════════════════════════════════════════════════');
-    return sb.toString();
-  }
-
-  void _linea(StringBuffer sb, String label, double value, {bool bold = false}) {
-    sb.writeln(bold ? '>>> $label: \$${value.toStringAsFixed(2)} <<<' : '  $label: \$${value.toStringAsFixed(2)}');
-  }
-
-  Future<void> _mostrarYDescargarInformeCompleto() async {
+  void _mostrarInstructivoArca() {
     final r = _resultado;
-    if (r == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Calcule primero la liquidación'))); return; }
-    final informeTxt = _generarInformeCompletoTxt(r);
-    if (!mounted) return;
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Informe completo TXT - Maestros'),
-      content: SizedBox(width: double.maxFinite, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: SelectableText(informeTxt, style: const TextStyle(fontFamily: 'monospace', fontSize: 11)))),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
-        FilledButton.icon(onPressed: () async {
-          try {
-            final dir = await getApplicationDocumentsDirectory();
-            final nombre = _nombreController.text.replaceAll(RegExp(r'[^\w\s]'), '_').replaceAll(RegExp(r'\s+'), '_');
-            final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-            final path = '${dir.path}${Platform.pathSeparator}Informe_Completo_Maestros_${nombre}_$stamp.txt';
-            await File(path).writeAsString(informeTxt, encoding: latin1);
-            if (!mounted) return;
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Descargado: $path')));
-            OpenFile.open(path);
-          } catch (e) { if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e'))); }
-        }, icon: const Icon(Icons.download, size: 18), label: const Text('Descargar TXT')),
-      ],
-    ));
+    final codigosUsados = <String>[];
+    
+    if (r != null) {
+        if (r.sueldoBasico > 0) codigosUsados.add(TeacherLsdCodigos.sueldoBasico);
+        if (r.adicionalAntiguedad > 0) codigosUsados.add(TeacherLsdCodigos.antiguedad);
+        if (r.fonid > 0) codigosUsados.add(TeacherLsdCodigos.fonid);
+        if (r.conectividad > 0) codigosUsados.add(TeacherLsdCodigos.conectividad);
+        if (r.materialDidactico > 0) codigosUsados.add(TeacherLsdCodigos.materialDidactico);
+        if (r.adicionalZona > 0) codigosUsados.add(TeacherLsdCodigos.adicionalZona);
+        if (r.itemAula > 0) codigosUsados.add(TeacherLsdCodigos.itemAula);
+        if (r.estadoDocente > 0) codigosUsados.add(TeacherLsdCodigos.estadoDocente);
+        if (r.presentismo > 0) codigosUsados.add(TeacherLsdCodigos.presentismo);
+        for (final c in r.conceptosPropios) {
+            if (c.monto > 0) {
+            codigosUsados.add(c.codigo.length > 10 ? c.codigo.substring(0, 10) : c.codigo);
+            }
+        }
+        if (r.aporteJubilacion > 0) codigosUsados.add(TeacherLsdCodigos.jubilacion);
+        if (r.aporteObraSocial > 0) codigosUsados.add(TeacherLsdCodigos.obraSocial);
+        if (r.aportePami > 0) codigosUsados.add(TeacherLsdCodigos.ley19032);
+    } else {
+        codigosUsados.addAll([
+            TeacherLsdCodigos.sueldoBasico, 
+            TeacherLsdCodigos.antiguedad, 
+            TeacherLsdCodigos.fonid,
+            TeacherLsdCodigos.jubilacion,
+            TeacherLsdCodigos.obraSocial
+        ]);
+    }
+
+    final instructivo = LsdMappingService.generarInstructivo(codigosUsados.toSet().toList());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+            children: [
+                Icon(Icons.info_outline, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('Instructivo Asociación AFIP', style: TextStyle(fontSize: 16)),
+            ],
+        ),
+        content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        Text('Antes de subir el archivo a AFIP, debe asociar los conceptos por única vez:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        SizedBox(height: 10),
+                        Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: SelectableText(instructivo, style: TextStyle(fontFamily: 'monospace', fontSize: 11)),
+                        ),
+                    ],
+                ),
+            ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+        ],
+      ),
+    );
   }
 
   void _mostrarBuscadorRNOS() {
@@ -1162,11 +1057,62 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
         ],
       ),
       persistentFooterButtons: [
-        TextButton(onPressed: _exportarLsd, child: const Text('Exportar LSD')),
-        TextButton(onPressed: _generarRecibo, child: const Text('Generar recibo')),
-        TextButton(onPressed: _mostrarYDescargarInformeCompleto, child: const Text('Informe')),
-        TextButton(onPressed: _descargarPackNeuquen, child: const Text('Pack Neuquén')),
-        TextButton(onPressed: _descargarPackCompletoARCA2026, child: const Text('Pack ARCA')),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+               // Fila 0: Instructivo ARCA
+               SizedBox(
+                 width: double.infinity,
+                 child: TextButton.icon(
+                   onPressed: _mostrarInstructivoArca,
+                   icon: const Icon(Icons.info_outline, size: 18, color: Colors.blue),
+                   label: const Text('Instructivo ARCA: Asociación de Conceptos (Leer antes de subir)'),
+                   style: TextButton.styleFrom(
+                     foregroundColor: Colors.blue,
+                     padding: EdgeInsets.zero,
+                   ),
+                 ),
+               ),
+               const SizedBox(height: 4),
+              // Fila 1: Exportar LSD y Recibo
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _resultado != null ? _exportarLsd : null,
+                      icon: const Icon(Icons.download, size: 20),
+                      label: const Text('Exportar LSD'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _resultado != null ? _generarRecibo : null,
+                      icon: const Icon(Icons.receipt, size: 20),
+                      label: const Text('Generar Recibo'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Fila 2: Pack ARCA (Main Action)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _resultado != null ? _descargarPackCompletoARCA2026 : null,
+                  icon: const Icon(Icons.folder_zip),
+                  label: const Text('Descargar Pack ARCA 2026 Completo'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
       body: ListView(
         padding: const EdgeInsets.all(20),
