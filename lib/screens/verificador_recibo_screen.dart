@@ -8,7 +8,6 @@ import 'package:syncra_arg/services/verificacion_recibo_service.dart';
 import 'teacher_receipt_scan_screen.dart';
 import 'package:syncra_arg/models/recibo_escaneado.dart';
 import 'package:syncra_arg/services/hybrid_store.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncra_arg/services/parametros_legales_service.dart';
 import 'package:syncra_arg/services/conceptos_explicaciones_service.dart';
 import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
@@ -50,8 +49,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       TextEditingController(text: '8.0');
   final TextEditingController _ajusteController =
       TextEditingController(text: '0.0');
-  DateTime? _fechaDocentes;
-  DateTime? _fechaSanidad;
   double? _smvm;
   DateTime? _fechaIngreso;
   String _motivoCese = 'Renuncia'; // 'Renuncia' o 'Despido'
@@ -129,9 +126,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         )['valor_indice'];
         if (v is num) indiceDocente = v.toDouble();
       }
-      final prefs = await SharedPreferences.getInstance();
-      final fDoc = prefs.getString('ultima_sincronizacion_paritarias');
-      final fSan = prefs.getString('ultima_sincronizacion_paritarias_sanidad');
       final params = await ParametrosLegalesService.cargarParametros();
       final smvm = params.smvm;
       if (mounted) {
@@ -144,8 +138,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             _ajusteMensual = 0.0;
             _ajusteController.text = _ajusteMensual.toStringAsFixed(1);
           }
-          _fechaDocentes = fDoc != null ? DateTime.tryParse(fDoc) : null;
-          _fechaSanidad = fSan != null ? DateTime.tryParse(fSan) : null;
           _smvm = smvm > 0 ? smvm : null;
         });
       }

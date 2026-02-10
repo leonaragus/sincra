@@ -330,7 +330,6 @@ class EmpresaScreenState extends State<EmpresaScreen> {
       'formatoRecibo': _formatoReciboId ?? 'clasico_lct',
     };
 
-    final razon = mapa['razonSocial']!;
     final i = empresas.indexWhere((e) => e['razonSocial'] == widget.razonSocial);
     if (i >= 0) {
       empresas[i] = mapa;

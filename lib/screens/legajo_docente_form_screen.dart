@@ -200,7 +200,6 @@ class _LegajoDocenteFormScreenState extends State<LegajoDocenteFormScreen> {
   Future<void> _actualizarPerfilIdYRevisarPlantilla() async {
     final id = _buildPerfilCargoId();
     if (id.isEmpty) return;
-    setState(() => _perfilCargoIdActual = id);
     final plantilla = await PlantillaCargoService.getByPerfilId(id);
     if (!mounted || plantilla == null || _ultimoPerfilAlertado == id) return;
     _ultimoPerfilAlertado = id;

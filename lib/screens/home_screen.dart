@@ -385,7 +385,7 @@ class HomeScreenState extends State<HomeScreen> {
                                 final status = ApiService.lastSyncStatus;
                                 if (status == null) return const SizedBox.shrink();
                                 final dataUpdateDate = status.dataUpdateDate;
-                                if (status.success != true || dataUpdateDate == null) return const SizedBox.shrink();
+                                if (status.success != true) return const SizedBox.shrink();
 
                                 final dateText = "${dataUpdateDate.day.toString().padLeft(2, '0')}/${dataUpdateDate.month.toString().padLeft(2, '0')}/${dataUpdateDate.year}";
                                 return Padding(

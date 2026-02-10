@@ -32,7 +32,6 @@ import 'teacher_receipt_scan_screen.dart';
 import '../utils/app_help.dart';
 import '../services/contabilidad_service.dart';
 import '../services/contabilidad_config_service.dart';
-import '../models/contabilidad/mapeo_contable.dart';
 import '../services/liquidacion_history_service.dart';
 import '../services/retroactivo_service.dart';
 

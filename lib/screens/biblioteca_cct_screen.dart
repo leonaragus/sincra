@@ -18,7 +18,6 @@ class BibliotecaCCTScreen extends StatefulWidget {
 
 class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
   List<CCTMaster> _ccts = [];
-  bool _cargando = true;
   bool _sincronizando = false;
   
   Map<String, dynamic>? _infoSincronizacion;
@@ -32,8 +31,6 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
   }
   
   Future<void> _cargarCCTs() async {
-    setState(() => _cargando = true);
-    
     try {
       final res = await CCTCloudService.sincronizarCCT();
       
@@ -45,8 +42,6 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
     } catch (e) {
       _mostrarError('Error cargando CCT: $e');
     }
-    
-    setState(() => _cargando = false);
   }
   
   Future<void> _sincronizarCCT() async {
