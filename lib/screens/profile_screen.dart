@@ -305,7 +305,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _launchPrivacyPolicy() async {
-    const url = 'https://syncra-arg.web.app/privacy-policy';
+    const url = 'https://sincra.web.app/privacy-policy';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     }
