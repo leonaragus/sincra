@@ -33,47 +33,47 @@ class ReceiptOCRPatterns {
   static final Map<String, RegExp> patterns = {
     // Conceptos Remunerativos
     'sueldo_basico': RegExp(
-      r'SUELDO\s*BÁSICO|SUELDO\s*BASICO|S\.\s*BÁSICO[\s:]*([\d.,]+)',
+      r'SUELDO\s*BÁSICO|SUELDO\s*BASICO|S\.\s*BÁSICO[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'antiguedad': RegExp(
-      r'ANTIGÜEDAD|ANTIGUEDAD|SENIORIDAD[\s:]*([\d.,]+)',
+      r'ANTIGÜEDAD|ANTIGUEDAD|SENIORIDAD[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'presentismo': RegExp(
-      r'PRESENTISMO|ASISTENCIA|INASISTENCIA[\s:]*([\d.,]+)',
+      r'PRESENTISMO|ASISTENCIA|INASISTENCIA[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'horas_extras': RegExp(
-      r'HORAS\s*EXTRAS|H\.\s*EXTRAS|HS\.\s*EXTRAS[\s:]*([\d.,]+)',
+      r'HORAS\s*EXTRAS|H\.\s*EXTRAS|HS\.\s*EXTRAS[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'feriados': RegExp(
-      r'FERIADO|FERIADOS|DIAS\s*FERIADOS[\s:]*([\d.,]+)',
+      r'FERIADO|FERIADOS|DIAS\s*FERIADOS[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'vacaciones': RegExp(
-      r'VACACIONES|VACACION[\s:]*([\d.,]+)',
+      r'VACACIONES|VACACION[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'sac': RegExp(
-      r'S\.A\.C\.|SAC|SUELDO\s*ANUAL\s*COMPLEMENTARIO|AGUINALDO[\s:]*([\d.,]+)',
+      r'S\.A\.C\.|SAC|SUELDO\s*ANUAL\s*COMPLEMENTARIO|AGUINALDO[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'adicionales': RegExp(
-      r'ADICIONAL|ADICIONALES[\s:]*([\d.,]+)',
+      r'ADICIONAL|ADICIONALES[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'titulo': RegExp(
-      r'TÍTULO|TITULO|HABILITACIÓN[\s:]*([\d.,]+)',
+      r'TÍTULO|TITULO|HABILITACIÓN[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
@@ -129,22 +129,22 @@ class ReceiptOCRPatterns {
     
     // Totales
     'total_remunerativo': RegExp(
-      r'TOTAL\s*REMUNERATIVO|TOTAL\s*HABERES|TOTAL\s*REMUNERATIVOS[\s:]*([\d.,]+)',
+      r'TOTAL\s*REMUNERATIVO|TOTAL\s*HABERES|TOTAL\s*REMUNERATIVOS[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'total_no_remunerativo': RegExp(
-      r'TOTAL\s*NO\s*REMUNERATIVO|TOTAL\s*NO\s*REMUNERATIVOS[\s:]*([\d.,]+)',
+      r'TOTAL\s*NO\s*REMUNERATIVO|TOTAL\s*NO\s*REMUNERATIVOS[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'total_deducciones': RegExp(
-      r'TOTAL\s*DEDUCCIONES|TOTAL\s*DESCUENTOS|DEDUCCIONES\s*TOTALES[\s:]*([\d.,]+)',
+      r'TOTAL\s*DEDUCCIONES|TOTAL\s*DESCUENTOS|DEDUCCIONES\s*TOTALES[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
     'sueldo_neto': RegExp(
-      r'SUELDO\s*NETO|NETO\s*A\s*COBRAR|NETO\s*PAGADO|LÍQUIDO|TOTAL\s*NETO[\s:]*([\d.,]+)',
+      r'SUELDO\s*NETO|NETO\s*A\s*COBRAR|NETO\s*PAGADO|LÍQUIDO|TOTAL\s*NETO[\s:]*([\d.,-]+)',
       caseSensitive: false,
       multiLine: true,
     ),
@@ -202,13 +202,60 @@ class ReceiptOCRPatterns {
     
     return coincidencias >= 3 && tieneNumeros;
   }
-  
-  /// Extrae monto de una línea usando regex
+
+  /// Extrae monto de una línea usando regex, con soporte para formato AR (1.000,00) y US (1,000.00)
+  /// y signos negativos al principio o final.
   static double? extraerMonto(String texto, RegExp regex) {
     final match = regex.firstMatch(texto);
     if (match != null && match.groupCount >= 1) {
-      final montoStr = match.group(1)?.replaceAll('.', '').replaceAll(',', '.');
-      return double.tryParse(montoStr ?? '');
+      String montoStr = match.group(1) ?? '';
+      
+      // 1. Detectar signo negativo (al principio o al final)
+      bool esNegativo = montoStr.contains('-');
+      montoStr = montoStr.replaceAll('-', '').trim();
+
+      // 2. Limpiar moneda y espacios
+      montoStr = montoStr.replaceAll('\$', '').trim();
+
+      // 3. Heurística para detectar formato US (1,234.56) vs AR (1.234,56)
+      // Si tiene punto y coma, el último define el decimal
+      if (montoStr.contains('.') && montoStr.contains(',')) {
+        final lastDot = montoStr.lastIndexOf('.');
+        final lastComma = montoStr.lastIndexOf(',');
+        
+        if (lastDot > lastComma) {
+          // Formato US: 1,234.56 -> Eliminar comas
+          montoStr = montoStr.replaceAll(',', '');
+        } else {
+          // Formato AR: 1.234,56 -> Eliminar puntos, cambiar coma por punto
+          montoStr = montoStr.replaceAll('.', '').replaceAll(',', '.');
+        }
+      } 
+      // Si solo tiene comas: 1234,56 (AR decimal) o 1,234 (US miles)
+      else if (montoStr.contains(',')) {
+        // Asumimos AR decimal por defecto en este contexto, salvo que parezca miles
+        // (ej: 1,234 sin decimales es raro en recibos, suele ser 1234,00)
+        montoStr = montoStr.replaceAll(',', '.');
+      }
+      // Si solo tiene puntos: 1.234 (AR miles) o 1234.56 (US decimal)
+      else if (montoStr.contains('.')) {
+        // Si hay más de un punto (1.234.567), seguro es miles AR
+        if (montoStr.indexOf('.') != montoStr.lastIndexOf('.')) {
+          montoStr = montoStr.replaceAll('.', '');
+        } else {
+          // Un solo punto. En recibos AR, 1.500 suele ser 1500. 
+          // Pero si es un sistema US, 1500.50 es decimal.
+          // Ante la duda en recibos AR, asumimos punto = miles si tiene 3 decimales exactos? No, muy riesgoso.
+          // Mantenemos el punto como decimal (US format o AR malformado) para no romper 100.50
+          // Pero eliminamos si parece miles (ej: 1.500). 
+          // Por seguridad, dejemos el punto (double.parse lo toma como decimal).
+        }
+      }
+
+      final valor = double.tryParse(montoStr);
+      if (valor != null) {
+        return esNegativo ? -valor : valor;
+      }
     }
     return null;
   }

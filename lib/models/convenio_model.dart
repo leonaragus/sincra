@@ -7,6 +7,7 @@ class ConvenioModel {
   final double sueldoBasico;
   final Map<String, double> adicionales;
   final DateTime ultimaActualizacion;
+  final String? pdfUrl;
 
   const ConvenioModel({
     required this.id,
@@ -15,6 +16,7 @@ class ConvenioModel {
     required this.sueldoBasico,
     required this.adicionales,
     required this.ultimaActualizacion,
+    this.pdfUrl,
   });
 
   factory ConvenioModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class ConvenioModel {
       ultimaActualizacion: json['ultimaActualizacion'] != null
           ? DateTime.tryParse(json['ultimaActualizacion'] as String) ?? DateTime.now()
           : DateTime.now(),
+      pdfUrl: json['pdfUrl'] as String?,
     );
   }
 
@@ -46,6 +49,7 @@ class ConvenioModel {
       'sueldoBasico': sueldoBasico,
       'adicionales': adicionales,
       'ultimaActualizacion': ultimaActualizacion.toIso8601String(),
+      'pdfUrl': pdfUrl,
     };
   }
 
@@ -56,6 +60,7 @@ class ConvenioModel {
     double? sueldoBasico,
     Map<String, double>? adicionales,
     DateTime? ultimaActualizacion,
+    String? pdfUrl,
   }) {
     return ConvenioModel(
       id: id ?? this.id,
@@ -64,6 +69,7 @@ class ConvenioModel {
       sueldoBasico: sueldoBasico ?? this.sueldoBasico,
       adicionales: adicionales ?? Map<String, double>.from(this.adicionales),
       ultimaActualizacion: ultimaActualizacion ?? this.ultimaActualizacion,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
     );
   }
 }

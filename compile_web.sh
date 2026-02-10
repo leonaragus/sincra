@@ -16,7 +16,7 @@ flutter pub get
 
 # Compilar para web (release mode)
 echo "🔨 Compilando versión web release..."
-flutter build web --release --no-pub --pwa-strategy=none
+flutter build web --release --no-pub --pwa-strategy=none --web-renderer html
 
 echo "✅ Compilación completada exitosamente!"
 echo "📁 Los archivos están en: build/web/"
@@ -59,8 +59,8 @@ if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
 elif [ -n "$FIREBASE_TOKEN" ]; then
     firebase deploy --only hosting --token "$FIREBASE_TOKEN" --project "sincra"
 else
-    echo "❌ ERROR: No se encontró FIREBASE_SERVICE_ACCOUNT ni FIREBASE_TOKEN."
-    exit 1
+    echo "⚠️ No se detectaron tokens de CI/CD. Intentando deploy con sesión activa..."
+    firebase deploy --only hosting --project "sincra"
 fi
 
 echo "🎉 DEPLOY COMPLETADO EXITOSAMENTE!"

@@ -3,7 +3,7 @@ import '../models/cct_completo.dart';
 
 final List<CCTCompleto> cctArgentinaCompleto = [
   // CCT 130/75 - Empleados de Comercio
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_130_75',
     numeroCCT: '130/75',
     nombre: 'Empleados de Comercio',
@@ -95,14 +95,17 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 192.0, // CCT 130/75: 192 horas mensuales (48 horas semanales)
+    horasMensualesDivisor: 192.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.faecys.org.ar/images/CCT130-75.pdf',
   ),
 
-  // CCT 76/93 - Construcción (UOCRA)
-  const CCTCompleto(
+  // CCT 76/75 - Construcción (UOCRA)
+  CCTCompleto(
     id: 'cct_76_93',
-    numeroCCT: '76/93',
+    numeroCCT: '76/75',
     nombre: 'Construcción - UOCRA',
     descripcion: 'Convenio Colectivo de Trabajo para la Actividad de la Construcción',
     actividad: 'Construcción',
@@ -187,12 +190,15 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 200.0, // CCT 76/93: 200 horas mensuales (estándar construcción)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.uocra.org/pdf/9c21ef_76.75.pdf',
   ),
 
   // CCT Metalúrgico - UOM
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_metalurgico',
     numeroCCT: '260/75',
     nombre: 'Metalúrgico - UOM',
@@ -266,12 +272,15 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://uomrosario.org.ar/documentos_varios/Convenio_Colectivo_nro_260-75.pdf',
   ),
 
   // CCT Gastronómicos - UTHGRA
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_gastronomicos',
-    numeroCCT: '297/89',
+    numeroCCT: '389/04',
     nombre: 'Gastronómicos - UTHGRA',
     descripcion: 'Convenio Colectivo de Trabajo para la Actividad Gastronómica',
     actividad: 'Gastronomía',
@@ -343,12 +352,15 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 200.0, // CCT 260/75: 200 horas mensuales (estándar metalúrgico)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.fehgracomodoro.com.ar/biblioteca-online/politica-laboral-y-social/Convenio-Colectivo-de-Trabajo-con-Comentarios-y-Recomendaciones.pdf',
   ),
 
   // CCT Petroleros
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_petroleros',
     numeroCCT: '644/12',
     nombre: 'Petroleros',
@@ -418,15 +430,18 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.5,
-    horasMensualesDivisor: 200.0, // Petroleros general: 200 horas mensuales
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.oitcinterfor.org/sites/default/files/disposiciones_fp_convenios/CCT644_12.pdf',
   ),
 
   // CCT Textil
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_textil',
-    numeroCCT: '130/75',
-    nombre: 'Textil',
+    numeroCCT: '500/07',
+    nombre: 'Textil - AOT',
     descripcion: 'Convenio Colectivo de Trabajo para la Industria Textil',
     actividad: 'Textil',
     categorias: [
@@ -472,14 +487,17 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 200.0, // Textil: 200 horas mensuales (estándar)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://aot-ra.org.ar/wp-content/uploads/2021/08/CCT-500-07.pdf',
   ),
 
   // CCT Químico
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_quimico',
-    numeroCCT: '130/75',
+    numeroCCT: '790/21',
     nombre: 'Químico',
     descripcion: 'Convenio Colectivo de Trabajo para la Industria Química',
     actividad: 'Química',
@@ -526,14 +544,17 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 200.0, // Químico: 200 horas mensuales (estándar)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://festiqypra.org.ar/wp-content/uploads/2021/05/CCT-790-21.pdf',
   ),
 
   // CCT UOCRA Yacimiento
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_uocra_yacimiento',
-    numeroCCT: '76/93 Yacimiento',
+    numeroCCT: '545/08',
     nombre: 'UOCRA Yacimiento',
     descripcion: 'Convenio Colectivo de Trabajo para la Construcción en Yacimientos',
     actividad: 'Construcción Yacimiento',
@@ -606,14 +627,17 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.5,
-    horasMensualesDivisor: 200.0, // UOCRA Yacimiento: 200 horas mensuales (estándar)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://perezmarzo.com.ar/wp-content/uploads/2012/09/Construccion-Petroleros-CCT-545-08.pdf',
   ),
 
   // CCT Petroleros Jerárquicos
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_petroleros_jerarquicos',
-    numeroCCT: '644/12 Jerárquicos',
+    numeroCCT: '637/11',
     nombre: 'Petroleros Jerárquicos',
     descripcion: 'Convenio Colectivo de Trabajo para Personal Jerárquico de la Actividad Petrolera',
     actividad: 'Petróleo Jerárquico',
@@ -686,14 +710,17 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 2.0,
-    horasMensualesDivisor: 173.0, // Petroleros Jerárquicos: 173 horas mensuales
+    horasMensualesDivisor: 173.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.oitcinterfor.org/sites/default/files/disposiciones_fp_convenios/CCT637_11Petroleros.pdf',
   ),
 
   // CCT Plástico
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_plastico',
-    numeroCCT: '130/75',
+    numeroCCT: '797/22 (ex 419/05)',
     nombre: 'Industria del Plástico',
     descripcion: 'Convenio Colectivo de Trabajo para la Industria del Plástico',
     actividad: 'Plástico',
@@ -771,12 +798,15 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 200.0, // Plástico: 200 horas mensuales (estándar)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.argentina.gob.ar/normativa/nacional/resoluci%C3%B3n-363-2023-381750/texto',
   ),
 
   // CCT Camioneros
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_camioneros',
     numeroCCT: '40/89',
     nombre: 'Camioneros',
@@ -851,14 +881,17 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 24.0, // CCT 40/89: Divisor 24 días (especial para camioneros)
-    esDivisorDias: true, // Camioneros usa divisor de días, no de horas
+    horasMensualesDivisor: 24.0,
+    esDivisorDias: true,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.fedcam.org.ar/images/sampledata/ja_university/convenio-2020-segunda.pdf',
   ),
 
   // CCT Alimentación
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_alimentacion',
-    numeroCCT: '130/75',
+    numeroCCT: '244/94',
     nombre: 'Alimentación',
     descripcion: 'Convenio Colectivo de Trabajo para la Industria Alimenticia',
     actividad: 'Alimentación',
@@ -905,14 +938,17 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 200.0, // Alimentación: 200 horas mensuales (estándar)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.ftiasistema.com.ar/uploads/descargas/1b6e68d95d42d6b0941afbb9a7382297296d3263.pdf',
   ),
 
   // CCT Gráfico
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_grafico',
-    numeroCCT: '130/75',
+    numeroCCT: '60/89',
     nombre: 'Gráfico',
     descripcion: 'Convenio Colectivo de Trabajo para la Industria Gráfica',
     actividad: 'Gráfico',
@@ -959,12 +995,15 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://fgb.org.ar/wp-content/uploads/2021/01/CCT-Graficos-60-89-2019.pdf',
   ),
 
   // CCT Madera
-  const CCTCompleto(
+  CCTCompleto(
     id: 'cct_madera',
-    numeroCCT: '130/75',
+    numeroCCT: '335/75',
     nombre: 'Madera',
     descripcion: 'Convenio Colectivo de Trabajo para la Industria de la Madera',
     actividad: 'Madera',
@@ -1011,7 +1050,83 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     ],
     adicionalPresentismo: 8.33,
     adicionalAntiguedad: 1.0,
-    horasMensualesDivisor: 200.0, // Madera: 200 horas mensuales (estándar)
+    horasMensualesDivisor: 200.0,
     esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://cafydma.org/wp-content/uploads/2022/03/CCT-335-75-FAIMA-USIMRA.pdf',
+  ),
+
+  // CCT Sanidad (FATSA)
+  CCTCompleto(
+    id: 'cct_sanidad_122_75',
+    numeroCCT: '122/75',
+    nombre: 'Sanidad - FATSA',
+    descripcion: 'CCT 122/75 para Clínicas, Sanatorios y Hospitales Privados',
+    actividad: 'Sanidad',
+    categorias: [
+      CategoriaCCT(
+        id: 'enfermero',
+        nombre: 'Enfermero/a',
+        salarioBase: 1200000.0,
+        descripcion: 'Personal de enfermería',
+      ),
+      CategoriaCCT(
+        id: 'administrativo_a',
+        nombre: 'Administrativo A',
+        salarioBase: 1100000.0,
+      ),
+      CategoriaCCT(
+        id: 'mucama',
+        nombre: 'Mucama',
+        salarioBase: 900000.0,
+      ),
+    ],
+    descuentos: [
+      DescuentoCCT(
+        id: 'obra_social',
+        nombre: 'Obra Social',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'jubilacion',
+        nombre: 'Jubilación',
+        porcentaje: 11.0,
+      ),
+      DescuentoCCT(
+        id: 'ley_19032',
+        nombre: 'Ley 19.032',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'sindicato',
+        nombre: 'Sindicato ATSA',
+        porcentaje: 2.0,
+      ),
+      DescuentoCCT(
+        id: 'fatsa',
+        nombre: 'FATSA',
+        porcentaje: 1.0,
+      ),
+    ],
+    zonas: [
+      ZonaCCT(
+        id: 'zona_normal',
+        nombre: 'Zona Normal',
+        adicionalPorcentaje: 0.0,
+      ),
+      ZonaCCT(
+        id: 'zona_patagonia',
+        nombre: 'Zona Patagónica',
+        adicionalPorcentaje: 20.0,
+      ),
+    ],
+    adicionalPresentismo: 0.0, // Sanidad tiene otros adicionales
+    adicionalAntiguedad: 2.0,
+    horasMensualesDivisor: 200.0,
+    esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://www.sanidad.org.ar/ContentManager/Files/ContentFileManager/acciongremial/cct_pdfs/c122/cct122_actualizacionoctubre_2024.pdf',
   ),
 ];

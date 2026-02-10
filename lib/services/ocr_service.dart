@@ -57,9 +57,7 @@ class OcrService {
         tempFile.path,
         language: "spa", // Español
         args: {
-          'psm': '8',    // Modo de segmentación para palabra única (mejor para recibos)
-          'oem': '1',    // Motor OCR LSTM (más preciso)
-          'tessedit_char_whitelist': '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,',
+          'psm': '6',    // Assume a single uniform block of text.
         }
       );
       
@@ -125,12 +123,10 @@ class OcrService {
         tempFile.path,
         language: "spa",
         args: {
-          'psm': '13',    // Modo de segmentación RAW LINE - máximo esfuerzo
-          'oem': '0',     // Motor OCR legacy (más tolerante)
-          'tessedit_char_whitelist': '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,\$',
+          'psm': '3',    // Fully automatic page segmentation, but no OSD. (Default)
         }
       );
-      return resultado ?? "";
+      return resultado;
     } catch (e) {
       print("Error en Tesseract permisivo: $e");
       return "";
@@ -146,11 +142,9 @@ class OcrService {
         language: "spa",
         args: {
           'psm': '6',     // Modo de bloque uniforme
-          'oem': '0',     // Motor legacy
-          'tessedit_char_whitelist': '0123456789.,\$' // Solo números y símbolos monetarios
         }
       );
-      return resultado ?? "";
+      return resultado;
     } catch (e) {
       print("Error en extracción mínima: $e");
       return "";

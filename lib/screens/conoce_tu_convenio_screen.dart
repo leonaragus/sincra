@@ -5,6 +5,7 @@ import 'package:syncra_arg/models/cct_completo.dart';
 import 'package:syncra_arg/models/convenio_model.dart';
 import 'package:syncra_arg/data/cct_argentina_completo.dart';
 import 'package:syncra_arg/widgets/cct_detail_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ConoceTuConvenioScreen extends StatefulWidget {
   final String? convenioId;
@@ -57,6 +58,7 @@ class _ConoceTuConvenioScreenState extends State<ConoceTuConvenioScreen> {
       esDivisorDias: false,
       fechaVigencia: convenioModel.ultimaActualizacion,
       activo: true,
+      pdfUrl: convenioModel.pdfUrl,
     );
   }
 
@@ -114,13 +116,33 @@ class _ConoceTuConvenioScreenState extends State<ConoceTuConvenioScreen> {
 
   Future<void> _descargarPDF() async {
     if (_convenioSeleccionado == null) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Función de descarga PDF en desarrollo para: ${_convenioSeleccionado!.nombre}'),
-        backgroundColor: AppColors.info,
-      ),
-    );
+
+    final url = _convenioSeleccionado!.pdfUrl;
+    if (url != null && url.isNotEmpty) {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo abrir el enlace PDF'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'PDF no disponible para ${_convenioSeleccionado!.nombre}'),
+            backgroundColor: AppColors.info,
+          ),
+        );
+      }
+    }
   }
 
   void _mostrarDetallesCompletos() {
@@ -231,27 +253,23 @@ class _ConoceTuConvenioScreenState extends State<ConoceTuConvenioScreen> {
             ],
           ),
           
-          if (convenio.numeroCCT != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              'CCT ${convenio.numeroCCT}',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-              ),
+          const SizedBox(height: 8),
+          Text(
+            'CCT ${convenio.numeroCCT}',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
             ),
-          ],
+          ),
           
-          if (convenio.descripcion != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              convenio.descripcion!,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-              ),
+          const SizedBox(height: 12),
+          Text(
+            convenio.descripcion,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
             ),
-          ],
+          ),
           
           const SizedBox(height: 16),
           const Text(

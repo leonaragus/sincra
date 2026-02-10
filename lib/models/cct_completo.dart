@@ -98,8 +98,9 @@ class CCTCompleto {
   final double porcentajeAntiguedadAnual; // Porcentaje anual de antigüedad (ej: 1% para Comercio, 1.5% para otros)
   final double? horasMensualesDivisor; // Divisor para cálculo de horas extras (192, 200, 173, etc.)
   final bool esDivisorDias; // Si es true, el divisor es en días (ej: camioneros usa 24 días)
-  final DateTime? fechaVigencia;
+  final DateTime fechaVigencia;
   final bool activo;
+  final String? pdfUrl;
 
   const CCTCompleto({
     required this.id,
@@ -112,11 +113,12 @@ class CCTCompleto {
     required this.zonas,
     this.adicionalPresentismo = 0.0,
     this.adicionalAntiguedad = 0.0,
-    this.porcentajeAntiguedadAnual = 1.0, // Por defecto 1% anual
-    this.horasMensualesDivisor,
+    this.porcentajeAntiguedadAnual = 1.0,
+    this.horasMensualesDivisor = 192.0,
     this.esDivisorDias = false,
-    this.fechaVigencia,
+    required this.fechaVigencia,
     this.activo = true,
+    this.pdfUrl,
   });
 
   CCTCompleto copyWith({

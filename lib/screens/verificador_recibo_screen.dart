@@ -13,10 +13,14 @@ import 'package:syncra_arg/services/parametros_legales_service.dart';
 import 'package:syncra_arg/services/conceptos_explicaciones_service.dart';
 import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
 import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
+import 'package:syncra_arg/services/api_service.dart';
+import 'package:syncra_arg/models/convenio_model.dart';
 import 'package:syncra_arg/utils/app_help.dart';
 import 'package:syncra_arg/utils/conceptos_builder.dart';
 import 'package:syncra_arg/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
+import 'package:syncra_arg/services/pdf_report_service.dart';
 
 class VerificadorReciboScreen extends StatefulWidget {
   const VerificadorReciboScreen({super.key});
@@ -52,38 +56,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
 
   // Variables para funcionalidad mejorada
   bool _mostrarDatosLeidos = false; // Cambiado a false por defecto
-  String? _convenioSeleccionado = null; // Hacer opcional
-  final List<String> _conveniosDisponibles = [
-    'Docente Federal',
-    'Sanidad',
-    'Comercio',
-    'Gastronomía',
-    'Construcción',
-    'Metalúrgico',
-    'Textil',
-    'Químico',
-    'Plásticos',
-    'Alimentación',
-    'Transporte',
-    'Petróleo',
-    'Bancario',
-    'Seguros',
-    'Empleados de Comercio',
-    'Rural',
-    'Vidrio',
-    'Papel',
-    'GrÁficos',
-    'Farmacia',
-    'Hotelería',
-    'Turismo',
-    'Servicios',
-    'Call Center',
-    'Tecnología',
-    'Administración Pública',
-    'Salud',
-    'Educación Privada',
-    'No sé mi convenio' // Opción para usuarios que no conocen su convenio
-  ];
+  String? _convenioSeleccionado; // Hacer opcional
+  List<ConvenioModel> _conveniosModelos = [];
+  List<String> _conveniosDisponibles = ['Cargando convenios...'];
 
   /// Controlador para el menú hamburguesa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -99,11 +74,23 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   @override
   void initState() {
     super.initState();
+    print('VerificadorReciboScreen v1.2 loaded'); // Debug version
     _cargarDatosAutomaticos();
   }
 
   Future<void> _cargarDatosAutomaticos() async {
     try {
+      // Cargar convenios desde API o local
+      final convenios = await ApiService.syncOrLoadLocal();
+      if (mounted) {
+        setState(() {
+          _conveniosModelos = convenios;
+          final nombres = convenios.map((c) => c.nombreCCT).toSet().toList();
+          nombres.sort();
+          _conveniosDisponibles = [...nombres, 'No sé mi convenio'];
+        });
+      }
+
       final docentes = await HybridStore.getMaestroParitarias();
       final sanidad = await HybridStore.getMaestroParitariasSanidad();
       double? indiceDocente;
@@ -781,8 +768,44 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
 
         const SizedBox(height: 20),
 
-        // Widgets adicionales
-        _buildProyeccionesWidget(),
+          if (_recibo != null) ...[
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final analisis = _analizarPagoConvenio();
+                  showDialog(
+                    context: context,
+                    builder: (context) => AcademyPromoDialog(
+                      onDownload: () {
+                        PdfReportService.generateAndDownloadReport(
+                          recibo: _recibo!,
+                          detalles:
+                              List<String>.from(analisis['detalles'] ?? []),
+                          itemsRevisar: List<String>.from(
+                              analisis['items_revisar'] ?? []),
+                          alertasGraves: List<String>.from(
+                              analisis['alertas_graves'] ?? []),
+                          convenio: _convenioSeleccionado ?? 'No especificado',
+                        );
+                      },
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text('Descargar Informe Completo'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // Widgets adicionales
+          _buildProyeccionesWidget(),
         const SizedBox(height: 16),
         _buildMetasUnidadesWidget(),
         const SizedBox(height: 16),
@@ -907,7 +930,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                         child: Text(
                           _textoOcr.isNotEmpty ? _textoOcr : 'No se detectó texto',
                           style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: Colors.white,
                             fontSize: 12,
                             fontFamily: 'monospace',
                             height: 1.4,
@@ -1035,64 +1058,70 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     detalles.add('Sueldo básico: ${sueldoBasico?.toStringAsFixed(2) ?? "N/A"}');
     detalles.add('Total neto: ${r.sueldoNeto.toStringAsFixed(2)}');
 
-    // Análisis específico por convenio con valores de referencia 2026
-    if (_convenioSeleccionado == null || _convenioSeleccionado == 'No sé mi convenio') {
+    // Análisis específico por convenio con valores de referencia
+    if (_convenioSeleccionado == null ||
+        _convenioSeleccionado == 'No sé mi convenio') {
       detalles.add('Convenio: No especificado');
       detalles.add('Te ayudamos a verificar valores generales');
       detalles.add('Verificamos porcentajes estándar de aportes');
-      
+
       // Verificaciones generales para usuarios que no conocen su convenio
       if (sueldoBasico != null && sueldoBasico < 400000) {
         alertasGraves.add(
             '⚠️ SUELDO MUY BAJO: Tu básico está por debajo de referencia general');
-        itemsRevisar.add('Consultá con tu empleador sobre tu convenio aplicable');
+        itemsRevisar
+            .add('Consultá con tu empleador sobre tu convenio aplicable');
       }
     } else {
-      switch (_convenioSeleccionado) {
-        case 'Docente Federal':
-          detalles.add('Convenio: Docente Federal (Nacional)');
-          detalles.add('Categoría: Maestro de Grado - Jornada Completa');
-          detalles.add('Referencia 2026: 650.000 - 850.000');
+      detalles.add('Convenio seleccionado: $_convenioSeleccionado');
 
-          if (sueldoBasico != null && sueldoBasico < 600000) {
+      // Buscar modelos que coincidan con el nombre seleccionado
+      final modelos = _conveniosModelos
+          .where((c) => c.nombreCCT == _convenioSeleccionado)
+          .toList();
+
+      if (modelos.isEmpty) {
+        detalles.add(
+            'No se encontraron datos actualizados para este convenio.');
+      } else {
+        // Obtener rango salarial
+        final salarios = modelos.map((m) => m.sueldoBasico).toList();
+        salarios.sort();
+        final minSalario = salarios.first;
+        final maxSalario = salarios.last;
+
+        // Formatear moneda sin decimales
+        final fMin = minSalario.toStringAsFixed(0);
+        final fMax = maxSalario.toStringAsFixed(0);
+
+        detalles.add('Rango salarial ref. (aprox): \$$fMin - \$$fMax');
+        detalles.add('Categorías registradas: ${modelos.length}');
+
+        if (sueldoBasico != null) {
+          // Umbral de tolerancia (10%)
+          if (sueldoBasico < minSalario * 0.9) {
             alertasGraves.add(
-                '⚠️ SUELDO CRÍTICAMENTE BAJO: Tu básico está muy por debajo del piso docente');
-            alertasGraves
-                .add('Urgente: Contactá a tu delegado gremial inmediatamente');
-          } else if (sueldoBasico != null && sueldoBasico < 650000) {
-            itemsRevisar.add(
-                'Sueldo básico bajo para docente federal (debería ser > 650.000)');
-          }
-          break;
-
-        case 'Sanidad':
-          detalles.add('Convenio: Sanidad (UPCN/Sindicato)');
-          detalles.add('Categoría: Enfermero Profesional');
-          detalles.add('Referencia 2026: 580.000 - 720.000');
-
-          if (sueldoBasico != null && sueldoBasico < 550000) {
+                '⚠️ SUELDO CRÍTICAMENTE BAJO: Tu básico está por debajo del mínimo registrado para este convenio (\$$fMin).');
             alertasGraves.add(
-                '⚠️ SUELDO BAJO: Tu básico está por debajo del convenio de sanidad');
-            itemsRevisar.add('Revisá con recursos humanos tu categorización');
-          }
-          break;
-
-        case 'Comercio':
-          detalles.add('Convenio: Comercio (FAECYS)');
-          detalles.add('Categoría: Dependiente - 8hs');
-          detalles.add('Referencia 2026: 520.000 - 620.000');
-
-          if (sueldoBasico != null && sueldoBasico < 500000) {
+                'Urgente: Contactá a tu delegado gremial inmediatamente.');
+          } else if (sueldoBasico < minSalario) {
             itemsRevisar.add(
-                'Sueldo básico bajo para convenio de comercio (mínimo 520.000)');
+                'Tu básico está ligeramente por debajo del mínimo de referencia (\$$fMin). Revisá tu categoría.');
+          } else {
+            detalles.add(
+                '✅ Tu sueldo básico está dentro o por encima del rango mínimo.');
           }
-          break;
-
-        default:
-          detalles.add('Convenio: $_convenioSeleccionado');
-          detalles.add('Verificá con tu sindicato los valores de referencia');
+        } else {
+          itemsRevisar.add(
+              'No pudimos detectar tu sueldo básico para compararlo.');
+        }
       }
     }
+
+    // Disclaimer siempre visible
+    detalles.add('');
+    detalles.add(
+        '⚠️ IMPORTANTE: Los valores son orientativos y pueden variar según antigüedad, zona, y acuerdos puntuales.');
 
     // Verificación de aportes básicos (porcentajes aproximados)
     final aporteJubilacion = r.conceptos.firstWhere(
@@ -1352,7 +1381,13 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         children: [
           const Icon(Icons.trending_up, size: 16, color: Colors.blueGrey),
           const SizedBox(width: 6),
-          Text('$label: \$${valor.toStringAsFixed(0)}'),
+          Text(
+            '$label: \$${valor.toStringAsFixed(0)}',
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -1393,8 +1428,11 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Metas en Unidades (SMVM)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('Metas en Unidades (SMVM)',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade900)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 12,

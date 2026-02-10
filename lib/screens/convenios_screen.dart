@@ -69,7 +69,7 @@ class _ConveniosScreenState extends State<ConveniosScreen> {
   static const String _idConvenioNuevo = 'cct_nuevo';
 
   CCTCompleto _crearConvenioVacio() {
-    return const CCTCompleto(
+    return CCTCompleto(
       id: _idConvenioNuevo,
       numeroCCT: '',
       nombre: '',
@@ -80,6 +80,8 @@ class _ConveniosScreenState extends State<ConveniosScreen> {
       zonas: [],
       adicionalPresentismo: 8.33,
       adicionalAntiguedad: 1.0,
+      fechaVigencia: DateTime.now(),
+      activo: true,
     );
   }
 

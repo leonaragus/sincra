@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
 import 'dart:ui';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/image_bytes_reader.dart';
 
 import '../models/liquidacion.dart';
@@ -88,7 +89,8 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
   bool _presentismoActivo = true; // Por defecto activado
   int _diasInasistencia = 0;
   double _porcentajePresentismo = 8.33; // Por defecto 8.33%
-  
+  String? _pdfConvenioUrl; // URL del PDF del convenio seleccionado
+
   // Liquidación
   Liquidacion? _liquidacion;
   
@@ -269,7 +271,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       // Buscar el convenio en la lista completa
       final convenio = cctArgentinaCompleto.firstWhere(
         (c) => c.id == convenioId,
-        orElse: () => const CCTCompleto(
+        orElse: () => CCTCompleto(
           id: '',
           numeroCCT: '',
           nombre: '',
@@ -278,19 +280,51 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
           descuentos: [],
           zonas: [],
           adicionalPresentismo: 8.33, // Valor por defecto
+          fechaVigencia: DateTime.now(),
+          activo: true,
+          pdfUrl: null,
         ),
       );
       
       if (convenio.id.isNotEmpty) {
         setState(() {
           _porcentajePresentismo = convenio.adicionalPresentismo;
+          _pdfConvenioUrl = convenio.pdfUrl;
         });
       }
     } catch (e) {
       // Si no se encuentra, usar valor por defecto
       setState(() {
         _porcentajePresentismo = 8.33;
+        _pdfConvenioUrl = null;
       });
+    }
+  }
+
+  Future<void> _descargarPdfConvenio() async {
+    if (_pdfConvenioUrl != null && _pdfConvenioUrl!.isNotEmpty) {
+      final uri = Uri.parse(_pdfConvenioUrl!);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo abrir el enlace PDF'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF no disponible para este convenio'),
+            backgroundColor: AppColors.info,
+          ),
+        );
+      }
     }
   }
   
@@ -1642,7 +1676,46 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
               _buildDatoSoloLectura('Cargo', _datosEmpleado!['cargo']?.toString() ?? ''),
               if (_datosEmpleado!['fechaIngreso'] != null)
                 _buildDatoSoloLectura('Fecha de Ingreso', _datosEmpleado!['fechaIngreso']?.toString() ?? ''),
-              _buildDatoSoloLectura('Convenio', _datosEmpleado!['convenioNombre']?.toString() ?? 'Fuera de Convenio'),
+              // Convenio con botón de descarga si está disponible
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      'Convenio:',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _datosEmpleado!['convenioNombre']?.toString() ?? 'Fuera de Convenio',
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        if (_pdfConvenioUrl != null && _pdfConvenioUrl!.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.picture_as_pdf, color: AppColors.accentBlue),
+                            tooltip: 'Descargar Convenio PDF',
+                            onPressed: _descargarPdfConvenio,
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               if (_datosEmpleado!['categoriaNombre'] != null && _datosEmpleado!['categoriaNombre'].toString().isNotEmpty)
                 _buildDatoSoloLectura('Categoría', _datosEmpleado!['categoriaNombre']?.toString() ?? ''),
             ],

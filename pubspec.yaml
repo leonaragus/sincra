@@ -47,6 +47,7 @@ dependencies:
   
   # Estrategia de URLs para web
   url_strategy: ^0.2.0
+  printing: ^5.14.2
 
 dev_dependencies:
   flutter_test:

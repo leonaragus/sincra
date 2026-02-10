@@ -47,7 +47,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radiusMedium),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: const BorderSide(color: AppColors.accentBlue, width: 2), // Cambiado de AppColors.primary
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radiusMedium),
@@ -59,7 +59,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.accentBlue, // Cambiado de AppColors.primary para visibilidad
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -74,7 +74,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: AppColors.accentBlue, // Cambiado de AppColors.primary
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_radiusSmall),
           ),
