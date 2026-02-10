@@ -39,11 +39,6 @@ class HybridStore {
     return _local.localGet(type, key);
   }
 
-  static Future<void> _localRemove(String type, String key) async {
-    await _local.localRemove(type, key);
-    _removeFromSupabase(type, key);
-  }
-
   // --------- Supabase background ---------
 
   static void _pushToSupabase(String type, String key, String jsonData) {

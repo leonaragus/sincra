@@ -34,6 +34,7 @@ import '../services/contabilidad_service.dart';
 import '../services/contabilidad_config_service.dart';
 import '../services/liquidacion_history_service.dart';
 import '../services/retroactivo_service.dart';
+import '../services/excel_export_service.dart';
 
 class LiquidacionDocenteScreen extends StatefulWidget {
   final String? cuitInstitucion;
@@ -93,6 +94,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
 
   LiquidacionOmniResult? _resultado;
   bool _calculando = false;
+  bool _exportandoMasivo = false;
   bool _sincronizandoParitarias = false;
   Map<String, dynamic>? _infoSincronizacion;
   bool _savingMaestro = false;
@@ -1298,6 +1300,169 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     );
   }
 
+  Future<List<LiquidacionOmniResult>> _liquidarTodos() async {
+    final liquidaciones = <LiquidacionOmniResult>[];
+    
+    for (final l in _legajosDocente) {
+      try {
+        // Parsear datos del legajo
+        final nombre = l['nombre']?.toString() ?? '';
+        final cuil = l['cuil']?.toString() ?? '';
+        
+        if (nombre.isEmpty || cuil.length != 11) continue;
+
+        // Parsear enums
+        final c = l['cargo']?.toString();
+        final cargo = TipoNomenclador.values.cast<TipoNomenclador?>().firstWhere((e) => e?.name == c, orElse: () => TipoNomenclador.maestroGrado) ?? TipoNomenclador.maestroGrado;
+        
+        final z = l['zona']?.toString();
+        final zona = ZonaDesfavorable.values.cast<ZonaDesfavorable?>().firstWhere((e) => e?.name == z, orElse: () => ZonaDesfavorable.a) ?? ZonaDesfavorable.a;
+        
+        final n = l['nivel']?.toString();
+        final nivel = NivelEducativo.values.cast<NivelEducativo?>().firstWhere((e) => e?.name == n, orElse: () => NivelEducativo.primario) ?? NivelEducativo.primario;
+        
+        final nu = l['nivelUbicacion']?.toString();
+        final nivelUbicacion = NivelUbicacion.values.cast<NivelUbicacion?>().firstWhere((e) => e?.name == nu, orElse: () => NivelUbicacion.urbana) ?? NivelUbicacion.urbana;
+
+        final fi = l['fechaIngreso']?.toString();
+        DateTime fechaIngreso = DateTime.now();
+        if (fi != null && fi.isNotEmpty) {
+          final d = DateTime.tryParse(fi);
+          if (d != null) fechaIngreso = d;
+        }
+
+        // Conceptos propios
+        final conceptosPropios = <ConceptoPropioOmni>[];
+        final L = l['conceptosPropiosActivos'];
+        if (L is List) {
+          for (final m in L) {
+            if (m is! Map) continue;
+            final mont = (m['monto'] is num) ? (m['monto'] as num).toDouble() : (double.tryParse(m['monto']?.toString() ?? '') ?? 0.0);
+            conceptosPropios.add(ConceptoPropioOmni(
+              codigo: (m['nombre'] ?? '').toString().replaceAll(RegExp(r'[^\w]'), '_'),
+              descripcion: m['nombre']?.toString() ?? '',
+              monto: mont,
+              esRemunerativo: (m['naturaleza']?.toString() ?? 'remunerativo') == 'remunerativo',
+              codigoAfip: m['codigoAfipArca']?.toString() ?? '011000',
+            ));
+          }
+        }
+
+        // Overrides
+        final pco = l['puntosCargoOverride'];
+        final pho = l['puntosHoraCatedraOverride'];
+        
+        final input = DocenteOmniInput(
+          nombre: nombre,
+          cuil: cuil,
+          jurisdiccion: _jurisdiccion, // Usa la de la institución seleccionada
+          tipoGestion: _tipoGestion,   // Usa la de la institución seleccionada
+          cargoNomenclador: cargo,
+          nivelEducativo: nivel,
+          fechaIngreso: fechaIngreso,
+          cargasFamiliares: (l['cargasFamiliares'] is int ? l['cargasFamiliares'] as int : int.tryParse(l['cargasFamiliares']?.toString() ?? '') ?? 0),
+          codigoRnos: l['codigoRnos']?.toString(),
+          horasCatedra: (l['horasCatedra'] is int ? l['horasCatedra'] as int : int.tryParse(l['horasCatedra']?.toString() ?? '') ?? 0),
+          zona: zona,
+          nivelUbicacion: nivelUbicacion,
+          valorIndiceOverride: l['valorIndice'] != null && l['valorIndice'].toString().trim().isNotEmpty ? double.tryParse(l['valorIndice'].toString()) : null,
+          sueldoBasicoOverride: l['sueldoBasicoOverride'] != null && l['sueldoBasicoOverride'].toString().trim().isNotEmpty ? double.tryParse(l['sueldoBasicoOverride'].toString()) : null,
+          puntosCargoOverride: pco is int ? pco : (pco != null ? int.tryParse(pco.toString()) : null),
+          puntosHoraCatedraOverride: pho is int ? pho : (pho != null ? int.tryParse(pho.toString()) : null),
+          esHoraCatedraSecundaria: cargo == TipoNomenclador.horaCatedraMedia,
+          modoLiquidacion: widget.modo,
+        );
+
+        final liq = TeacherOmniEngine.liquidar(
+          input,
+          periodo: DateFormat('MMMM yyyy', 'es_AR').format(DateTime.now()),
+          fechaPago: DateFormat('dd/MM/yyyy').format(DateTime.now()),
+          cantidadCargos: (l['cantidadCargos'] is int ? l['cantidadCargos'] as int : int.tryParse(l['cantidadCargos']?.toString() ?? '') ?? 1),
+          conceptosPropios: conceptosPropios,
+        );
+        
+        liquidaciones.add(liq);
+      } catch (e) {
+        print('Error liquidando legajo: $e');
+      }
+    }
+    
+    return liquidaciones;
+  }
+
+  Future<void> _exportarLibroSueldosExcel() async {
+    List<LiquidacionOmniResult> listaParaExportar = [];
+    
+    if (_resultado != null) {
+      listaParaExportar.add(_resultado!);
+    } else if (_legajosDocente.isNotEmpty) {
+      final confirm = await showDialog<bool>(
+        context: context, 
+        builder: (c) => AlertDialog(
+          title: const Text('Generar Libro de Sueldos'),
+          content: Text('No hay liquidación actual. ¿Desea calcular y exportar los ${_legajosDocente.length} legajos de la lista?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Calcular y Exportar')),
+          ],
+        )
+      );
+      
+      if (confirm != true) return;
+      
+      setState(() => _exportandoMasivo = true);
+      try {
+        final liquidaciones = await _liquidarTodos();
+        listaParaExportar = liquidaciones;
+      } finally {
+        if (mounted) setState(() => _exportandoMasivo = false);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay datos para exportar')));
+      return;
+    }
+
+    if (listaParaExportar.isEmpty) return;
+
+    final datosExcel = listaParaExportar.map((liq) {
+      return {
+        'cuil': liq.input.cuil,
+        'nombre': liq.input.nombre,
+        'categoria': liq.input.cargoNomenclador.name,
+        'basico': liq.sueldoBasico,
+        'antiguedad': liq.adicionalAntiguedad,
+        'conceptosRemunerativos': liq.totalBrutoRemunerativo - liq.sueldoBasico - liq.adicionalAntiguedad,
+        'totalBruto': liq.totalBrutoRemunerativo,
+        'totalAportes': liq.totalDescuentos, 
+        'descuentos': 0.0, 
+        'conceptosNoRemunerativos': liq.totalNoRemunerativo,
+        'neto': liq.netoACobrar,
+        'totalContribuciones': liq.costoLaboralReal - liq.totalBrutoRemunerativo, // Aprox
+      };
+    }).toList();
+
+    try {
+      final now = DateTime.now();
+      final path = await ExcelExportService.generarLibroSueldos(
+        mes: now.month, 
+        anio: now.year, 
+        liquidaciones: datosExcel,
+        empresaNombre: _razonSocialController.text,
+      );
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Libro de Sueldos generado: $path')),
+      );
+      OpenFile.open(path);
+      
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error Excel: $e')));
+    }
+  }
+
   void _mostrarAyuda() {
     final helpContent = AppHelp.getHelpContent('LiquidadorFinalScreen');
     AppHelp.showHelpDialog(
@@ -1391,14 +1556,28 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              // Fila 1b: Exportar Asiento
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _resultado != null ? _exportarAsiento : null,
-                  icon: const Icon(Icons.account_balance_wallet, size: 20),
-                  label: const Text('Exportar Asiento Contable (Holistor)'),
-                ),
+              // Fila 1b: Exportar Asiento y Excel
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _resultado != null ? _exportarAsiento : null,
+                      icon: const Icon(Icons.account_balance_wallet, size: 20),
+                      label: const Text('Exportar Asiento'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _exportarLibroSueldosExcel,
+                      icon: const Icon(Icons.table_chart, size: 20, color: Colors.green),
+                      label: const Text('Exportar Excel', style: TextStyle(color: Colors.green)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.green),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               // Fila 1c: Historial y Retroactivos
@@ -1455,20 +1634,45 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
   }
 
   Widget _buildBannerSincronizacion() {
-    if (_infoSincronizacion == null && !_sincronizandoParitarias) return const SizedBox.shrink();
-
+    // MODIFICADO: Siempre mostrar el banner, incluso si no hay info inicial
     final info = _infoSincronizacion;
+    final bool hasInfo = info != null;
     final bool success = info?['success'] ?? false;
     final bool isOffline = info?['modo'] == 'offline';
     final DateTime? fecha = info?['fecha'];
-    final String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : 'Nunca';
+    final String fechaStr = fecha != null ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) : 'Desconocida';
 
-    Color bgColor = success ? Colors.green.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.1);
-    Color borderColor = success ? Colors.green.withValues(alpha: 0.3) : Colors.amber.withValues(alpha: 0.3);
-    IconData icon = success ? Icons.check_circle_outline : (isOffline ? Icons.cloud_off : Icons.sync_problem);
-    String mensajeBanner = success 
-        ? 'Paritarias actualizadas al $fechaStr' 
-        : (isOffline ? 'Modo Offline: Última sync $fechaStr' : 'Error al sincronizar paritarias');
+    Color bgColor;
+    Color borderColor;
+    IconData icon;
+    String mensajeBanner;
+
+    if (_sincronizandoParitarias) {
+      bgColor = Colors.blue.withValues(alpha: 0.1);
+      borderColor = Colors.blue.withValues(alpha: 0.3);
+      icon = Icons.sync;
+      mensajeBanner = 'Sincronizando paritarias oficiales...';
+    } else if (!hasInfo) {
+      bgColor = Colors.grey.withValues(alpha: 0.1);
+      borderColor = Colors.grey.withValues(alpha: 0.3);
+      icon = Icons.help_outline;
+      mensajeBanner = 'Estado de paritarias desconocido';
+    } else if (success) {
+      bgColor = Colors.green.withValues(alpha: 0.1);
+      borderColor = Colors.green.withValues(alpha: 0.3);
+      icon = Icons.check_circle_outline;
+      mensajeBanner = 'Paritarias actualizadas al $fechaStr';
+    } else if (isOffline) {
+      bgColor = Colors.amber.withValues(alpha: 0.1);
+      borderColor = Colors.amber.withValues(alpha: 0.3);
+      icon = Icons.cloud_off;
+      mensajeBanner = 'Modo Offline: Última sync $fechaStr';
+    } else {
+      bgColor = Colors.red.withValues(alpha: 0.1);
+      borderColor = Colors.red.withValues(alpha: 0.3);
+      icon = Icons.sync_problem;
+      mensajeBanner = 'Error al sincronizar paritarias';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1483,14 +1687,14 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
           if (_sincronizandoParitarias)
             const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.pastelBlue))
           else
-            Icon(icon, size: 16, color: success ? Colors.green : Colors.amber),
+            Icon(icon, size: 16, color: borderColor.withOpacity(1.0)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              _sincronizandoParitarias ? 'Sincronizando paritarias oficiales...' : mensajeBanner,
+              mensajeBanner,
               style: TextStyle(
                 fontSize: 12, 
-                color: success ? Colors.green.shade700 : Colors.amber.shade900,
+                color: borderColor.withOpacity(1.0), // Usar color del borde como texto oscuro
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1505,7 +1709,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   visualDensity: VisualDensity.compact,
-                  color: Colors.amber,
+                  color: Colors.blue,
                   tooltip: 'Reintentar sincronización',
                 ),
                 const SizedBox(width: 8),

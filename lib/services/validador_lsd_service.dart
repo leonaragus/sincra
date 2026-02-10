@@ -143,7 +143,7 @@ class ValidadorLSDService {
     }
     
     // 4. VALIDAR PROVINCIA (CRÍTICO)
-    if (empleado.provincia == null || empleado.provincia!.isEmpty) {
+    if (empleado.provincia.isEmpty) {
       validaciones.add(ResultadoValidacion(
         empleadoCuil: empleado.cuil,
         empleadoNombre: empleado.nombreCompleto,
@@ -198,7 +198,7 @@ class ValidadorLSDService {
     }
     
     // 7. VALIDAR CATEGORÍA (CRÍTICO)
-    if (empleado.categoria == null || empleado.categoria!.isEmpty) {
+    if (empleado.categoria.isEmpty) {
       validaciones.add(ResultadoValidacion(
         empleadoCuil: empleado.cuil,
         empleadoNombre: empleado.nombreCompleto,
@@ -310,7 +310,7 @@ class ValidadorLSDService {
     }
     
     // 14. VALIDAR MODALIDAD CONTRATACIÓN (ADVERTENCIA)
-    if (empleado.modalidadContratacion == null || empleado.modalidadContratacion! <= 0) {
+    if (empleado.modalidadContratacion <= 0) {
       validaciones.add(ResultadoValidacion(
         empleadoCuil: empleado.cuil,
         empleadoNombre: empleado.nombreCompleto,

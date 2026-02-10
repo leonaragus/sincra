@@ -5,7 +5,6 @@ import 'play_billing_service.dart';
 /// Servicio para gestionar suscripciones y niveles de acceso
 class SubscriptionService {
   static const String _subscriptionTable = 'user_subscriptions';
-  static const String _quotaTable = 'user_quotas';
   
   /// Niveles de suscripción disponibles
   static const Map<String, Map<String, dynamic>> subscriptionPlans = {
@@ -210,7 +209,7 @@ class SubscriptionService {
         .select()
         .eq('user_id', user!.id)
         .count();
-    final int companiesCount = response.count as int;
+    final int companiesCount = response.count;
     
     return companiesCount < (planConfig?['companies_limit'] ?? 0);
   }
@@ -232,7 +231,7 @@ class SubscriptionService {
         .select()
         .eq('empresa_id', companyId)
         .count();
-    final int employeesCount = response.count as int;
+    final int employeesCount = response.count;
     
     return employeesCount < (planConfig?['employees_per_company'] ?? 0);
   }

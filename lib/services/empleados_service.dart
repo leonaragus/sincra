@@ -212,7 +212,7 @@ class EmpleadosService {
       
       final response = await query;
       
-      if (response is List && response.isNotEmpty) {
+      if (response.isNotEmpty) {
         // Obtener empleados locales actuales
         final empleadosLocales = await obtenerEmpleados(empresaCuit: empresaCuit);
         final Map<String, EmpleadoCompleto> mapLocal = {};

@@ -2,12 +2,102 @@
 import 'teacher_lsd_export.dart';
 import 'sanidad_lsd_export.dart';
 
+/// Códigos para liquidación general (Convenios CCT)
+class GeneralesLsdCodigos {
+  static const String sueldoBasico = 'SUELDO_BAS';
+  static const String horasExtras50 = 'HORAS_EXTR';
+  static const String horasExtras100 = 'HORAS_EXTR';
+  static const String kilometros = 'KM_RECORR';
+  static const String viaticos = 'VIAT_COM';
+  static const String pernocte = 'PERNOCTE';
+  static const String premios = 'GRATIF';
+  static const String vacaciones = 'VACACIONES';
+  static const String plusVacacional = 'PLUS_VACAC';
+  static const String jubilacion = 'JUBILACION';
+  static const String obraSocial = 'OBRA_SOC';
+  static const String ley19032 = 'LEY_19032';
+  static const String ganancias = 'IMP_GANANC';
+  static const String sindicato = 'SINDICATO';
+}
+
 /// Servicio para generar guías de mapeo de conceptos para AFIP LSD
 /// Ayuda al usuario a asociar los conceptos la primera vez que sube el archivo
 class LsdMappingService {
   
   /// Estructura de sugerencia de mapeo
   static const Map<String, Map<String, String>> _mapeoSugerido = {
+    // === GENERALES / CONVENIOS CCT ===
+    GeneralesLsdCodigos.sueldoBasico: {
+      'afip': '110000',
+      'desc': 'Sueldo Básico',
+      'sub': 'Remunerativo'
+    },
+    GeneralesLsdCodigos.horasExtras50: {
+      'afip': '510000',
+      'desc': 'Horas Extras 50%',
+      'sub': 'Remunerativo'
+    },
+    GeneralesLsdCodigos.horasExtras100: {
+      'afip': '520000',
+      'desc': 'Horas Extras 100%',
+      'sub': 'Remunerativo'
+    },
+    GeneralesLsdCodigos.kilometros: {
+      'afip': '110000', // O específico si existe
+      'desc': 'Kilómetros Recorridos (CCT)',
+      'sub': 'Remunerativo'
+    },
+    GeneralesLsdCodigos.viaticos: {
+      'afip': '112000', // Viáticos CCT
+      'desc': 'Viáticos / Comida',
+      'sub': 'No Remunerativo'
+    },
+    GeneralesLsdCodigos.pernocte: {
+      'afip': '112000',
+      'desc': 'Pernocte',
+      'sub': 'No Remunerativo'
+    },
+    GeneralesLsdCodigos.premios: {
+      'afip': '110000',
+      'desc': 'Premios / Gratificaciones',
+      'sub': 'Remunerativo'
+    },
+    GeneralesLsdCodigos.vacaciones: {
+      'afip': '150000',
+      'desc': 'Vacaciones',
+      'sub': 'Remunerativo'
+    },
+    GeneralesLsdCodigos.plusVacacional: {
+      'afip': '150000',
+      'desc': 'Plus Vacacional',
+      'sub': 'Remunerativo'
+    },
+    GeneralesLsdCodigos.jubilacion: {
+      'afip': '810002',
+      'desc': 'Jubilación (SIPA)',
+      'sub': 'Descuentos'
+    },
+    GeneralesLsdCodigos.obraSocial: {
+      'afip': '810003',
+      'desc': 'Obra Social',
+      'sub': 'Descuentos'
+    },
+    GeneralesLsdCodigos.ley19032: {
+      'afip': '810002',
+      'desc': 'Ley 19.032 (INSSJP)',
+      'sub': 'Descuentos'
+    },
+    GeneralesLsdCodigos.ganancias: {
+      'afip': '810010',
+      'desc': 'Retención Ganancias 4ta Cat.',
+      'sub': 'Descuentos'
+    },
+    GeneralesLsdCodigos.sindicato: {
+      'afip': '810008',
+      'desc': 'Cuota Sindical',
+      'sub': 'Descuentos'
+    },
+
     // === DOCENTES ===
     TeacherLsdCodigos.sueldoBasico: {
       'afip': '110000', 
@@ -64,6 +154,31 @@ class LsdMappingService {
       'afip': '110000', 
       'desc': 'Adicionales - Riesgo', 
       'sub': 'Remunerativo'
+    },
+    SanidadLsdCodigos.zonaPatagonica: {
+      'afip': '110000', 
+      'desc': 'Adicional Zona Desfavorable', 
+      'sub': 'Remunerativo'
+    },
+    SanidadLsdCodigos.horasExtras50: {
+      'afip': '510000', 
+      'desc': 'Horas Extras 50%', 
+      'sub': 'Remunerativo'
+    },
+    SanidadLsdCodigos.horasExtras100: {
+      'afip': '520000', 
+      'desc': 'Horas Extras 100%', 
+      'sub': 'Remunerativo'
+    },
+    SanidadLsdCodigos.seguroSepelio: {
+      'afip': '810008', 
+      'desc': 'Seguro Sepelio', 
+      'sub': 'Descuentos'
+    },
+    SanidadLsdCodigos.aporteSolidario: {
+      'afip': '810008', 
+      'desc': 'Aporte Solidario FATSA', 
+      'sub': 'Descuentos'
     },
     // === COMUNES DESCUENTOS ===
     'JUBILACION': {

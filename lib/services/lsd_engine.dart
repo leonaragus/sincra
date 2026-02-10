@@ -819,6 +819,7 @@ class LSDGenerator {
     String? codigoModalidad, // 3 dígitos
     String? numeroAfiliadoObraSocial,
     String? codigoSindicato,
+    String? codigoZona,
   }) {
     final buffer = StringBuffer();
     
@@ -864,8 +865,9 @@ class LSDGenerator {
     // Pos 36-37: Código Siniestrado (2 caracteres) - '00'
     buffer.write('00');
     
-    // Pos 38: Código Zona (1 carácter) - '0'
-    buffer.write('0');
+    // Pos 38: Código Zona (1 carácter)
+    final zona = (codigoZona?.trim() ?? '0').padLeft(1, '0').substring(0, 1);
+    buffer.write(zona);
     
     // Pos 39-150: Relleno (112 caracteres)
     buffer.write(''.padRight(112, ' '));

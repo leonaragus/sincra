@@ -3,6 +3,7 @@ import '../models/contabilidad/asiento_item.dart';
 import '../models/contabilidad/mapeo_contable.dart';
 import '../models/contabilidad/cuenta_contable.dart';
 import '../services/teacher_omni_engine.dart'; // For LiquidacionOmniResult
+import '../services/sanidad_omni_engine.dart'; // For LiquidacionSanidadResult
 
 class ContabilidadService {
   
@@ -85,6 +86,93 @@ class ContabilidadService {
             
           case TipoConceptoContable.impuesto:
             // Lógica de contribuciones
+            break;
+        }
+
+        if (monto > 0) {
+          agregarMovimiento(mapeo.cuentaCodigo, monto, mapeo.imputacion);
+        }
+      }
+    }
+
+    return AsientoResult(items: itemsMap.values.toList());
+  }
+
+  /// Genera un asiento contable resumen para un lote de liquidaciones SANIDAD.
+  /// Agrupa los montos por cuenta contable.
+  static AsientoResult generarAsientoSanidad({
+    required List<LiquidacionSanidadResult> liquidaciones,
+    required PerfilContable perfil,
+  }) {
+    final Map<String, AsientoItem> itemsMap = {};
+
+    // Helper to add/update item
+    void agregarMovimiento(String cuentaCodigo, double monto, ImputacionDefecto tipo) {
+      if (monto == 0) return;
+      
+      // Buscar nombre de cuenta
+      final cuenta = perfil.planDeCuentas.firstWhere(
+        (c) => c.codigo == cuentaCodigo, 
+        orElse: () => CuentaContable(codigo: cuentaCodigo, nombre: 'Cuenta Desconocida', imputacionDefecto: tipo)
+      );
+
+      if (!itemsMap.containsKey(cuentaCodigo)) {
+        itemsMap[cuentaCodigo] = AsientoItem(
+          cuentaCodigo: cuentaCodigo,
+          cuentaNombre: cuenta.nombre,
+          debe: 0,
+          haber: 0,
+        );
+      }
+
+      final item = itemsMap[cuentaCodigo]!;
+      // Crear nuevo item con valores actualizados (inmutabilidad parcial)
+      itemsMap[cuentaCodigo] = AsientoItem(
+        cuentaCodigo: item.cuentaCodigo,
+        cuentaNombre: item.cuentaNombre,
+        debe: item.debe + (tipo == ImputacionDefecto.debe ? monto : 0),
+        haber: item.haber + (tipo == ImputacionDefecto.haber ? monto : 0),
+      );
+    }
+
+    for (final liq in liquidaciones) {
+      for (final mapeo in perfil.mapeos) {
+        double monto = 0.0;
+
+        switch (mapeo.tipo) {
+          case TipoConceptoContable.neto:
+            monto = liq.netoACobrar;
+            break;
+            
+          case TipoConceptoContable.agrupacion:
+            if (mapeo.claveReferencia == 'TOTAL_REMUNERATIVO') {
+              monto = liq.totalBrutoRemunerativo;
+            } else if (mapeo.claveReferencia == 'TOTAL_NO_REMUNERATIVO') {
+              monto = liq.totalNoRemunerativo;
+            } else if (mapeo.claveReferencia == 'TOTAL_DESCUENTOS') {
+              monto = liq.totalDescuentos;
+            } else if (mapeo.claveReferencia == 'CONTRIB_PATRONALES') {
+              monto = 0.0; 
+            }
+            break;
+
+          case TipoConceptoContable.conceptoEspecifico:
+            if (mapeo.claveReferencia == 'SUELDO_BASICO') monto = liq.sueldoBasico;
+            else if (mapeo.claveReferencia == 'ANTIGUEDAD') monto = liq.adicionalAntiguedad;
+            else if (mapeo.claveReferencia == 'ZONA') monto = liq.adicionalZonaPatagonica;
+            else if (mapeo.claveReferencia == 'JUBILACION') monto = liq.aporteJubilacion;
+            else if (mapeo.claveReferencia == 'OBRA_SOCIAL') monto = liq.aporteObraSocial;
+            else if (mapeo.claveReferencia == 'LEY_19032') monto = liq.aporteLey19032;
+            else if (mapeo.claveReferencia == 'TITULO') monto = liq.adicionalTitulo;
+            else if (mapeo.claveReferencia == 'PRESENTISMO') monto = liq.falloCaja; // Fallo caja como presentismo
+            else if (mapeo.claveReferencia == 'SAC') monto = liq.sac;
+            else if (mapeo.claveReferencia == 'VACACIONES') monto = liq.vacaciones + liq.plusVacacional;
+            else if (mapeo.claveReferencia == 'NOCTURNIDAD') monto = liq.nocturnidad;
+            else if (mapeo.claveReferencia == 'TAREA_CRITICA') monto = liq.adicionalTareaCriticaRiesgo;
+            else if (mapeo.claveReferencia == 'HORAS_EXTRAS') monto = liq.horasExtras50Monto + liq.horasExtras100Monto;
+            break;
+            
+          case TipoConceptoContable.impuesto:
             break;
         }
 

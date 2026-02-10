@@ -1,7 +1,5 @@
 
 import '../services/teacher_omni_engine.dart';
-import '../models/teacher_types.dart';
-import '../models/teacher_constants.dart';
 
 class ResultadoRetroactivo {
   final double diferenciaNeto;

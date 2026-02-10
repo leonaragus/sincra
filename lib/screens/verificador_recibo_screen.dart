@@ -9,8 +9,7 @@ import 'teacher_receipt_scan_screen.dart';
 import 'package:syncra_arg/models/recibo_escaneado.dart';
 import 'package:syncra_arg/services/hybrid_store.dart';
 import 'package:syncra_arg/services/parametros_legales_service.dart';
-import 'package:syncra_arg/services/conceptos_explicaciones_service.dart';
-import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
+  import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
 import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
 import 'package:syncra_arg/services/api_service.dart';
 import 'package:syncra_arg/models/convenio_model.dart';
@@ -52,9 +51,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   double? _smvm;
   DateTime? _fechaIngreso;
   String _motivoCese = 'Renuncia'; // 'Renuncia' o 'Despido'
-
+  
   // Variables para funcionalidad mejorada
-  bool _mostrarDatosLeidos = false; // Cambiado a false por defecto
   String? _convenioSeleccionado; // Hacer opcional
   List<ConvenioModel> _conveniosModelos = [];
   List<String> _conveniosDisponibles = ['Cargando convenios...'];
@@ -1041,77 +1039,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     );
   }
 
-
-
-  // NUEVO WIDGET: Resumen de conceptos detectados
-  Widget _buildResumenConceptos() {
-    if (_recibo == null || _recibo!.conceptos.isEmpty) return const SizedBox.shrink();
-    
-    final conceptosAgrupados = <String, double>{};
-    for (final concepto in _recibo!.conceptos) {
-      if (concepto.remunerativo != null && concepto.remunerativo! > 0) {
-        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.remunerativo!;
-      }
-      if (concepto.noRemunerativo != null && concepto.noRemunerativo! > 0) {
-        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.noRemunerativo!;
-      }
-      if (concepto.deducciones != null && concepto.deducciones! > 0) {
-        conceptosAgrupados[concepto.descripcion] = (conceptosAgrupados[concepto.descripcion] ?? 0) + concepto.deducciones!;
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '✅ Detectados ${conceptosAgrupados.length} conceptos',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...conceptosAgrupados.entries.take(5).map((entry) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                entry.key,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              Text(
-                '\$${entry.value.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        )),
-        if (conceptosAgrupados.length > 5) ...[
-          const SizedBox(height: 4),
-          Text(
-            '... y ${conceptosAgrupados.length - 5} más',
-            style: TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  // Resto de métodos permanecen iguales...
-  
   // Helper method to extract basic salary from conceptos
   double? _obtenerSueldoBasico(ReciboEscaneado recibo) {
     final sueldoBasicoConcepto = recibo.conceptos.firstWhere(

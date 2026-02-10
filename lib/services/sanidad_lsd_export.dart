@@ -213,14 +213,18 @@ Future<String> sanidadOmniToLsdTxt({
   sb.write(LSDGenerator.eolLsd);
 
   // Registro 4 - Datos complementarios
+  // NOTA: Si el puesto es desconocido, no enviamos '0000', sino un default más seguro o lo que venga del input.
+  // Actividad '001' es Servicios Comunes, '016' es Enseñanza, '049' es Salud.
+  // Preferimos usar lo que venga del input si existe.
   final r4 = LSDGenerator.generateRegistro4(
     cuilEmpleado: cuil,
-    codigoRnos: liquidacion.input.codigoRnos ?? '126205',
+    codigoRnos: liquidacion.input.codigoRnos ?? '126205', // OSECAC default, debería ser configurable
     cantidadFamiliares: liquidacion.input.cantidadFamiliares,
     codigoModalidad: liquidacion.codigoModalidadLSD ?? '008',
     codigoCondicion: liquidacion.input.codigoCondicion ?? '01',
-    codigoActividad: liquidacion.input.codigoActividad ?? '001',
-    codigoPuesto: liquidacion.input.codigoPuesto ?? '0000',
+    codigoActividad: liquidacion.input.codigoActividad ?? '049', // Default Sanidad (49) en vez de 001
+    codigoPuesto: liquidacion.input.codigoPuesto, // Si es nulo, el generator pondrá 0000 o lo que corresponda
+    codigoZona: liquidacion.adicionalZonaPatagonica > 0 ? '1' : '0', // 1: Zona Desfavorable
   );
   sb.write(latin1.decode(r4));
   sb.write(LSDGenerator.eolLsd);

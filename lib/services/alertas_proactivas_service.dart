@@ -171,7 +171,7 @@ class AlertasProactivasService {
       }
       
       // ALERTA 4: Empleado sin categoría (crítico)
-      if (empleado.categoria == null || empleado.categoria!.isEmpty) {
+      if (empleado.categoria.isEmpty) {
         alertas.add(AlertaProactiva(
           id: 'emp_cat_${empleado.cuil}',
           tipo: 'critica',

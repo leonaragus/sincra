@@ -149,7 +149,7 @@ class AusenciasService {
     if (!isOnline) return;
     
     // Sincronizar cada ausencia pendiente
-    for (final id in pendientes) {
+    for (final _ in pendientes) {
       // Buscar en cache y sincronizar
       // (implementación completa requeriría reconstruir la ausencia)
     }

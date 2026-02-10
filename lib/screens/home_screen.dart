@@ -27,7 +27,7 @@ import 'gestion_ausencias_screen.dart';
 import 'gestion_prestamos_screen.dart';
 import 'biblioteca_cct_screen.dart';
 import 'dashboard_riesgos_screen.dart';
-import 'verificador_recibo_screen.dart';
+import 'service_status_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -383,9 +383,9 @@ class HomeScreenState extends State<HomeScreen> {
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState != ConnectionState.done) return const SizedBox.shrink();
                                 final status = ApiService.lastSyncStatus;
-                                if (status == null) return const SizedBox.shrink();
                                 final dataUpdateDate = status.dataUpdateDate;
-                                if (status.success != true) return const SizedBox.shrink();
+                                
+                                if (!status.success || dataUpdateDate == null) return const SizedBox.shrink();
 
                                 final dateText = "${dataUpdateDate.day.toString().padLeft(2, '0')}/${dataUpdateDate.month.toString().padLeft(2, '0')}/${dataUpdateDate.year}";
                                 return Padding(
@@ -497,8 +497,32 @@ class HomeScreenState extends State<HomeScreen> {
             ),
             const Spacer(),
             IconButton(
-              onPressed: () {
-                Navigator.push(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ServiceStatusScreen(),
+                    ),
+                  );
+                },
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.glassFill,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.glassBorder, width: 1),
+                  ),
+                  child: const Icon(
+                    Icons.monitor_heart,
+                    color: AppColors.accentEmerald,
+                    size: 20,
+                  ),
+                ),
+                tooltip: 'Estado de Robots/Servicios',
+              ),
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const ParametrosLegalesScreen(),

@@ -235,7 +235,7 @@ class ConceptosRecurrentesService {
       final client = Supabase.instance.client;
       final response = await client.from(_supabaseTable).select();
       
-      if (response is List && response.isNotEmpty) {
+      if (response.isNotEmpty) {
         final conceptosLocales = await obtenerTodosConceptos();
         final Map<String, ConceptoRecurrente> mapLocal = {};
         

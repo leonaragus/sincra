@@ -2,7 +2,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
-import '../models/teacher_types.dart'; // Añadido
 import 'hybrid_store.dart';
 
 class Paritaria {

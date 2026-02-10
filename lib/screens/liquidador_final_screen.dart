@@ -18,6 +18,8 @@ import '../theme/app_colors.dart';
 import '../utils/pdf_recibo.dart';
 import '../utils/validadores.dart';
 import '../services/lsd_engine.dart';
+import '../services/lsd_mapping_service.dart';
+import '../services/excel_export_service.dart';
 import '../models/parametros_legales.dart';
 import '../services/parametros_legales_service.dart';
 import '../services/antiguedad_service.dart';
@@ -2989,6 +2991,98 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     );
   }
   
+  void _mostrarInstructivoArca() {
+    final l = _liquidacion;
+    final codigosUsados = <String>[];
+    
+    if (l != null) {
+      codigosUsados.add(GeneralesLsdCodigos.sueldoBasico);
+      
+      if (l.cantidadHorasExtras50 > 0) codigosUsados.add(GeneralesLsdCodigos.horasExtras50);
+      if (l.cantidadHorasExtras100 > 0) codigosUsados.add(GeneralesLsdCodigos.horasExtras100);
+      if (l.kilometrosRecorridos > 0) codigosUsados.add(GeneralesLsdCodigos.kilometros);
+      if (l.diasViaticosComida > 0) codigosUsados.add(GeneralesLsdCodigos.viaticos);
+      if (l.diasPernocte > 0) codigosUsados.add(GeneralesLsdCodigos.pernocte);
+      
+      // Premios
+      if (l.premios > 0) codigosUsados.add(GeneralesLsdCodigos.premios);
+      
+      // Vacaciones
+      if (l.vacacionesActivas || l.montoVacaciones > 0) {
+        codigosUsados.add(GeneralesLsdCodigos.vacaciones);
+        if (l.plusVacacional > 0) codigosUsados.add(GeneralesLsdCodigos.plusVacacional);
+      }
+      
+      // Aportes
+      codigosUsados.add(GeneralesLsdCodigos.jubilacion);
+      codigosUsados.add(GeneralesLsdCodigos.obraSocial);
+      codigosUsados.add(GeneralesLsdCodigos.ley19032);
+      
+      if (l.afiliadoSindical) codigosUsados.add(GeneralesLsdCodigos.sindicato);
+      if (l.impuestoGanancias > 0) codigosUsados.add(GeneralesLsdCodigos.ganancias);
+      
+      // Conceptos adicionales propios
+      for (final c in l.conceptosRemunerativos.keys) {
+         codigosUsados.add(c); 
+      }
+       for (final c in l.conceptosNoRemunerativosAdicionales.keys) {
+         codigosUsados.add(c);
+      }
+      for (final c in l.deduccionesAdicionales.keys) {
+         codigosUsados.add(c);
+      }
+
+    } else {
+      // Default basic codes
+      codigosUsados.addAll([
+        GeneralesLsdCodigos.sueldoBasico,
+        GeneralesLsdCodigos.jubilacion,
+        GeneralesLsdCodigos.obraSocial,
+        GeneralesLsdCodigos.ley19032
+      ]);
+    }
+
+    final instructivo = LsdMappingService.generarInstructivo(codigosUsados.toSet().toList());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+            children: [
+                Icon(Icons.info_outline, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('Instructivo Asociación AFIP', style: TextStyle(fontSize: 16)),
+            ],
+        ),
+        content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        Text('Antes de subir el archivo a AFIP, debe asociar los conceptos por única vez:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        SizedBox(height: 10),
+                        Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: SelectableText(instructivo, style: TextStyle(fontFamily: 'monospace', fontSize: 11)),
+                        ),
+                    ],
+                ),
+            ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBotonesDescargaARCA() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -3013,6 +3107,20 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              
+              // Botón Instructivo
+              TextButton.icon(
+                 onPressed: _mostrarInstructivoArca,
+                 icon: const Icon(Icons.info_outline, size: 18, color: Colors.blue),
+                 label: const Text('Ver Instructivo de Asociación (Leer antes de subir)'),
+                 style: TextButton.styleFrom(
+                   foregroundColor: Colors.blue,
+                   alignment: Alignment.centerLeft,
+                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                 ),
+               ),
+               const SizedBox(height: 8),
+
               // Botón 1: Descargar Catálogo de Conceptos
               Tooltip(
                 message: 'Subir este archivo primero en el portal de ARCA para dar de alta sus códigos',
@@ -3066,49 +3174,171 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     );
   }
 
-  Widget _buildBotonGenerarPDF() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _generarPDF,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.pastelOrange,
-              foregroundColor: AppColors.background,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Generar Recibo PDF',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+  Future<void> _generarExcel() async {
+    if (_liquidacion == null || _datosEmpleado == null || _empresaSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Complete todos los datos y calcule la liquidación antes de exportar'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final sueldoBasico = double.tryParse(_sueldoBasicoController.text) ?? 0.0;
+      final bruto = _liquidacion!.calcularSueldoBruto(sueldoBasico);
+      final aportes = _liquidacion!.calcularAportes(bruto);
+      final totalAportes = aportes.values.fold(0.0, (sum, val) => sum + val);
+      final totalDescuentos = _liquidacion!.calcularTotalDescuentos(bruto);
+      final neto = _liquidacion!.calcularSueldoNeto(bruto);
+      
+      // Intentar obtener antigüedad si existe en conceptos remunerativos
+      double antiguedad = 0.0;
+      _liquidacion!.conceptosRemunerativos.forEach((key, value) {
+        if (key.toLowerCase().contains('antigüedad') || key.toLowerCase().contains('antiguedad')) {
+          antiguedad += value;
+        }
+      });
+      
+      // Calcular otros remunerativos (todo lo que no es básico ni antigüedad)
+      double otrosRem = bruto - sueldoBasico - antiguedad;
+      if (otrosRem < 0) otrosRem = 0; 
+
+      // Calcular no remunerativos
+      double noRem = _liquidacion!.conceptosNoRemunerativos;
+      _liquidacion!.conceptosNoRemunerativosAdicionales.forEach((_, val) => noRem += val);
+      noRem += _liquidacion!.montoViaticosComida;
+      noRem += _liquidacion!.montoPernocte;
+
+      final liqMap = {
+        'cuil': _datosEmpleado!['cuil'],
+        'nombre': _datosEmpleado!['nombre'],
+        'categoria': _datosEmpleado!['categoriaNombre'] ?? '',
+        'basico': sueldoBasico,
+        'antiguedad': antiguedad,
+        'conceptosRemunerativos': otrosRem,
+        'totalBruto': bruto,
+        'totalAportes': totalAportes,
+        'descuentos': totalDescuentos, 
+        'conceptosNoRemunerativos': noRem,
+        'neto': neto,
+        'totalContribuciones': bruto * 0.24, // Estimado patronal 24%
+      };
+      
+      // Parsear periodo
+      int mes = DateTime.now().month;
+      int anio = DateTime.now().year;
+      final periodoText = _periodoController.text;
+      final partes = periodoText.split(' ');
+      if (partes.length >= 2) {
+        anio = int.tryParse(partes[1]) ?? anio;
+        final meses = [
+          'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+        final mesIndex = meses.indexOf(partes[0]);
+        if (mesIndex >= 0) mes = mesIndex + 1;
+      }
+
+      final path = await ExcelExportService.generarLibroSueldos(
+        mes: mes,
+        anio: anio,
+        liquidaciones: [liqMap],
+        empresaNombre: _empresaSeleccionada,
+      );
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Excel generado correctamente'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'ABRIR',
+            textColor: Colors.white,
+            onPressed: () => OpenFile.open(path),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _generarLSD,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.pastelBlue,
-              foregroundColor: AppColors.background,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      );
+      
+      OpenFile.open(path);
+
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar Excel: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Widget _buildBotonGenerarPDF() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _generarPDF,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.pastelOrange,
+                  foregroundColor: AppColors.background,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Generar Recibo PDF',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-            child: const Text(
-              'Generar LSD AFIP',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _generarExcel,
+                icon: const Icon(Icons.table_chart),
+                label: const Text('Exportar Excel'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _generarLSD,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.pastelBlue,
+                  foregroundColor: AppColors.background,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Generar LSD AFIP',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

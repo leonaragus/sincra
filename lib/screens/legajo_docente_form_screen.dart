@@ -12,7 +12,6 @@ import '../services/instituciones_service.dart';
 import '../services/plantilla_cargo_service.dart';
 import '../services/hybrid_store.dart';
 import '../data/rnos_docentes_data.dart';
-import '../services/teacher_omni_engine.dart';
 import '../theme/app_colors.dart';
 import '../utils/validadores.dart';
 import '../utils/formatters.dart';
@@ -54,7 +53,6 @@ class _LegajoDocenteFormScreenState extends State<LegajoDocenteFormScreen> {
 
   Map<String, dynamic>? _institucion;
   bool _cargandoInst = true;
-  String _perfilCargoIdActual = '';
   String? _ultimoPerfilAlertado;
   List<Map<String, dynamic>> _conceptosPropiosSeleccionados = []; // {nombre, tipo, naturaleza, codigoAfipArca, monto}
   List<Map<String, String>> _datosComplementarios = []; // {nombre, valor}

@@ -1,6 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:convert';
-import '../models/teacher_types.dart';
 import 'teacher_omni_engine.dart';
 
 class LiquidacionHistoryService {
@@ -50,7 +48,7 @@ class LiquidacionHistoryService {
           .eq('type', 'historico_liquidaciones')
           .like('key', '${cuit}_${cuil}_%');
       
-      if (response == null || response.isEmpty) return [];
+      if (response.isEmpty) return [];
 
       List<LiquidacionOmniResult> resultados = [];
       for (var item in (response as List)) {

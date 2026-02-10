@@ -110,22 +110,6 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     });
   }
 
-  Future<void> _cargarCodigoRnos() async {
-    if (widget.razonSocial == null) return;
-    try {
-      final empresas = await HybridStore.getEmpresas();
-      for (final emp in empresas) {
-        if (emp['razonSocial'] == widget.razonSocial) {
-          final codigo = emp['codigo_rnos']?.toString();
-          if (codigo != null && codigo.isNotEmpty) {
-            _codigoRnosController.text = codigo;
-          }
-          break;
-        }
-      }
-    } catch (_) {}
-  }
-
   Future<void> _cargarConveniosSeleccionados() async {
     if (widget.razonSocial == null) return;
     

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../config/arca_lsd_config.dart';
 import '../models/parametros_legales.dart';
 import 'hybrid_store.dart';
 import 'auditoria_service.dart';

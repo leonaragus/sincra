@@ -35,7 +35,7 @@ class PlayBillingService {
 
     // Configurar para Android
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final iapAndroid = InAppPurchase.instance as InAppPurchaseAndroidPlatformAddition;
+      // final iapAndroid = InAppPurchase.instance as InAppPurchaseAndroidPlatformAddition;
       // Configurar modo de prueba (solo para desarrollo)
       // iapAndroid.enablePendingPurchases(); // Eliminado: método ya no existe
     }

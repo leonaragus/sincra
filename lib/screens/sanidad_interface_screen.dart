@@ -20,6 +20,9 @@ import '../services/instituciones_service.dart';
 import '../services/costo_empleador_service.dart';
 import '../services/sanidad_paritarias_service.dart';
 import '../services/liquidacion_historial_service.dart';
+import '../services/contabilidad_service.dart';
+import '../services/contabilidad_config_service.dart';
+import '../services/excel_export_service.dart';
 import '../utils/validaciones_arca.dart';
 import '../utils/pdf_recibo.dart';
 import '../theme/app_colors.dart';
@@ -55,6 +58,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   final _localidadController = TextEditingController();
   final _codigoPostalController = TextEditingController();
   final _domicilioEmpleadoController = TextEditingController();
+  final _codigoActividadController = TextEditingController(text: '049'); // Default Salud
+  final _codigoPuestoController = TextEditingController(text: '0000');
   
   // === CONTROLADORES HORAS EXTRAS ===
   final _horasExtras50Controller = TextEditingController(text: '0');
@@ -972,20 +977,45 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
   Widget _buildBannerSincronizacion() {
-    if (_ultimaSincronizacion == null && !_maestroLoading) return const SizedBox.shrink();
-
+    // MODIFICADO: Siempre mostrar banner
+    final bool hasInfo = _ultimaSincronizacion != null;
     final bool success = _modoSincronizacion == 'online' || _modoSincronizacion == 'default';
     final bool isOffline = _modoSincronizacion == 'offline';
     final String fechaStr = _ultimaSincronizacion != null 
         ? DateFormat('dd/MM/yyyy HH:mm').format(_ultimaSincronizacion!) 
-        : 'Nunca';
+        : 'Desconocida';
 
-    Color bgColor = success ? Colors.teal.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.1);
-    Color borderColor = success ? Colors.teal.withValues(alpha: 0.3) : Colors.amber.withValues(alpha: 0.3);
-    IconData icon = success ? Icons.check_circle_outline : (isOffline ? Icons.cloud_off : Icons.sync_problem);
-    String mensajeBanner = success 
-        ? 'Paritarias Sanidad actualizadas al $fechaStr' 
-        : (isOffline ? 'Modo Offline: Última sync $fechaStr' : 'Error al sincronizar paritarias');
+    Color bgColor;
+    Color borderColor;
+    IconData icon;
+    String mensajeBanner;
+
+    if (_maestroLoading) {
+      bgColor = Colors.blue.withValues(alpha: 0.1);
+      borderColor = Colors.blue.withValues(alpha: 0.3);
+      icon = Icons.sync;
+      mensajeBanner = 'Sincronizando paritarias Sanidad...';
+    } else if (!hasInfo) {
+      bgColor = Colors.grey.withValues(alpha: 0.1);
+      borderColor = Colors.grey.withValues(alpha: 0.3);
+      icon = Icons.help_outline;
+      mensajeBanner = 'Estado de paritarias desconocido';
+    } else if (success) {
+      bgColor = Colors.teal.withValues(alpha: 0.1);
+      borderColor = Colors.teal.withValues(alpha: 0.3);
+      icon = Icons.check_circle_outline;
+      mensajeBanner = 'Paritarias Sanidad actualizadas al $fechaStr';
+    } else if (isOffline) {
+      bgColor = Colors.amber.withValues(alpha: 0.1);
+      borderColor = Colors.amber.withValues(alpha: 0.3);
+      icon = Icons.cloud_off;
+      mensajeBanner = 'Modo Offline: Última sync $fechaStr';
+    } else {
+      bgColor = Colors.red.withValues(alpha: 0.1);
+      borderColor = Colors.red.withValues(alpha: 0.3);
+      icon = Icons.sync_problem;
+      mensajeBanner = 'Error al sincronizar paritarias';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -998,21 +1028,21 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       child: Row(
         children: [
           if (_maestroLoading)
-            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.tealAccent))
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.teal))
           else
-            Icon(icon, size: 16, color: success ? Colors.teal : Colors.amber),
+            Icon(icon, size: 16, color: borderColor.withOpacity(1.0)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              _maestroLoading ? 'Sincronizando paritarias FATSA...' : mensajeBanner,
+              mensajeBanner,
               style: TextStyle(
                 fontSize: 12, 
-                color: success ? Colors.teal.shade200 : Colors.amber.shade200,
+                color: borderColor.withOpacity(1.0),
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          if (!_maestroLoading)
+           if (!_maestroLoading)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1022,7 +1052,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   visualDensity: VisualDensity.compact,
-                  color: Colors.amber,
+                  color: Colors.teal,
                   tooltip: 'Reintentar sincronización',
                 ),
                 const SizedBox(width: 8),
@@ -1032,8 +1062,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   visualDensity: VisualDensity.compact,
-                  color: Colors.tealAccent,
-                  tooltip: 'Panel Maestro Sanidad',
+                  color: Colors.blue,
+                  tooltip: 'Panel Maestro',
                 ),
               ],
             ),
@@ -1041,6 +1071,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       ),
     );
   }
+
 
   void _recalcular() {
     if (_nombreController.text.trim().isEmpty || _cuilController.text.trim().isEmpty) {
@@ -1223,21 +1254,10 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       fechaIngreso: DateFormat('yyyy-MM-dd').format(_fechaIngreso),
       lugarPago: _domicilioController.text.trim().isNotEmpty ? _domicilioController.text.trim() : null,
     );
-    final conceptos = <ConceptoParaPDF>[
-      ConceptoParaPDF(descripcion: 'Sueldo básico', remunerativo: r.sueldoBasico, noRemunerativo: 0, descuento: 0),
-      if (r.adicionalAntiguedad > 0) ConceptoParaPDF(descripcion: 'Antigüedad', remunerativo: r.adicionalAntiguedad, noRemunerativo: 0, descuento: 0),
-      if (r.adicionalTitulo > 0) ConceptoParaPDF(descripcion: 'Ad. Título', remunerativo: r.adicionalTitulo, noRemunerativo: 0, descuento: 0),
-      if (r.adicionalTareaCriticaRiesgo > 0) ConceptoParaPDF(descripcion: 'Tarea Crítica/Riesgo', remunerativo: r.adicionalTareaCriticaRiesgo, noRemunerativo: 0, descuento: 0),
-      if (r.adicionalZonaPatagonica > 0) ConceptoParaPDF(descripcion: 'Plus Zona Desfavorable (Patagonia)', remunerativo: r.adicionalZonaPatagonica, noRemunerativo: 0, descuento: 0),
-      if (r.nocturnidad > 0) ConceptoParaPDF(descripcion: 'Horas Nocturnas', remunerativo: r.nocturnidad, noRemunerativo: 0, descuento: 0),
-      if (r.falloCaja > 0) ConceptoParaPDF(descripcion: 'Fallo de Caja', remunerativo: r.falloCaja, noRemunerativo: 0, descuento: 0),
-      ConceptoParaPDF(descripcion: 'Jubilación (11%)', remunerativo: 0, noRemunerativo: 0, descuento: r.aporteJubilacion),
-      ConceptoParaPDF(descripcion: 'Ley 19.032 (3%)', remunerativo: 0, noRemunerativo: 0, descuento: r.aporteLey19032),
-      ConceptoParaPDF(descripcion: 'Obra Social (3%)', remunerativo: 0, noRemunerativo: 0, descuento: r.aporteObraSocial),
-      if (r.cuotaSindicalAtsa > 0) ConceptoParaPDF(descripcion: 'Cuota Sindical ATSA (2%)', remunerativo: 0, noRemunerativo: 0, descuento: r.cuotaSindicalAtsa),
-      ConceptoParaPDF(descripcion: 'Seguro de Sepelio (1%)', remunerativo: 0, noRemunerativo: 0, descuento: r.seguroSepelio),
-      ConceptoParaPDF(descripcion: 'Aporte Solidario FATSA (1%)', remunerativo: 0, noRemunerativo: 0, descuento: r.aporteSolidarioFatsa),
-    ];
+    
+    // USAR LA LÓGICA UNIFICADA DE CONCEPTOS (misma que Pack ARCA)
+    final conceptos = _buildConceptosParaPDF(r);
+
     try {
       // Cargar bytes de logo y firma (multiplataforma)
       final logoBytes = await readImageBytes(_logoPath);
@@ -1340,6 +1360,168 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    }
+  }
+
+  Future<void> _exportarAsiento() async {
+    if (_resultado == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Debe liquidar primero')));
+        return;
+    }
+
+    final perfil = await ContabilidadConfigService.cargarPerfil();
+    
+    // Generar asiento preliminar
+    final asiento = ContabilidadService.generarAsientoSanidad(
+      liquidaciones: [_resultado!], 
+      perfil: perfil
+    );
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Exportación Contable (Asiento)'),
+        content: SizedBox(
+          width: 500,
+          height: 400,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Resumen del Asiento a Generar:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: asiento.items.length,
+                  itemBuilder: (c, i) {
+                    final item = asiento.items[i];
+                    return ListTile(
+                      dense: true,
+                      title: Text('${item.cuentaCodigo} - ${item.cuentaNombre}'),
+                      subtitle: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Debe: \$${item.debe.toStringAsFixed(2)}'),
+                          Text('Haber: \$${item.haber.toStringAsFixed(2)}'),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const Divider(),
+              Text('Total Debe: ${asiento.totalDebe.toStringAsFixed(2)}'),
+              Text('Total Haber: ${asiento.totalHaber.toStringAsFixed(2)}'),
+              if (!asiento.balanceado)
+                const Text('¡Diferencia detectada!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+          ElevatedButton.icon(
+            onPressed: () async {
+              // Generar CSV
+              final csv = ContabilidadService.exportarHolistor(asiento, DateTime.now());
+              
+              // Guardar archivo
+              final name = 'Asiento_Sanidad_${DateTime.now().millisecondsSinceEpoch}.csv';
+              final filePath = await saveTextFile(fileName: name, content: csv, mimeType: 'text/csv');
+              
+              if (mounted) {
+                Navigator.pop(ctx);
+                final esWeb = filePath == 'descargado';
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(esWeb ? 'CSV descargado: $name' : 'Exportado a: $filePath')),
+                );
+                if (!esWeb && filePath != null) openFile(filePath);
+              }
+            },
+            icon: const Icon(Icons.save),
+            label: const Text('Guardar CSV (Holistor/Tango)'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportarLibroSueldosExcel() async {
+    // Si hay un cálculo individual, exportamos ese. Si no, y hay legajos, sugerimos masivo.
+    List<LiquidacionSanidadResult> listaParaExportar = [];
+    
+    if (_resultado != null) {
+      listaParaExportar.add(_resultado!);
+    } else if (_legajosSanidad.isNotEmpty) {
+      final confirm = await showDialog<bool>(
+        context: context, 
+        builder: (c) => AlertDialog(
+          title: const Text('Generar Libro de Sueldos'),
+          content: Text('No hay liquidación actual. ¿Desea calcular y exportar los ${_legajosSanidad.length} legajos de la lista?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Calcular y Exportar')),
+          ],
+        )
+      );
+      
+      if (confirm != true) return;
+      
+      setState(() => _exportandoMasivo = true);
+      // Reutilizar lógica de masivo
+      try {
+        final liquidaciones = await _liquidarTodos();
+        listaParaExportar = liquidaciones;
+      } finally {
+        if (mounted) setState(() => _exportandoMasivo = false);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay datos para exportar')));
+      return;
+    }
+
+    if (listaParaExportar.isEmpty) return;
+
+    // Convertir a formato mapa para el servicio Excel
+    final datosExcel = listaParaExportar.map((liq) {
+      return {
+        'cuil': liq.input.cuil,
+        'nombre': liq.input.nombre,
+        'categoria': liq.input.categoria.name,
+        'basico': liq.sueldoBasico,
+        'antiguedad': liq.adicionalAntiguedad,
+        'conceptosRemunerativos': liq.totalBrutoRemunerativo - liq.sueldoBasico - liq.adicionalAntiguedad,
+        'totalBruto': liq.totalBrutoRemunerativo,
+        'totalAportes': liq.totalDescuentos, // Usamos total descuentos como "aportes" para simplificar visualización
+        'descuentos': 0.0, // Ya incluido en totalAportes para este formato simple
+        'conceptosNoRemunerativos': liq.totalNoRemunerativo,
+        'neto': liq.netoACobrar,
+        'totalContribuciones': 0.0, // No calculado aún en este motor
+      };
+    }).toList();
+
+    try {
+      final path = await ExcelExportService.generarLibroSueldos(
+        mes: _periodoSeleccionado.month, 
+        anio: _periodoSeleccionado.year, 
+        liquidaciones: datosExcel,
+        empresaNombre: _razonSocialController.text,
+      );
+      
+      if (!mounted) return;
+      
+      final esWeb = path == 'descargado'; // Convención interna si fuese web (aunque path_provider no retorna eso, el saveFile sí)
+      // ExcelExportService guarda directo a archivo en mobile/desktop. 
+      // Para web necesitaríamos adaptar el servicio, pero asumimos entorno desktop/mobile por ahora o que el servicio maneja web.
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Libro de Sueldos generado: $path')),
+      );
+      openFile(path);
+      
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error Excel: $e')));
     }
   }
 
@@ -1664,6 +1846,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       'manejoEfectivoCaja': _manejoEfectivoCaja,
       'codigoRnos': _codigoRnosController.text.trim().isEmpty ? null : _codigoRnosController.text.trim(),
       'cantidadFamiliares': int.tryParse(_cantidadFamiliaresController.text) ?? 0,
+      'codigoActividad': _codigoActividadController.text.trim(),
+      'codigoPuesto': _codigoPuestoController.text.trim(),
     });
     await _cargarLegajosSanidad();
     if (!mounted) return;
@@ -1874,6 +2058,27 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                       onPressed: _resultado != null ? _generarRecibo : null,
                       icon: const Icon(Icons.receipt, size: 20),
                       label: const Text('Generar Recibo'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Fila 1b: Exportar Asiento y Libro Sueldos
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _resultado != null ? _exportarAsiento : null,
+                      icon: const Icon(Icons.account_balance_wallet, size: 20),
+                      label: const Text('Asiento CSV'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _exportarLibroSueldosExcel(), // Habilitar siempre para masivo
+                      icon: const Icon(Icons.table_view, size: 20),
+                      label: const Text('Libro Excel'),
                     ),
                   ),
                 ],
@@ -3203,6 +3408,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     _localidadController.dispose();
     _codigoPostalController.dispose();
     _domicilioEmpleadoController.dispose();
+    _codigoActividadController.dispose();
+    _codigoPuestoController.dispose();
     _horasExtras50Controller.dispose();
     _horasExtras100Controller.dispose();
     _adelantosController.dispose();

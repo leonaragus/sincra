@@ -293,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Usuario desde: ${user?.createdAt?.toString().substring(0, 10) ?? 'N/A'}',
+                  'Usuario desde: ${user?.createdAt.substring(0, 10) ?? 'N/A'}',
                   style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
