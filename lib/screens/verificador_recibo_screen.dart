@@ -21,6 +21,7 @@ import 'package:syncra_arg/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
 import 'package:syncra_arg/services/pdf_report_service.dart';
+import 'package:syncra_arg/data/cct_argentina_completo.dart';
 
 class VerificadorReciboScreen extends StatefulWidget {
   const VerificadorReciboScreen({super.key});
@@ -80,12 +81,38 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
 
   Future<void> _cargarDatosAutomaticos() async {
     try {
-      // Cargar convenios desde API o local
-      final convenios = await ApiService.syncOrLoadLocal();
+      // 1. Cargar convenios desde API (prioridad) o local storage
+      final conveniosApi = await ApiService.syncOrLoadLocal();
+      
+      // 2. Cargar convenios locales completos (fallback/base)
+      final List<ConvenioModel> todosLosConvenios = [...conveniosApi];
+      final Set<String> nombresEnApi = conveniosApi.map((c) => c.nombreCCT).toSet();
+
+      // 3. Fusionar: Agregar los locales que NO estén en la API
+      for (final local in cctArgentinaCompleto) {
+        if (!nombresEnApi.contains(local.nombre)) {
+          // Convertir cada categoría del CCT local a un ConvenioModel
+          for (final cat in local.categorias) {
+            todosLosConvenios.add(ConvenioModel(
+              id: local.id,
+              nombreCCT: local.nombre,
+              categoria: cat.nombre,
+              sueldoBasico: cat.salarioBase,
+              adicionales: {
+                'presentismo': local.adicionalPresentismo,
+                'antiguedad': local.adicionalAntiguedad,
+              },
+              ultimaActualizacion: local.fechaVigencia,
+              pdfUrl: local.pdfUrl,
+            ));
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
-          _conveniosModelos = convenios;
-          final nombres = convenios.map((c) => c.nombreCCT).toSet().toList();
+          _conveniosModelos = todosLosConvenios;
+          final nombres = todosLosConvenios.map((c) => c.nombreCCT).toSet().toList();
           nombres.sort();
           _conveniosDisponibles = [...nombres, 'No sé mi convenio'];
         });
@@ -430,6 +457,33 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w600)),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ConoceTuConvenioScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.library_books, color: AppColors.primary),
+                  label: const Text(
+                    'Biblioteca de Convenios',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
@@ -1227,9 +1281,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     final ajusteReq = _ipcBase;
 
     Color epaColor(double v) {
-      if (v >= 1.02) return Colors.green;
-      if (v >= 0.98) return Colors.orange;
-      return Colors.red;
+      if (v >= 1.02) return AppColors.success;
+      if (v >= 0.98) return AppColors.warning;
+      return AppColors.error;
     }
 
     String epaLabel(double v) {
@@ -1240,7 +1294,11 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
 
     return Card(
       elevation: 0,
-      color: Colors.blueGrey.shade50,
+      color: AppColors.backgroundCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.glassBorder),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1248,25 +1306,23 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           children: [
             const Text(
               'Proyecciones 3–6 meses (IPC/INDEC)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange
-                    .withValues(alpha: (0.1 * 255).round().toDouble()),
+                color: AppColors.warning.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: Colors.orange
-                        .withValues(alpha: (0.3 * 255).round().toDouble())),
+                    color: AppColors.warning.withOpacity(0.3)),
               ),
               child: Text(
                 'Ajuste necesario para no perder poder: ${ajusteReq.toStringAsFixed(1)}% mensual',
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange[900]),
+                    color: AppColors.warning),
               ),
             ),
             const SizedBox(height: 12),
@@ -1275,11 +1331,22 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 Expanded(
                   child: TextField(
                     controller: _ipcController,
+                    style: const TextStyle(color: AppColors.textPrimary),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'IPC mensual (%)',
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: AppColors.border),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: AppColors.primary),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.backgroundLight,
                     ),
                     onChanged: (v) {
                       final x = double.tryParse(v.replaceAll(',', '.'));
@@ -1293,11 +1360,22 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 Expanded(
                   child: TextField(
                     controller: _ajusteController,
+                    style: const TextStyle(color: AppColors.textPrimary),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Ajuste mensual (%)',
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: AppColors.border),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: AppColors.primary),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.backgroundLight,
                     ),
                     onChanged: (v) {
                       final x = double.tryParse(v.replaceAll(',', '.'));
@@ -1325,39 +1403,53 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: epaColor(epa3)
-                        .withValues(alpha: (0.15 * 255).round().toDouble()),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.shield, color: epaColor(epa3)),
-                      const SizedBox(width: 8),
-                      Text(
-                          'EPA 3m: ${epa3.toStringAsFixed(2)} • ${epaLabel(epa3)}'),
-                    ],
+                Expanded(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: epaColor(epa3).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: epaColor(epa3).withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.shield, color: epaColor(epa3), size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'EPA 3m: ${epa3.toStringAsFixed(2)} • ${epaLabel(epa3)}',
+                            style: TextStyle(color: epaColor(epa3), fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: epaColor(epa6)
-                        .withValues(alpha: (0.15 * 255).round().toDouble()),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.shield, color: epaColor(epa6)),
-                      const SizedBox(width: 8),
-                      Text(
-                          'EPA 6m: ${epa6.toStringAsFixed(2)} • ${epaLabel(epa6)}'),
-                    ],
+                Expanded(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: epaColor(epa6).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: epaColor(epa6).withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.shield, color: epaColor(epa6), size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'EPA 6m: ${epa6.toStringAsFixed(2)} • ${epaLabel(epa6)}',
+                            style: TextStyle(color: epaColor(epa6), fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1372,19 +1464,19 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.blueGrey.shade100),
+        color: AppColors.backgroundLight,
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.trending_up, size: 16, color: Colors.blueGrey),
+          const Icon(Icons.trending_up, size: 16, color: AppColors.textSecondary),
           const SizedBox(width: 6),
           Text(
             '$label: \$${valor.toStringAsFixed(0)}',
             style: const TextStyle(
-              color: Colors.black87,
+              color: AppColors.textPrimary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1422,17 +1514,21 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     final u6 = _proyectado(neto, _ipcBase, _ajusteMensual, 6) / _smvm!;
     return Card(
       elevation: 0,
-      color: Colors.orange.shade50,
+      color: AppColors.backgroundCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.glassBorder),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Metas en Unidades (SMVM)',
+            const Text('Metas en Unidades (SMVM)',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange.shade900)),
+                    color: AppColors.accentOrange)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 12,
@@ -1452,14 +1548,21 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   Widget _buildEstimadorLiquidacionWidget() {
     return Card(
       elevation: 0,
-      color: Colors.teal.shade50,
+      color: AppColors.backgroundCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.glassBorder),
+      ),
       child: ExpansionTile(
+        collapsedIconColor: AppColors.textPrimary,
+        iconColor: AppColors.primary,
         title: const Text(
           'Estimador de Liquidación Final',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentGreen),
         ),
-        subtitle: const Text('Simulá tu salida (Despido o Renuncia)'),
-        leading: const Icon(Icons.calculate, color: Colors.teal),
+        subtitle: const Text('Simulá tu salida (Despido o Renuncia)',
+            style: TextStyle(color: AppColors.textSecondary)),
+        leading: const Icon(Icons.calculate, color: AppColors.accentGreen),
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -1471,15 +1574,17 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   style: TextStyle(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
-                      color: Colors.red),
+                      color: AppColors.error),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Text('Motivo: '),
+                    const Text('Motivo: ', style: TextStyle(color: AppColors.textPrimary)),
                     const SizedBox(width: 8),
                     DropdownButton<String>(
                       value: _motivoCese,
+                      dropdownColor: AppColors.backgroundCard,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       items: ['Renuncia', 'Despido'].map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
@@ -1503,6 +1608,19 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                       firstDate: DateTime(1980),
                       lastDate: DateTime.now(),
                       helpText: 'Fecha de Ingreso',
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: AppColors.primary,
+                              onPrimary: Colors.white,
+                              surface: AppColors.backgroundCard,
+                              onSurface: AppColors.textPrimary,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (picked != null && mounted) {
                       setState(() => _fechaIngreso = picked);
@@ -1512,9 +1630,13 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   label: Text(_fechaIngreso == null
                       ? 'Seleccionar Fecha de Ingreso'
                       : 'Ingreso: ${_fechaIngreso!.day}/${_fechaIngreso!.month}/${_fechaIngreso!.year}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textPrimary,
+                    side: const BorderSide(color: AppColors.border),
+                  ),
                 ),
                 if (_fechaIngreso != null) ...[
-                  const Divider(height: 32),
+                  const Divider(height: 32, color: AppColors.border),
                   _buildFilaLiquidacion(
                       'SAC Proporcional (est.)', _calcularSacProporcional()),
                   _buildFilaLiquidacion('Vacaciones Proporcionales (est.)',
@@ -1524,7 +1646,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                         _calcularIndemnizacionAntiguedad()),
                     _buildFilaLiquidacion('Preaviso', _netoActual()),
                   ],
-                  const Divider(),
+                  const Divider(color: AppColors.border),
                   _buildFilaLiquidacion(
                     'Total Estimado',
                     _calcularTotalLiquidacion(),
@@ -1551,6 +1673,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             style: TextStyle(
               fontWeight: esTotal ? FontWeight.bold : FontWeight.normal,
               fontSize: esTotal ? 16 : 14,
+              color: AppColors.textPrimary,
             ),
           ),
           Text(
@@ -1558,7 +1681,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             style: TextStyle(
               fontWeight: esTotal ? FontWeight.bold : FontWeight.w600,
               fontSize: esTotal ? 16 : 14,
-              color: esTotal ? Colors.teal.shade700 : Colors.black87,
+              color: esTotal ? AppColors.accentGreen : AppColors.textPrimary,
             ),
           ),
         ],
