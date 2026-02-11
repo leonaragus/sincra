@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+// import 'package:image_picker/image_picker.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:syncra_arg/services/ocr_service.dart';
 import 'package:syncra_arg/services/verificacion_recibo_service.dart';
@@ -9,10 +10,10 @@ import 'package:syncra_arg/services/hybrid_store.dart';
 import 'package:syncra_arg/services/parametros_legales_service.dart';
 import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
 import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
-import 'package:syncra_arg/utils/app_help.dart';
+// import 'package:syncra_arg/utils/app_help.dart';
 import 'package:syncra_arg/utils/conceptos_builder.dart';
 import 'package:syncra_arg/theme/app_colors.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
 import 'package:syncra_arg/services/pdf_report_service.dart';
 import '../services/subscription_service.dart';
@@ -59,9 +60,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   @override
   void initState() {
     super.initState();
-    print('VerificadorReciboScreen v1.2 loaded'); // Debug version
+    print('VerificadorReciboScreen v1.3 loaded'); // Debug version
     _cargarDatosAutomaticos();
   }
+
 
   Future<void> _cargarDatosAutomaticos() async {
     try {
@@ -75,8 +77,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         )['valor_indice'];
         if (v is num) indiceDocente = v.toDouble();
       }
-      final params = await ParametrosLegalesService.cargarParametros();
-      final smvm = params.smvm;
+      // final params = await ParametrosLegalesService.cargarParametros(); // Unused
+      // final smvm = params.smvm; // Unused
       if (mounted) {
         setState(() {
           if (indiceDocente != null && indiceDocente > 0) {
@@ -94,8 +96,14 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   }
 
   Future<void> _escanearYVerificar() async {
+    // Si estamos en web, permitimos continuar sin restricciones de plataforma nativa
+    // Si estamos en desktop nativo (Windows .exe), mostramos aviso solo si no hay fallback implementado
+    // Pero como OCRService tiene fallback a Tesseract en Web y FilePicker en Desktop, 
+    // deberíamos permitir intentar.
+    
     // 0. Verificar cuota Freemium
     final canScan = await SubscriptionService.canPerformOcrScan();
+
     if (!canScan) {
       if (!mounted) return;
       showDialog(
@@ -209,7 +217,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Usar tema
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
@@ -219,23 +227,24 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         ),
         title: Text('Verificador de Recibo',
             style: TextStyle(
-                color: Theme.of(context).textTheme.bodyLarge?.color, // Usar tema
+                color: Theme.of(context).textTheme.bodyLarge?.color,
                 fontSize: 20,
                 fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           IconButton(
             icon: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppColors.glassFill,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.glassBorder, width: 1),
               ),
-              child: Icon(Icons.menu, color: Theme.of(context).textTheme.bodyLarge?.color, size: 20), // Usar tema
+              child: Icon(Icons.menu, color: Theme.of(context).textTheme.bodyLarge?.color, size: 20),
             ),
             onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       endDrawer: _buildMenuHamburguesa(),
@@ -255,7 +264,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           child: Column(
             children: [
               // Selector de convenio
-              _buildSelectorConvenio(),
+              // _buildSelectorConvenio(),
 
               if (_estaProcesando)
                 _buildLoadingState()
@@ -269,6 +278,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       ),
     );
   }
+
 
   Widget _buildLoadingState() {
     return Container(

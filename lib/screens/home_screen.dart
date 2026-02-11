@@ -29,6 +29,7 @@ import 'biblioteca_cct_screen.dart';
 import 'dashboard_riesgos_screen.dart';
 
 import 'verificador_recibos_screen.dart';
+import 'validador_lsd_screen.dart';
 
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
@@ -273,6 +274,13 @@ class HomeScreenState extends State<HomeScreen> {
         icon: Icons.dashboard,
         iconColor: const Color(0xFF9333EA),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardGerencialScreen())),
+      ),
+      _buildModernCard(
+        title: 'Validador LSD ARCA',
+        subtitle: 'Validador previo de archivos LSD 2026',
+        icon: Icons.fact_check,
+        iconColor: AppColors.accentBlue,
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ValidadorLSDScreen())),
       ),
       _buildModernCard(
         title: 'Conceptos Recurrentes',
