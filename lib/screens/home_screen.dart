@@ -28,6 +28,8 @@ import 'gestion_prestamos_screen.dart';
 import 'biblioteca_cct_screen.dart';
 import 'dashboard_riesgos_screen.dart';
 
+import 'verificador_recibos_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 

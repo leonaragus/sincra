@@ -94,7 +94,8 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
 
   LiquidacionOmniResult? _resultado;
   bool _cargando = false;
-  // bool _exportandoMasivo = false; // Removed unused field
+  bool _calculando = false;
+  bool _exportandoMasivo = false;
   bool _sincronizandoParitarias = false;
   Map<String, dynamic>? _infoSincronizacion;
   bool _savingMaestro = false;
