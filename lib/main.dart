@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
-import 'screens/verificador_recibos_screen.dart';
+import 'screens/verificador_recibo_screen.dart';
 import 'screens/web_login_screen.dart';
 import 'theme/app_theme.dart';
 import 'package:url_strategy/url_strategy.dart'; // Import agregado
@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
       home: const HomeScreen(),
       routes: {
         '/home': (context) => const HomeScreen(),
-        '/verificador': (context) => const VerificadorRecibosScreen(),
+        '/verificador': (context) => const VerificadorReciboScreen(),
         '/web-login': (context) => const WebLoginScreen(),
         '/plans': (context) => const PlanSelectionScreen(),
       },

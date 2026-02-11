@@ -251,9 +251,16 @@ class LSDGenerator {
     for (var i = 0; i < lineas.length; i++) {
       final L = lineas[i].replaceAll('\r', '');
       if (L.isEmpty) continue;
-      if (L.length != 150) {
+      
+      // ARCA 2026: Registro 3 (Bases) tiene 230 caracteres.
+      // Registros 1, 2 y 4 tienen 150 caracteres.
+      // Si la línea tiene 230 caracteres, asumimos que es Registro 3 (incluso si el prefijo '3' no es detectado por encoding)
+      final esRegistro3 = L.startsWith('3') || L.length == 230;
+      final longitudEsperada = esRegistro3 ? 230 : 150;
+      
+      if (L.length != longitudEsperada) {
         throw StateError(
-          'LSD Guía 4: la línea ${i + 1} tiene ${L.length} caracteres (debe ser 150). '
+          'LSD Guía 4: la línea ${i + 1} tiene ${L.length} caracteres (debe ser $longitudEsperada). '
           'El proceso aborta. Inicio: ${L.substring(0, L.length > 60 ? 60 : L.length)}',
         );
       }
