@@ -413,7 +413,7 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
     return f.path;
   }
 
-  /// Escribe el archivo LSD ARCA 2026 para [legajo] en [dirPath]. Reg1 150ch (tipo S), Reg2 150ch (códigos 6 dígitos), Reg3 230ch (10 bases).
+  /// Escribe el archivo LSD ARCA 2026 para [legajo] en [dirPath].
   Future<String?> _escribirLsdEnCarpeta(String dirPath, Map<String, dynamic> legajo) async {
     final sac = _getSacActual();
     if (sac <= 0) return null;
@@ -441,27 +441,46 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
         domicilio: inst['domicilio']?.toString() ?? '',
         tipoLiquidacion: 'S',
       );
-      final reg2Sac = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '120000', importe: sac, tipo: 'H', descripcion: 'SAC (Aguinaldo)');
-      final reg2Jub = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '810001', importe: jub, tipo: 'D', descripcion: 'Jubilación');
-      final reg2Os = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '810003', importe: os, tipo: 'D', descripcion: 'Obra Social');
-      final reg2Pami = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '810002', importe: pami, tipo: 'D', descripcion: 'Ley 19.032 (PAMI)');
-      final reg3 = LSDGenerator.generateRegistro3BasesArca2026(
+
+      final reg2Ref = LSDGenerator.generateRegistro2DatosReferenciales(
         cuilEmpleado: cuil,
-        bases: [baseTopeada, baseTopeada, baseTopeada, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        diasBase: 30,
+      );
+
+      final reg3Sac = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '120000', importe: sac, tipo: 'H', descripcionConcepto: 'SAC (Aguinaldo)');
+      final reg3Jub = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '810001', importe: jub, tipo: 'D', descripcionConcepto: 'Jubilación');
+      final reg3Os = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '810003', importe: os, tipo: 'D', descripcionConcepto: 'Obra Social');
+      final reg3Pami = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '810002', importe: pami, tipo: 'D', descripcionConcepto: 'Ley 19.032 (PAMI)');
+
+      final bases = List<double>.filled(10, 0.0);
+      bases[0] = baseTopeada; bases[1] = baseTopeada; bases[2] = baseTopeada; bases[8] = baseTopeada;
+      
+      final reg4 = LSDGenerator.generateRegistro4Bases(
+        cuilEmpleado: cuil,
+        bases: bases,
+      );
+      
+      final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
+        cuilEmpleado: cuil,
+        codigoRnos: '115404',
       );
 
       final sb = StringBuffer();
       sb.write(latin1.decode(reg1));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Sac));
+      sb.write(latin1.decode(reg2Ref));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Jub));
+      sb.write(latin1.decode(reg3Sac));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Os));
+      sb.write(latin1.decode(reg3Jub));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Pami));
+      sb.write(latin1.decode(reg3Os));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg3));
+      sb.write(latin1.decode(reg3Pami));
+      sb.write(LSDGenerator.eolLsd);
+      sb.write(latin1.decode(reg4));
+      sb.write(LSDGenerator.eolLsd);
+      sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
       final nombre = legajo['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
@@ -577,38 +596,58 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
         domicilio: inst['domicilio']?.toString() ?? '',
         tipoLiquidacion: 'S',
       );
-      final reg2Sac = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '120000', importe: sac, tipo: 'H', descripcion: 'SAC (Aguinaldo)');
-      final reg2Jub = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '810001', importe: jub, tipo: 'D', descripcion: 'Jubilación');
-      final reg2Os = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '810003', importe: os, tipo: 'D', descripcion: 'Obra Social');
-      final reg2Pami = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: '810002', importe: pami, tipo: 'D', descripcion: 'Ley 19.032 (PAMI)');
-      final conceptosCompletosExp = _getConceptosCompletos();
-      final reg3 = LSDGenerator.generateRegistro3BasesArca2026(
+      
+      // Registro 2: Datos Referenciales
+      final reg2Ref = LSDGenerator.generateRegistro2DatosReferenciales(
         cuilEmpleado: cuil,
-        bases: [baseTopeada, baseTopeada, baseTopeada, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        diasBase: 30,
+      );
+      
+      final reg3Sac = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '120000', importe: sac, tipo: 'H', descripcionConcepto: 'SAC (Aguinaldo)');
+      final reg3Jub = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '810001', importe: jub, tipo: 'D', descripcionConcepto: 'Jubilación');
+      final reg3Os = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '810003', importe: os, tipo: 'D', descripcionConcepto: 'Obra Social');
+      final reg3Pami = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: '810002', importe: pami, tipo: 'D', descripcionConcepto: 'Ley 19.032 (PAMI)');
+      final conceptosCompletosExp = _getConceptosCompletos();
+      
+      final bases = List<double>.filled(10, 0.0);
+      bases[0] = baseTopeada; bases[1] = baseTopeada; bases[2] = baseTopeada; bases[8] = baseTopeada;
+      
+      final reg4 = LSDGenerator.generateRegistro4Bases(
+        cuilEmpleado: cuil,
+        bases: bases,
+      );
+      
+      final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
+        cuilEmpleado: cuil,
+        codigoRnos: '115404',
       );
 
       final sb = StringBuffer();
       sb.write(latin1.decode(reg1));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Sac));
+      sb.write(latin1.decode(reg2Ref));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Jub));
+      sb.write(latin1.decode(reg3Sac));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Os));
+      sb.write(latin1.decode(reg3Jub));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2Pami));
+      sb.write(latin1.decode(reg3Os));
+      sb.write(LSDGenerator.eolLsd);
+      sb.write(latin1.decode(reg3Pami));
       sb.write(LSDGenerator.eolLsd);
       for (final c in conceptosCompletosExp) {
         if (c['isBase'] == true) continue;
         final m = (c['monto'] as num?)?.toDouble() ?? 0.0;
         if (m <= 0) continue;
         final t = (c['tipo'] ?? '') == 'descuento' ? 'D' : 'H';
-        final cod = LSDGenerator.obtenerCodigoArca2026(c['descripcion']?.toString() ?? '');
-        final r2 = LSDGenerator.generateRegistro2Arca2026(cuilEmpleado: cuil, codigoArca6: cod, importe: m, tipo: t, descripcion: c['descripcion']?.toString() ?? '');
-        sb.write(latin1.decode(r2));
+        final cod = LSDGenerator.obtenerCodigoInternoConcepto(c['descripcion']?.toString() ?? '');
+        final r3 = LSDGenerator.generateRegistro3Conceptos(cuilEmpleado: cuil, codigoConcepto: cod, importe: m, tipo: t, descripcionConcepto: c['descripcion']?.toString() ?? '');
+        sb.write(latin1.decode(r3));
         sb.write(LSDGenerator.eolLsd);
       }
-      sb.write(latin1.decode(reg3));
+      sb.write(latin1.decode(reg4));
+      sb.write(LSDGenerator.eolLsd);
+      sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
       final dir = await getApplicationDocumentsDirectory();

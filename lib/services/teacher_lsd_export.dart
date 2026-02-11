@@ -2,6 +2,7 @@
 // Codificación ISO-8859-1, fin de línea \r\n. Validador 150 caracteres por línea.
 
 import 'dart:convert';
+import 'dart:math';
 import '../core/codigos_afip_arca.dart';
 import 'teacher_omni_engine.dart';
 import 'lsd_engine.dart';
@@ -91,6 +92,15 @@ Future<String> teacherOmniToLsdTxt({
   sb.write(latin1.decode(reg1));
   sb.write(LSDGenerator.eolLsd);
 
+  // Registro 2: Datos referenciales (NUEVO ARCA)
+  final reg2 = LSDGenerator.generateRegistro2DatosReferenciales(
+    cuilEmpleado: cuil,
+    legajo: liquidacion.input.nombre.replaceAll(RegExp(r'\s'), '').substring(0, min(10, liquidacion.input.nombre.length)),
+    diasBase: 30,
+  );
+  sb.write(latin1.decode(reg2));
+  sb.write(LSDGenerator.eolLsd);
+
   final conceptos = <Map<String, dynamic>>[];
 
   void addHaber(String codigo, String desc, double monto) {
@@ -149,14 +159,14 @@ Future<String> teacherOmniToLsdTxt({
     final codigoLimpio = sanitizarTextoARCA((c['codigo'] as String).trim().toUpperCase());
     final descripcionLimpia = sanitizarTextoARCA(c['desc'] as String? ?? '');
     
-    final r2 = LSDGenerator.generateRegistro2Conceptos(
+    final r3 = LSDGenerator.generateRegistro3Conceptos(
       cuilEmpleado: cuil,
       codigoConcepto: codigoLimpio,
       importe: c['importe'] as double,
       descripcionConcepto: descripcionLimpia,
       tipo: c['tipo'] as String?,
     );
-    sb.write(latin1.decode(r2));
+    sb.write(latin1.decode(r3));
     sb.write(LSDGenerator.eolLsd);
   }
 
@@ -175,14 +185,14 @@ Future<String> teacherOmniToLsdTxt({
   // Para seguridad en validación "Base Inconsistente", usamos la misma que Base 1 si no hay diferencial.
   bases[8] = liquidacion.baseImponibleTopeada; // Base 9 (Array index 8)
 
-  final r3 = LSDGenerator.generateRegistro3BasesArca2026(
+  final r4 = LSDGenerator.generateRegistro4Bases(
     cuilEmpleado: cuil,
     bases: bases,
   );
-  sb.write(latin1.decode(r3));
+  sb.write(latin1.decode(r4));
   sb.write(LSDGenerator.eolLsd);
 
-  final r4 = LSDGenerator.generateRegistro4(
+  final r5 = LSDGenerator.generateRegistro5DatosComplementarios(
     cuilEmpleado: cuil,
     // Para docentes, si no hay RNOS, sugerimos OSDOP (115404) en lugar de OSECAC (126205)
     // OSECAC es el default del motor, aquí lo sobreescribimos si es nulo
@@ -194,16 +204,16 @@ Future<String> teacherOmniToLsdTxt({
     codigoCondicion: liquidacion.input.codigoCondicion,
     codigoModalidad: liquidacion.input.codigoModalidad,
   );
-  sb.write(latin1.decode(r4));
+  sb.write(latin1.decode(r5));
   sb.write(LSDGenerator.eolLsd);
 
   final out = sb.toString();
-  LSDGenerator.validarLongitud150(out);
+  LSDGenerator.validarLongitud195(out);
   return out;
 }
 
-/// Extrae las líneas de Registro 03 (Bases imponibles) y 04 (Datos complementarios) del Liquidacion.txt
-/// generado, para inspección o mostrar en chat. Codificación ISO-8859-1, \r\n. 150 caracteres por línea.
+/// Extrae las líneas de Registro 04 (Bases imponibles) y 05 (Datos complementarios) del Liquidacion.txt
+/// generado, para inspección o mostrar en chat. Codificación ISO-8859-1, \r\n. 195 caracteres por línea.
 Future<Map<String, String>> extraerRegistro03y04Lsd({
   required LiquidacionOmniResult liquidacion,
   required String cuitEmpresa,
@@ -212,13 +222,13 @@ Future<Map<String, String>> extraerRegistro03y04Lsd({
 }) async {
   final txt = await teacherOmniToLsdTxt(liquidacion: liquidacion, cuitEmpresa: cuitEmpresa, razonSocial: razonSocial, domicilio: domicilio);
   final lineas = txt.split(RegExp(r'\r?\n'));
-  String? reg03, reg04;
+  String? reg04, reg05;
   for (final L in lineas) {
     final s = L.replaceAll('\r', '');
     if (s.isEmpty) continue;
-    if (s.length != 150) continue;
-    if (s.startsWith('3')) reg03 = s;
+    if (s.length != 195) continue;
     if (s.startsWith('4')) reg04 = s;
+    if (s.startsWith('5')) reg05 = s;
   }
-  return {'reg03': reg03 ?? '', 'reg04': reg04 ?? ''};
+  return {'reg04': reg04 ?? '', 'reg05': reg05 ?? ''};
 }

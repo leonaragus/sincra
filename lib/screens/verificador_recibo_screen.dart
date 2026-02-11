@@ -1,5 +1,3 @@
-import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
@@ -9,17 +7,14 @@ import 'teacher_receipt_scan_screen.dart';
 import 'package:syncra_arg/models/recibo_escaneado.dart';
 import 'package:syncra_arg/services/hybrid_store.dart';
 import 'package:syncra_arg/services/parametros_legales_service.dart';
-  import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
+import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
 import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
-import 'package:syncra_arg/services/api_service.dart';
-import 'package:syncra_arg/models/convenio_model.dart';
 import 'package:syncra_arg/utils/app_help.dart';
 import 'package:syncra_arg/utils/conceptos_builder.dart';
 import 'package:syncra_arg/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
 import 'package:syncra_arg/services/pdf_report_service.dart';
-import 'package:syncra_arg/data/cct_argentina_completo.dart';
 import '../services/subscription_service.dart';
 // import 'dart:io'; // Removed for web compatibility
 
@@ -37,7 +32,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       VerificacionReciboService();
 
   bool _estaProcesando = false;
-  String? _rutaImagen;
   String _textoOcr = '';
   ResultadoVerificacion? _resultado;
   ReciboEscaneado? _recibo;
@@ -49,15 +43,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       TextEditingController(text: '8.0');
   final TextEditingController _ajusteController =
       TextEditingController(text: '0.0');
-  double? _smvm;
-  DateTime? _fechaIngreso; // Unused
-  String _motivoCese = 'Renuncia'; // Unused
+  // double? _smvm;
   
-  // Variables para funcionalidad mejorada
-  String? _convenioSeleccionado; // Hacer opcional
-  List<ConvenioModel> _conveniosModelos = []; // Unused
-  List<String> _conveniosDisponibles = ['Cargando convenios...']; // Unused
-
   /// Controlador para el menú hamburguesa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -78,43 +65,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
 
   Future<void> _cargarDatosAutomaticos() async {
     try {
-      // 1. Cargar convenios desde API (prioridad) o local storage
-      final conveniosApi = await ApiService.syncOrLoadLocal();
-      
-      // 2. Cargar convenios locales completos (fallback/base)
-      final List<ConvenioModel> todosLosConvenios = [...conveniosApi];
-      final Set<String> nombresEnApi = conveniosApi.map((c) => c.nombreCCT).toSet();
-
-      // 3. Fusionar: Agregar los locales que NO estén en la API
-      for (final local in cctArgentinaCompleto) {
-        if (!nombresEnApi.contains(local.nombre)) {
-          // Convertir cada categoría del CCT local a un ConvenioModel
-          for (final cat in local.categorias) {
-            todosLosConvenios.add(ConvenioModel(
-              id: local.id,
-              nombreCCT: local.nombre,
-              categoria: cat.nombre,
-              sueldoBasico: cat.salarioBase,
-              adicionales: {
-                'presentismo': local.adicionalPresentismo,
-                'antiguedad': local.adicionalAntiguedad,
-              },
-              ultimaActualizacion: local.fechaVigencia,
-              pdfUrl: local.pdfUrl,
-            ));
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _conveniosModelos = todosLosConvenios;
-          final nombres = todosLosConvenios.map((c) => c.nombreCCT).toSet().toList();
-          nombres.sort();
-          _conveniosDisponibles = [...nombres, 'No sé mi convenio'];
-        });
-      }
-
       final docentes = await HybridStore.getMaestroParitarias();
       final sanidad = await HybridStore.getMaestroParitariasSanidad();
       double? indiceDocente;
@@ -137,7 +87,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             _ajusteMensual = 0.0;
             _ajusteController.text = _ajusteMensual.toStringAsFixed(1);
           }
-          _smvm = smvm > 0 ? smvm : null;
+          // _smvm = smvm > 0 ? smvm : null;
         });
       }
     } catch (_) {}
@@ -173,12 +123,12 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     }
 
     setState(() {
-      _estaProcesando = true;
-      _rutaImagen = null;
-      _textoOcr = '';
-      _resultado = null;
-      _recibo = null;
-    });
+        _estaProcesando = true;
+        // _rutaImagen = null;
+        _textoOcr = '';
+        _resultado = null;
+        _recibo = null;
+      });
 
     try {
       // 1. Obtener imagen
@@ -191,7 +141,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       // Registrar uso de cuota
       await SubscriptionService.registerOcrScan();
 
-      setState(() => _rutaImagen = imagenFile.path);
+      // setState(() => _rutaImagen = imagenFile.path);
 
       // 2. Procesar con OCR
       // Refactored to remove direct dependency on MLKit InputImage
@@ -261,8 +211,12 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       key: _scaffoldKey,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Usar tema
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).textTheme.bodyLarge?.color),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: Text('Verificador de Recibo',
             style: TextStyle(
                 color: Theme.of(context).textTheme.bodyLarge?.color, // Usar tema
@@ -326,9 +280,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.glassFill,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.glassBorder, width: 1),
+              border: Border.all(color: Theme.of(context).dividerColor, width: 1),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
@@ -338,7 +292,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               ],
             ),
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
               strokeWidth: 3,
             ),
           ),
@@ -355,7 +309,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           Text(
             'Detectando conceptos de tu liquidación',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).hintColor,
               fontSize: 15,
             ),
             textAlign: TextAlign.center,
@@ -364,9 +318,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.glassFillStrong,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.glassBorder, width: 1),
+              border: Border.all(color: Theme.of(context).dividerColor, width: 1),
             ),
             child: Column(
               children: [
@@ -382,7 +336,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 Text(
                   '• Leyendo el texto de tu recibo\n• Identificando sueldo básico, jubilación, obra social\n• Verificando contra tu convenio laboral\n• Detectando posibles errores o faltantes',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).hintColor,
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -405,9 +359,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           Container(
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
-              color: AppColors.glassFill,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.glassBorder, width: 1),
+              border: Border.all(color: Theme.of(context).dividerColor, width: 1),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.08),
@@ -422,15 +376,15 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: AppColors.primary.withOpacity(0.3), width: 2),
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3), width: 2),
                   ),
                   child: Icon(
                     Icons.document_scanner_outlined,
                     size: 50,
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -447,7 +401,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 Text(
                   'Escaneá tu recibo y descubrí si tu liquidación es correcta según tu convenio laboral',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).hintColor,
                     fontSize: 15,
                     height: 1.4,
                   ),
@@ -457,8 +411,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 ElevatedButton(
                   onPressed: _escanearYVerificar,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 30, vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -487,20 +441,20 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.library_books, color: Colors.white),
-                  label: const Text(
+                  icon: Icon(Icons.library_books, color: Theme.of(context).colorScheme.onSecondary),
+                  label: Text(
                     'Biblioteca de Convenios',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSecondary,
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    backgroundColor: AppColors.secondary,
-                    foregroundColor: Colors.white,
-                    side: BorderSide(color: AppColors.glassBorder),
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
+                    foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                    side: BorderSide(color: Theme.of(context).dividerColor),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -516,9 +470,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.glassFillStrong,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.glassBorder, width: 1),
+              border: Border.all(color: Theme.of(context).dividerColor, width: 1),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,7 +509,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             child: Text(
               text,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).hintColor,
                 fontSize: 14,
               ),
             ),
@@ -599,9 +553,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: AppColors.glassFill,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.glassBorder, width: 1),
+            border: Border.all(color: Theme.of(context).dividerColor, width: 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.08),
@@ -674,13 +628,13 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                      border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.help_outline, color: AppColors.primary, size: 20),
+                        Icon(Icons.help_outline, color: Theme.of(context).colorScheme.primary, size: 20),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -692,7 +646,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                             ),
                           ),
                         ),
-                        Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 16),
+                        Icon(Icons.arrow_forward_ios, color: Theme.of(context).colorScheme.primary, size: 16),
                       ],
                     ),
                   ),
@@ -857,7 +811,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                               analisis['items_revisar'] ?? []),
                           alertasGraves: List<String>.from(
                               analisis['alertas_graves'] ?? []),
-                          convenio: _convenioSeleccionado ?? 'No especificado',
+                          convenio: 'No especificado',
                         );
                       },
                     ),
@@ -892,8 +846,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               ElevatedButton(
                 onPressed: _escanearYVerificar,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -927,7 +881,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  side: BorderSide(color: AppColors.glassBorder),
+                  side: BorderSide(color: Theme.of(context).dividerColor),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -946,9 +900,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         Container(
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
-            color: AppColors.glassFill,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.glassBorder, width: 1),
+            border: Border.all(color: Theme.of(context).dividerColor, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -967,7 +921,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                 padding: const EdgeInsets.all(16),
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundLight.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(12),
                     bottomRight: Radius.circular(12),
@@ -978,7 +932,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.text_snippet, size: 16, color: AppColors.primary),
+                        Icon(Icons.text_snippet, size: 16, color: Theme.of(context).colorScheme.primary),
                         const SizedBox(width: 8),
                         Text(
                           'Texto detectado por OCR:',
@@ -996,7 +950,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                           ? 'No se detectó texto o no se ha escaneado.'
                           : _textoOcr,
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).hintColor,
                         fontSize: 12,
                         fontFamily: 'monospace',
                       ),
@@ -1018,7 +972,33 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   }
   
   Widget _buildMenuHamburguesa() {
-    return const Drawer();
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            child: const Text(
+              'Menú',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Inicio'),
+            onTap: () {
+              Navigator.pop(context); // Close drawer
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ],
+      ),
+    );
   }
   
   Widget _buildProyeccionesWidget() {

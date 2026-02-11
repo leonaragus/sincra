@@ -95,7 +95,6 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
   LiquidacionOmniResult? _resultado;
   // bool _cargando = false; // Removed unused
   bool _calculando = false;
-  bool _exportandoMasivo = false;
   bool _sincronizandoParitarias = false;
   Map<String, dynamic>? _infoSincronizacion;
   bool _savingMaestro = false;
@@ -1411,13 +1410,8 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
       
       if (confirm != true) return;
       
-      setState(() => _exportandoMasivo = true);
-      try {
-        final liquidaciones = await _liquidarTodos();
-        listaParaExportar = liquidaciones;
-      } finally {
-        if (mounted) setState(() => _exportandoMasivo = false);
-      }
+      final liquidaciones = await _liquidarTodos();
+      listaParaExportar = liquidaciones;
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay datos para exportar')));
       return;

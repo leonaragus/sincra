@@ -193,7 +193,14 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
       );
       final codVac = LSDGenerator.obtenerCodigoInternoConcepto('Vacaciones');
       final codPlus = LSDGenerator.obtenerCodigoInternoConcepto('Plus Vacacional');
-      final reg2a = LSDGenerator.generateRegistro2Conceptos(
+      
+      // Registro 2: Datos Referenciales (Nuevo ARCA)
+      final reg2 = LSDGenerator.generateRegistro2DatosReferenciales(
+        cuilEmpleado: cuil,
+        diasBase: 30,
+      );
+      
+      final reg3a = LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuil,
         codigoConcepto: codVac,
         importe: v.$2,
@@ -201,7 +208,7 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
         cantidad: v.$1,
         tipo: 'H',
       );
-      final reg2b = LSDGenerator.generateRegistro2Conceptos(
+      final reg3b = LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuil,
         codigoConcepto: codPlus,
         importe: v.$3,
@@ -209,20 +216,34 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
         tipo: 'H',
       );
       final base = v.$4;
-      final reg3 = await LSDGenerator.generateRegistro3Bases(
+      
+      // Bases imponibles (10 bases)
+      final bases = List<double>.filled(10, 0.0);
+      bases[0] = base; bases[1] = base; bases[2] = base; bases[8] = base;
+      
+      final reg4 = LSDGenerator.generateRegistro4Bases(
         cuilEmpleado: cuil,
-        baseImponibleJubilacion: base,
-        baseImponibleObraSocial: base,
-        baseImponibleLey19032: base,
+        bases: bases,
       );
+      
+      // Datos complementarios
+      final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
+        cuilEmpleado: cuil,
+        codigoRnos: '115404', // OSDOP default docente
+      );
+      
       final sb = StringBuffer();
       sb.write(latin1.decode(reg1));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2a));
+      sb.write(latin1.decode(reg2));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg2b));
+      sb.write(latin1.decode(reg3a));
       sb.write(LSDGenerator.eolLsd);
-      sb.write(latin1.decode(reg3));
+      sb.write(latin1.decode(reg3b));
+      sb.write(LSDGenerator.eolLsd);
+      sb.write(latin1.decode(reg4));
+      sb.write(LSDGenerator.eolLsd);
+      sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
       final dir = await getApplicationDocumentsDirectory();

@@ -15,6 +15,7 @@ class AppColors {
   static const Color textPrimary = Color(0xFFf8fafc); // slate-50 - más claro
   static const Color textSecondary = Color(0xFFcbd5e1); // slate-300 - más claro que antes
   static const Color textMuted = Color(0xFF94a3b8); // slate-400 - más claro que antes
+  static const Color textMutedLightMode = Color(0xFF64748B); // slate-500 - más oscuro para modo claro
   
   // Colores de acento y estado
   static const Color success = Color(0xFF10b981); // emerald-500

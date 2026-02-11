@@ -188,7 +188,7 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         labelStyle: const TextStyle(color: AppColors.textSecondaryLightMode),
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8)), // slate-400
+        hintStyle: const TextStyle(color: AppColors.textMutedLightMode),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -236,6 +236,8 @@ class AppTheme {
           side: const BorderSide(color: AppColors.glassBorderLightMode),
         ),
       ),
+      dividerColor: AppColors.glassBorderLightMode,
+      dividerTheme: const DividerThemeData(color: AppColors.glassBorderLightMode),
     );
   }
 

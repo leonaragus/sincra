@@ -444,6 +444,13 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     );
     registros.add(registro1);
     
+    // Registro 2: Datos Referenciales (ARCA 2026)
+    final registro2Ref = LSDGenerator.generateRegistro2DatosReferenciales(
+      cuilEmpleado: cuilEmpleadoLimpio,
+      diasBase: 30,
+    );
+    registros.add(registro2Ref);
+    
     // Calcular sueldo bruto (total de conceptos remunerativos)
     final sueldoBruto = liquidacion.calcularSueldoBruto(sueldoBasico);
     
@@ -482,7 +489,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     final sueldoBasicoProporcional = liquidacion.obtenerSueldoBasicoProporcional(sueldoBasico);
     if (sueldoBasicoProporcional > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Sueldo Básico');
-      final registro02 = LSDGenerator.generateRegistro2Conceptos(
+      final registro02 = LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: sueldoBasicoProporcional,
@@ -501,7 +508,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       final presentismo = sueldoBasicoProporcional * (liquidacion.porcentajePresentismo / 100);
       if (presentismo > 0) {
         final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Presentismo');
-        final registro02 = LSDGenerator.generateRegistro2Conceptos(
+        final registro02 = LSDGenerator.generateRegistro3Conceptos(
           cuilEmpleado: cuilEmpleadoLimpio,
           codigoConcepto: codigoInterno,
           importe: presentismo,
@@ -520,7 +527,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     if (liquidacion.vacacionesActivas && liquidacion.diasVacaciones > 0) {
       if (liquidacion.montoVacaciones > 0) {
         final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Vacaciones');
-        final registro02 = LSDGenerator.generateRegistro2Conceptos(
+        final registro02 = LSDGenerator.generateRegistro3Conceptos(
           cuilEmpleado: cuilEmpleadoLimpio,
           codigoConcepto: codigoInterno,
           importe: liquidacion.montoVacaciones,
@@ -538,7 +545,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       // Plus Vacacional (REMUNERATIVO) - También se registra con código de vacaciones
       if (liquidacion.plusVacacional > 0) {
         final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Plus Vacacional');
-        final registro02 = LSDGenerator.generateRegistro2Conceptos(
+        final registro02 = LSDGenerator.generateRegistro3Conceptos(
           cuilEmpleado: cuilEmpleadoLimpio,
           codigoConcepto: codigoInterno,
           importe: liquidacion.plusVacacional,
@@ -557,7 +564,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     liquidacion.conceptosRemunerativos.forEach((nombre, valor) {
       if (valor > 0) {
         final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto(nombre);
-        final registro02 = LSDGenerator.generateRegistro2Conceptos(
+        final registro02 = LSDGenerator.generateRegistro3Conceptos(
           cuilEmpleado: cuilEmpleadoLimpio,
           codigoConcepto: codigoInterno,
           importe: valor,
@@ -575,7 +582,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     // Kilómetros Recorridos (REMUNERATIVO) - CCT Camioneros
     if (liquidacion.kilometrosRecorridos > 0 && liquidacion.montoKilometros > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Kilometros Recorridos');
-      final registro02 = LSDGenerator.generateRegistro2Conceptos(
+      final registro02 = LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: liquidacion.montoKilometros,
@@ -595,7 +602,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     final montoHorasExtras50 = liquidacion.calcularMontoHorasExtras50(sueldoBasico);
     if (montoHorasExtras50 > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Horas Extras');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: montoHorasExtras50,
@@ -609,7 +616,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     final montoHorasExtras100 = liquidacion.calcularMontoHorasExtras100(sueldoBasico);
     if (montoHorasExtras100 > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Horas Extras');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: montoHorasExtras100,
@@ -623,7 +630,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     final premios = double.tryParse(_premiosController.text) ?? 0.0;
     if (premios > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Premios');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: premios,
@@ -635,7 +642,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     // Viáticos / Comida (NO REMUNERATIVO - se registra, pero no integra bases)
     if (liquidacion.diasViaticosComida > 0 && liquidacion.montoViaticosComida > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Viaticos / Comida');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: liquidacion.montoViaticosComida,
@@ -649,7 +656,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     // Pernocte (NO REMUNERATIVO - se registra, pero no integra bases)
     if (liquidacion.diasPernocte > 0 && liquidacion.montoPernocte > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Pernocte');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: liquidacion.montoPernocte,
@@ -665,7 +672,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       if (monto > 0) {
         final nombreConcepto = concepto['nombre'] as String;
         final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto(nombreConcepto);
-        registros.add(LSDGenerator.generateRegistro2Conceptos(
+        registros.add(LSDGenerator.generateRegistro3Conceptos(
           cuilEmpleado: cuilEmpleadoLimpio,
           codigoConcepto: codigoInterno,
           importe: monto,
@@ -681,7 +688,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     // Jubilación
     if ((aportes['jubilacion'] ?? 0.0) > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Jubilación (SIPA)');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: aportes['jubilacion'] ?? 0.0,
@@ -693,7 +700,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     // Ley 19.032 (PAMI)
     if ((aportes['ley19032'] ?? 0.0) > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Ley 19.032 (PAMI)');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: aportes['ley19032'] ?? 0.0,
@@ -705,7 +712,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     // Obra Social
     if ((aportes['obraSocial'] ?? 0.0) > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Obra Social');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: aportes['obraSocial'] ?? 0.0,
@@ -717,7 +724,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     // Cuota Sindical
     if (liquidacion.afiliadoSindical && (aportes['cuotaSindical'] ?? 0.0) > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Cuota Sindical');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: aportes['cuotaSindical'] ?? 0.0,
@@ -730,7 +737,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     final ganancias = liquidacion.obtenerGanancias(sueldoBruto);
     if (ganancias > 0) {
       final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto('Retención Ganancias');
-      registros.add(LSDGenerator.generateRegistro2Conceptos(
+      registros.add(LSDGenerator.generateRegistro3Conceptos(
         cuilEmpleado: cuilEmpleadoLimpio,
         codigoConcepto: codigoInterno,
         importe: ganancias,
@@ -745,7 +752,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       if (monto > 0) {
         final nombreDeduccion = deduccion['nombre'] as String;
         final codigoInterno = LSDGenerator.obtenerCodigoInternoConcepto(nombreDeduccion);
-        registros.add(LSDGenerator.generateRegistro2Conceptos(
+        registros.add(LSDGenerator.generateRegistro3Conceptos(
           cuilEmpleado: cuilEmpleadoLimpio,
           codigoConcepto: codigoInterno,
           importe: monto,
@@ -755,21 +762,34 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       }
     }
     
-    // ===== REGISTRO 03: Bases Imponibles F.931 =====
+    // ===== REGISTRO 04: Bases Imponibles F.931 =====
     // Motor de cálculos automáticos: Sumar todos los conceptos remunerativos (tipo 'H')
     final totalRemunerativoCalculado = LSDGenerator.calcularTotalRemunerativoAutomatico(conceptosParaRegistro02);
     
     // Aplicar topes legales vigentes (carga dinámicamente desde ParametrosLegales)
     final baseImponibleAjustada = await LSDGenerator.aplicarTopesLegales(totalRemunerativoCalculado);
     
-    final registro3 = await LSDGenerator.generateRegistro3Bases(
+    // Crear lista de 10 bases para ARCA 2026
+    final bases = List<double>.filled(10, 0.0);
+    bases[0] = baseImponibleAjustada; // Base 1
+    bases[1] = baseImponibleAjustada; // Base 2
+    bases[2] = baseImponibleAjustada; // Base 3
+    bases[3] = baseImponibleAjustada; // Base 4 (OS)
+    bases[8] = baseImponibleAjustada; // Base 9 (LRT)
+    
+    final registro4 = LSDGenerator.generateRegistro4Bases(
       cuilEmpleado: cuilEmpleadoLimpio,
-      baseImponibleJubilacion: baseImponibleAjustada,
-      baseImponibleObraSocial: baseImponibleAjustada,
-      baseImponibleLey19032: baseImponibleAjustada,
-      totalRemunerativo: totalRemunerativoCalculado,
+      bases: bases,
     );
-    registros.add(registro3);
+    registros.add(registro4);
+    
+    // ===== REGISTRO 05: Datos Complementarios =====
+    // Necesario para ARCA 2026
+    final registro5 = LSDGenerator.generateRegistro5DatosComplementarios(
+      cuilEmpleado: cuilEmpleadoLimpio,
+      codigoRnos: '126205', // Default genérico, debería venir del empleado
+    );
+    registros.add(registro5);
     
     // ========== ESCRITURA DEL ARCHIVO CON VALIDACIÓN FINAL ==========
     // Construir contenido como String para validación

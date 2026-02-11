@@ -282,7 +282,7 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
       final cod = e['codigoAfip']?.toString();
       final codigo = (cod != null && cod.length >= 6)
           ? cod.replaceAll(RegExp(r'[^\d]'), '').padLeft(6, '0').substring(0, 6)
-          : LSDGenerator.obtenerCodigoArca2026(e['descripcion']?.toString() ?? '');
+          : LSDGenerator.obtenerCodigoInternoConcepto(e['descripcion']?.toString() ?? '');
       list.add({
         'id': 'extra_${e['id']}',
         'descripcion': e['descripcion'] ?? '',
@@ -399,8 +399,15 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
         tipoLiquidacion: 'S',
       );
 
+      final reg2Ref = LSDGenerator.generateRegistro2DatosReferenciales(
+        cuilEmpleado: cuil,
+        diasBase: 30,
+      );
+
       final sb = StringBuffer();
       sb.write(latin1.decode(reg1));
+      sb.write(LSDGenerator.eolLsd);
+      sb.write(latin1.decode(reg2Ref));
       sb.write(LSDGenerator.eolLsd);
 
       for (final c in conceptos) {
@@ -408,22 +415,32 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
         if (m <= 0) continue;
         final t = (c['tipo'] ?? '') == 'descuento' ? 'D' : 'H';
         final cod = (c['codigoAfip'] ?? '120000').toString().replaceAll(RegExp(r'[^\d]'), '').padLeft(6, '0').substring(0, 6);
-        final reg2 = LSDGenerator.generateRegistro2Arca2026(
+        final reg3 = LSDGenerator.generateRegistro3Conceptos(
           cuilEmpleado: cuil,
-          codigoArca6: cod,
+          codigoConcepto: cod,
           importe: m,
           tipo: t,
-          descripcion: c['descripcion']?.toString() ?? '',
+          descripcionConcepto: c['descripcion']?.toString() ?? '',
         );
-        sb.write(latin1.decode(reg2));
+        sb.write(latin1.decode(reg3));
         sb.write(LSDGenerator.eolLsd);
       }
 
-      final reg3 = LSDGenerator.generateRegistro3BasesArca2026(
+      final bases = List<double>.filled(10, 0.0);
+      bases[0] = baseTopeada; bases[1] = baseTopeada; bases[2] = baseTopeada; bases[8] = baseTopeada;
+
+      final reg4 = LSDGenerator.generateRegistro4Bases(
         cuilEmpleado: cuil,
-        bases: [baseTopeada, baseTopeada, baseTopeada, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        bases: bases,
       );
-      sb.write(latin1.decode(reg3));
+      sb.write(latin1.decode(reg4));
+      sb.write(LSDGenerator.eolLsd);
+
+      final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
+        cuilEmpleado: cuil,
+        codigoRnos: '115404',
+      );
+      sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
       final dir = await getApplicationDocumentsDirectory();

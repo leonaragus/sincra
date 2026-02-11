@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
@@ -80,6 +81,15 @@ Future<String> sanidadOmniToLsdTxt({
     tipoLiquidacion: tipoLiq,
   );
   sb.write(latin1.decode(reg1));
+  sb.write(LSDGenerator.eolLsd);
+
+  // Registro 2: Datos referenciales (NUEVO ARCA)
+  final reg2 = LSDGenerator.generateRegistro2DatosReferenciales(
+    cuilEmpleado: cuil,
+    legajo: liquidacion.input.nombre.replaceAll(RegExp(r'\s'), '').substring(0, min(10, liquidacion.input.nombre.length)),
+    diasBase: 30,
+  );
+  sb.write(latin1.decode(reg2));
   sb.write(LSDGenerator.eolLsd);
 
   final conceptos = <Map<String, dynamic>>[];
@@ -175,7 +185,7 @@ Future<String> sanidadOmniToLsdTxt({
     }
   }
 
-  // Generar Registros 2 para cada concepto
+  // Generar Registros 3 para cada concepto
   for (final c in conceptos) {
     final codigoLimpio = _sanitizarTextoARCA((c['codigo'] as String).trim().toUpperCase());
     final descripcionLimpia = _sanitizarTextoARCA(c['desc'] as String? ?? '');
@@ -183,54 +193,50 @@ Future<String> sanidadOmniToLsdTxt({
     // Mapear tipo N (no remunerativo) a H para el formato LSD
     final tipoLsd = (c['tipo'] as String?) == 'N' ? 'H' : c['tipo'] as String?;
 
-    final r2 = LSDGenerator.generateRegistro2Conceptos(
+    final r3 = LSDGenerator.generateRegistro3Conceptos(
       cuilEmpleado: cuil,
       codigoConcepto: codigoLimpio,
       importe: c['importe'] as double,
       descripcionConcepto: descripcionLimpia,
       tipo: tipoLsd,
     );
-    sb.write(latin1.decode(r2));
+    sb.write(latin1.decode(r3));
     sb.write(LSDGenerator.eolLsd);
   }
 
-  // Registro 3 - Bases imponibles
-  // --- CORRECCIÓN ARCA 2026: Usar generador de 10 bases completas ---
+  // Registro 4 - Bases imponibles
+  // --- CORRECCIÓN ARCA: Usar generador de 10 bases completas ---
   final bases = List<double>.filled(10, 0.0);
   bases[0] = liquidacion.baseImponibleTopeada; // Base 1
   bases[1] = liquidacion.baseImponibleTopeada; // Base 2
   bases[2] = liquidacion.baseImponibleTopeada; // Base 3
   
-  // Base 9 (LRT) suele ser el Total Remunerativo (a veces sin tope, pero LSD valida consistencia)
-  // Para seguridad en validación "Base Inconsistente", usamos la misma que Base 1 si no hay diferencial.
+  // Base 9 (LRT) suele ser el Total Remunerativo
   bases[8] = liquidacion.baseImponibleTopeada; // Base 9 (Array index 8)
 
-  final r3 = LSDGenerator.generateRegistro3BasesArca2026(
+  final r4Bases = LSDGenerator.generateRegistro4Bases(
     cuilEmpleado: cuil,
     bases: bases,
   );
-  sb.write(latin1.decode(r3));
+  sb.write(latin1.decode(r4Bases));
   sb.write(LSDGenerator.eolLsd);
 
-  // Registro 4 - Datos complementarios
-  // NOTA: Si el puesto es desconocido, no enviamos '0000', sino un default más seguro o lo que venga del input.
-  // Actividad '001' es Servicios Comunes, '016' es Enseñanza, '049' es Salud.
-  // Preferimos usar lo que venga del input si existe.
-  final r4 = LSDGenerator.generateRegistro4(
+  // Registro 5 - Datos complementarios
+  final r5 = LSDGenerator.generateRegistro5DatosComplementarios(
     cuilEmpleado: cuil,
-    codigoRnos: liquidacion.input.codigoRnos ?? '126205', // OSECAC default, debería ser configurable
+    codigoRnos: liquidacion.input.codigoRnos ?? '126205', // OSECAC default
     cantidadFamiliares: liquidacion.input.cantidadFamiliares,
     codigoModalidad: liquidacion.codigoModalidadLSD ?? '008',
     codigoCondicion: liquidacion.input.codigoCondicion ?? '01',
-    codigoActividad: liquidacion.input.codigoActividad ?? '049', // Default Sanidad (49) en vez de 001
-    codigoPuesto: liquidacion.input.codigoPuesto, // Si es nulo, el generator pondrá 0000 o lo que corresponda
-    codigoZona: liquidacion.adicionalZonaPatagonica > 0 ? '1' : '0', // 1: Zona Desfavorable
+    codigoActividad: liquidacion.input.codigoActividad ?? '049', // Default Sanidad
+    codigoPuesto: liquidacion.input.codigoPuesto,
+    codigoZona: liquidacion.adicionalZonaPatagonica > 0 ? '1' : '0',
   );
-  sb.write(latin1.decode(r4));
+  sb.write(latin1.decode(r5));
   sb.write(LSDGenerator.eolLsd);
 
   final out = sb.toString();
-  LSDGenerator.validarLongitud150(out);
+  LSDGenerator.validarLongitud195(out);
   return out;
 }
 
