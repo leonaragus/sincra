@@ -503,6 +503,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               ],
             ),
           ),
+          
+          // SECCION EDUCATIVA
+          _buildEducationSection(),
         ],
       ),
     );
@@ -529,7 +532,95 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     );
   }
 
+  // --- NUEVA SECCIÓN EDUCATIVA EN EL HOME DEL VERIFICADOR ---
+  Widget _buildEducationSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Aprende sobre tu sueldo',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const GlosarioConceptosScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.secondary.withOpacity(0.9), AppColors.secondary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.secondary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.school, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Glosario Interactivo',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          '¿Qué es el Básico? ¿Por qué me descuentan jubilación?',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildResultadoWidget() {
+
     if (_resultado == null) return const SizedBox.shrink();
 
     final analisisConvenio = _analizarPagoConvenio();

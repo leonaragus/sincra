@@ -1,54 +1,201 @@
 import 'package:flutter/material.dart';
-import 'package:syncra_arg/services/conceptos_explicaciones_service.dart';
-import 'package:syncra_arg/theme/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../services/educational_concepts_service.dart';
+import '../theme/app_colors.dart';
 
-class GlosarioConceptosScreen extends StatelessWidget {
+class GlosarioConceptosScreen extends StatefulWidget {
   const GlosarioConceptosScreen({super.key});
 
   @override
+  State<GlosarioConceptosScreen> createState() => _GlosarioConceptosScreenState();
+}
+
+class _GlosarioConceptosScreenState extends State<GlosarioConceptosScreen> {
+  String _query = '';
+  String? _filtroCategoria;
+
+  @override
   Widget build(BuildContext context) {
-    final todasExplicaciones = ConceptosExplicacionesService.obtenerTodasExplicaciones();
-    final remunerativos = ConceptosExplicacionesService.obtenerExplicacionesPorCategoria('remunerativo');
-    final noRemunerativos = ConceptosExplicacionesService.obtenerExplicacionesPorCategoria('no remunerativo');
-    final deducciones = ConceptosExplicacionesService.obtenerExplicacionesPorCategoria('deduccion');
+    final theme = Theme.of(context);
+    
+    // Filtrar conceptos
+    var resultados = EducationalConceptsService.conceptos;
+    
+    if (_query.isNotEmpty) {
+      resultados = EducationalConceptsService.buscar(_query);
+    }
+    
+    if (_filtroCategoria != null) {
+      resultados = resultados.where((c) => c.categoria == _filtroCategoria).toList();
+    }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundLight,
-        surfaceTintColor: AppColors.backgroundLight,
-        title: const Text('Glosario de Conceptos'),
-        centerTitle: true,
+        title: Text('Glosario Interactivo', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
+        centerTitle: true,
       ),
-      body: DefaultTabController(
-        length: 4,
-        child: Column(
-          children: [
-            Container(
-              color: AppColors.backgroundLight,
-              child: TabBar(
-                isScrollable: true,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.primary,
-                indicatorSize: TabBarIndicatorSize.tab,
-                tabs: const [
-                  Tab(text: 'Todos'),
-                  Tab(text: 'Remunerativos'),
-                  Tab(text: 'No Remunerativos'),
-                  Tab(text: 'Deducciones'),
-                ],
-              ),
+      body: Column(
+        children: [
+          // Banner Promocional Academia
+          _buildAcademyBanner(context),
+
+          // Buscador y Filtros
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                TextField(
+                  onChanged: (val) => setState(() => _query = val),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar concepto (ej: Jubilación, Básico...)',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Todos', null),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Remunerativos', 'Remunerativo'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Descuentos', 'Descuento'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('No Remunerativos', 'No Remunerativo'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: TabBarView(
+          ),
+
+          // Lista de Conceptos
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: resultados.length,
+              itemBuilder: (context, index) {
+                final c = resultados[index];
+                return _buildConceptoCard(c, theme);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String? categoria) {
+    final isSelected = _filtroCategoria == categoria;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (bool selected) {
+        setState(() {
+          _filtroCategoria = selected ? categoria : null;
+        });
+      },
+      backgroundColor: Theme.of(context).cardColor,
+      selectedColor: AppColors.accentBlue.withOpacity(0.2),
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.accentBlue : AppColors.textSecondary,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? AppColors.accentBlue : Colors.transparent,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConceptoCard(ConceptoEducativo c, ThemeData theme) {
+    Color cardColor;
+    IconData icon;
+    
+    switch (c.categoria) {
+      case 'Remunerativo':
+        cardColor = Colors.green.shade900.withOpacity(0.2);
+        icon = Icons.add_circle_outline;
+        break;
+      case 'Descuento':
+        cardColor = Colors.red.shade900.withOpacity(0.2);
+        icon = Icons.remove_circle_outline;
+        break;
+      default:
+        cardColor = Colors.orange.shade900.withOpacity(0.2);
+        icon = Icons.info_outline;
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: theme.cardColor,
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: _getIconColor(c.categoria)),
+          ),
+          title: Text(
+            c.titulo,
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          subtitle: Text(
+            c.definicionCorta,
+            style: TextStyle(color: theme.hintColor, fontSize: 13),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildListaConceptos(todasExplicaciones),
-                  _buildListaConceptos(remunerativos),
-                  _buildListaConceptos(noRemunerativos),
-                  _buildListaConceptos(deducciones),
+                  const Divider(),
+                  Text(
+                    c.explicacionDetallada,
+                    style: TextStyle(height: 1.5, color: theme.textTheme.bodyLarge?.color),
+                  ),
+                  if (c.ejemplo != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.lightbulb, size: 16, color: AppColors.accentBlue),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Ejemplo: ${c.ejemplo}',
+                              style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -58,129 +205,79 @@ class GlosarioConceptosScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListaConceptos(Map<String, Map<String, String>> conceptos) {
-    if (conceptos.isEmpty) {
-      return Center(
-        child: Text(
-          'No hay conceptos en esta categoría',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 16,
-          ),
-        ),
-      );
+  Color _getIconColor(String categoria) {
+    switch (categoria) {
+      case 'Remunerativo': return Colors.green;
+      case 'Descuento': return Colors.red;
+      default: return Colors.orange;
     }
+  }
 
-    final listaOrdenada = conceptos.entries.toList()
-      ..sort((a, b) => a.value['titulo']!.compareTo(b.value['titulo']!));
-
-    return ListView.builder(
+  Widget _buildAcademyBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
-      itemCount: listaOrdenada.length,
-      itemBuilder: (context, index) {
-        final entry = listaOrdenada[index];
-        final concepto = entry.value;
-        
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          color: AppColors.backgroundLight,
-          surfaceTintColor: AppColors.backgroundLight,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: AppColors.glassBorder, width: 1),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.secondary, AppColors.secondary.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondary.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.school, color: Colors.white, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '¿Querés aprender más?',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Convertite en un experto en liquidación de sueldos con nuestros cursos especializados.',
+            style: TextStyle(color: Colors.white, fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Header con título y categoría
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        concepto['titulo'] ?? entry.key,
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getColorCategoria(concepto['categoria']).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _getLabelCategoria(concepto['categoria']),
-                        style: TextStyle(
-                          color: _getColorCategoria(concepto['categoria']),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Explicación
+                const Icon(Icons.business, color: Colors.white, size: 16),
+                const SizedBox(width: 8),
                 Text(
-                  concepto['explicacion'] ?? 'No hay explicación disponible.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                ),
-                
-                const SizedBox(height: 8),
-                
-                // Palabras clave relacionadas
-                Text(
-                  'También conocido como: ${entry.key}',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
+                  EducationalConceptsService.nombreAcademia,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
-  }
-
-  Color _getColorCategoria(String? categoria) {
-    switch (categoria) {
-      case 'remunerativo':
-        return AppColors.accentGreen;
-      case 'no remunerativo':
-        return AppColors.accentBlue;
-      case 'deduccion':
-        return AppColors.accentRed;
-      default:
-        return AppColors.textSecondary;
-    }
-  }
-
-  String _getLabelCategoria(String? categoria) {
-    switch (categoria) {
-      case 'remunerativo':
-        return 'REMUNERATIVO';
-      case 'no remunerativo':
-        return 'NO REMUNERATIVO';
-      case 'deduccion':
-        return 'DEDUCCIÓN';
-      default:
-        return 'OTRO';
-    }
   }
 }
