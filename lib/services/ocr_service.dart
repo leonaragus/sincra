@@ -15,9 +15,9 @@ class OcrService {
   // Dummy wrapper to replace InputImage for now
   // on mobile we would need the real one, but for web deploy we skip it
   
-  Future<ImageSource?> _elegirFuenteImagen() async {
-    return ImageSource.gallery; // Simplificado para ejemplo
-  }
+  // Future<ImageSource?> _elegirFuenteImagen() async {
+  //   return ImageSource.gallery; // Simplificado para ejemplo
+  // }
 
   Future<XFile?> obtenerImagen() async {
     // Permite al usuario elegir entre cámara y galería

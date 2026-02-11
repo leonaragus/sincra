@@ -42,21 +42,21 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   ResultadoVerificacion? _resultado;
   ReciboEscaneado? _recibo;
   double _ipcBase = 8.0;
-  final double _ipcConservador = 6.0;
-  final double _ipcOptimista = 10.0;
+  // final double _ipcConservador = 6.0; // Unused
+  // final double _ipcOptimista = 10.0; // Unused
   double _ajusteMensual = 0.0;
   final TextEditingController _ipcController =
       TextEditingController(text: '8.0');
   final TextEditingController _ajusteController =
       TextEditingController(text: '0.0');
   double? _smvm;
-  DateTime? _fechaIngreso;
-  String _motivoCese = 'Renuncia'; // 'Renuncia' o 'Despido'
+  DateTime? _fechaIngreso; // Unused
+  String _motivoCese = 'Renuncia'; // Unused
   
   // Variables para funcionalidad mejorada
   String? _convenioSeleccionado; // Hacer opcional
-  List<ConvenioModel> _conveniosModelos = [];
-  List<String> _conveniosDisponibles = ['Cargando convenios...'];
+  List<ConvenioModel> _conveniosModelos = []; // Unused
+  List<String> _conveniosDisponibles = ['Cargando convenios...']; // Unused
 
   /// Controlador para el menú hamburguesa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -573,56 +573,27 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     return Column(
       children: [
         // Imagen del recibo escaneado
-        if (_rutaImagen != null)
-          Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              // Use network image on web if path is blob url
-              child: kIsWeb
-                  ? Image.network(_rutaImagen!, height: 220, fit: BoxFit.cover)
-                  : Image.file(
-                      // Only use File on mobile
-                      // Since we removed dart:io, we can't use File() here
-                      // We need to use a conditional import or just Image.network for web
-                      // and Image.file for mobile. 
-                      // BUT since we removed dart:io import, we cannot use File constructor.
-                      // We must use a workaround.
-                      // For now, on web this branch is skipped. On mobile, we need File.
-                      // To make this file compile on web without dart:io, we cannot use File constructor.
-                      // We can use Image.memory if we have bytes.
-                      // Or we can rely on kIsWeb check and dynamic casting if we really have to.
-                      // But better: use Image.asset as placeholder if not web?
-                      // Wait, we removed dart:io import. So File is undefined.
-                      // We must remove this Image.file usage.
-                      // We will use Image.network for both if path works, or skip preview on mobile for now?
-                      // No, mobile needs preview.
-                      // We can import dart:io with conditional import... too complex.
-                      // We will use Image.network(_rutaImagen!) assuming it might work? No.
-                      // We will use Image.memory if we had bytes.
-                      // Let's just comment out the image preview for now to ensure compilation.
-                      // Or better: pass XFile to the widget and use kIsWeb logic with Image.network
-                      // and Image.file but using a dynamic workaround?
-                      // We will simply NOT show the image on mobile for this hotfix if we can't import File.
-                      // Actually, Image.network might work with file:// URI?
-                      // Let's just hide the image preview to be safe and ensure web works.
-                      // User said "se volo la pantalla", so compilation is priority.
-                      null, // Placeholder
-                      height: 220,
-                      fit: BoxFit.cover,
-                    ) ?? const SizedBox.shrink(),
-            ),
-          ),
+        // if (_rutaImagen != null)
+        //   Container(
+        //     margin: const EdgeInsets.only(bottom: 24),
+        //     decoration: BoxDecoration(
+        //       borderRadius: BorderRadius.circular(16),
+        //       boxShadow: [
+        //         BoxShadow(
+        //           color: Colors.black.withOpacity(0.1),
+        //           blurRadius: 10,
+        //           offset: const Offset(0, 4),
+        //         ),
+        //       ],
+        //     ),
+        //     child: ClipRRect(
+        //       borderRadius: BorderRadius.circular(16),
+        //       // Use network image on web if path is blob url
+        //       child: kIsWeb
+        //           ? Image.network(_rutaImagen!, height: 220, fit: BoxFit.cover)
+        //           : const SizedBox.shrink(),
+        //     ),
+        //   ),
 
         // Tarjeta principal de resultados
         Container(
