@@ -181,12 +181,12 @@ class LsdMappingService {
       'sub': 'Descuentos'
     },
     // === COMUNES DESCUENTOS ===
-    'JUBILACION': {
+    GeneralesLsdCodigos.jubilacion: {
       'afip': '810002', 
       'desc': 'Jubilación', 
       'sub': 'Descuentos/Aportes'
     },
-    'OBRA_SOC': {
+    GeneralesLsdCodigos.obraSocial: {
       'afip': '810003', 
       'desc': 'Obra Social', 
       'sub': 'Descuentos/Aportes'

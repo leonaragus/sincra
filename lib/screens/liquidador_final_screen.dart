@@ -3190,7 +3190,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       final bruto = _liquidacion!.calcularSueldoBruto(sueldoBasico);
       final aportes = _liquidacion!.calcularAportes(bruto);
       final totalAportes = aportes.values.fold(0.0, (sum, val) => sum + val);
-      final totalDescuentos = _liquidacion!.calcularTotalDescuentos(bruto);
+      final totalDescuentos = _liquidacion!.calcularTotalDescuentos();
       final neto = _liquidacion!.calcularSueldoNeto(bruto);
       
       // Intentar obtener antigüedad si existe en conceptos remunerativos
