@@ -7,7 +7,9 @@ import 'screens/web_login_screen.dart';
 import 'theme/app_theme.dart';
 import 'package:url_strategy/url_strategy.dart'; // Import agregado
 
-import 'screens/plan_selection_screen.dart'; // Import agregado
+import 'package:provider/provider.dart';
+import 'providers/theme_provider.dart';
+import 'screens/plan_selection_screen.dart'; // Import restaurado
 
 void main() {
   setPathUrlStrategy(); // Función agregada aquí
@@ -17,7 +19,12 @@ void main() {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -25,9 +32,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light, // Tema claro
+      darkTheme: AppTheme.dark, // Tema oscuro
+      themeMode: themeProvider.themeMode, // Modo dinámico
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

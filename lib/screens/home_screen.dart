@@ -30,6 +30,9 @@ import 'dashboard_riesgos_screen.dart';
 
 import 'verificador_recibos_screen.dart';
 
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -498,6 +501,25 @@ class HomeScreenState extends State<HomeScreen> {
             ),
             const Spacer(),
             // Service Status removed
+            IconButton(
+              onPressed: () {
+                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+              },
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.glassFill,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.glassBorder, width: 1),
+                ),
+                child: Icon(
+                  Provider.of<ThemeProvider>(context).isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  color: AppColors.accentYellow,
+                  size: 20,
+                ),
+              ),
+              tooltip: 'Cambiar Tema',
+            ),
               IconButton(
                 onPressed: () {
                   Navigator.push(

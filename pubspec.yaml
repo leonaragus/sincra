@@ -48,6 +48,7 @@ dependencies:
   # Estrategia de URLs para web
   url_strategy: ^0.2.0
   printing: ^5.14.2
+  provider: ^6.1.1 # Gestión de estado para temas
 
 dev_dependencies:
   flutter_test:

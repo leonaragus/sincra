@@ -98,8 +98,8 @@ class AppTheme {
         color: AppColors.glassFillStrong,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_radiusLarge),
-          side: const BorderSide(color: AppColors.glassBorder, width: 1),
+          borderRadius: BorderRadius.circular(_radiusMedium),
+          side: const BorderSide(color: AppColors.glassBorder),
         ),
       ),
       dialogTheme: DialogThemeData(
@@ -140,6 +140,102 @@ class AppTheme {
       ),
       dividerColor: AppColors.glassBorder,
       dividerTheme: const DividerThemeData(color: AppColors.glassBorder),
+    );
+  }
+
+  static ThemeData get light {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.backgroundLightMode,
+      colorScheme: ColorScheme.light(
+        primary: AppColors.accentBlueLightMode,
+        secondary: AppColors.accentOrange,
+        tertiary: AppColors.accentYellow,
+        surface: AppColors.backgroundCardLightMode,
+        error: AppColors.error,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: AppColors.textPrimaryLightMode,
+        onError: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: IconThemeData(color: AppColors.textPrimaryLightMode),
+        titleTextStyle: TextStyle(
+          color: AppColors.textPrimaryLightMode,
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(_radiusMedium)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_radiusMedium),
+          borderSide: const BorderSide(color: AppColors.glassBorderLightMode, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_radiusMedium),
+          borderSide: const BorderSide(color: AppColors.accentBlueLightMode, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_radiusMedium),
+          borderSide: const BorderSide(color: AppColors.error, width: 1),
+        ),
+        labelStyle: const TextStyle(color: AppColors.textSecondaryLightMode),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8)), // slate-400
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accentBlueLightMode,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radiusMedium),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.accentBlueLightMode,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radiusSmall),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimaryLightMode,
+          side: const BorderSide(color: AppColors.glassBorderLightMode),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radiusMedium),
+          ),
+        ),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimaryLightMode,
+        elevation: 4,
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_radiusMedium),
+          side: const BorderSide(color: AppColors.glassBorderLightMode),
+        ),
+      ),
     );
   }
 

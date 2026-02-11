@@ -67,4 +67,13 @@ class AppColors {
       Color(0xFF2563eb), // blue-600
     ],
   );
+
+  // Paleta Modo Claro (Light Mode)
+  static const Color backgroundLightMode = Color(0xFFF8FAFC); // slate-50
+  static const Color backgroundCardLightMode = Color(0xFFFFFFFF); // white
+  static const Color textPrimaryLightMode = Color(0xFF0F172A); // slate-900
+  static const Color textSecondaryLightMode = Color(0xFF475569); // slate-600
+  static const Color glassFillLightMode = Color.fromRGBO(255, 255, 255, 0.85);
+  static const Color glassBorderLightMode = Color.fromRGBO(226, 232, 240, 0.95); // slate-200
+  static const Color accentBlueLightMode = Color(0xFF2563EB); // blue-600 (más fuerte para contraste en blanco)
 }
