@@ -93,7 +93,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
   DocenteOmniOverrides? _ocrOverrides;
 
   LiquidacionOmniResult? _resultado;
-  bool _cargando = false;
+  // bool _cargando = false; // Removed unused
   bool _calculando = false;
   bool _exportandoMasivo = false;
   bool _sincronizandoParitarias = false;
