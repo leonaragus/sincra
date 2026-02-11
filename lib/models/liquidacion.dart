@@ -97,6 +97,19 @@ class Liquidacion {
   String? fechaFinVacaciones; // Fecha de fin del período vacacional (DD/MM/YYYY)
   bool ajusteManualVacaciones = false; // Si el usuario ajustó manualmente los días o monto
   
+  double calcularTotalDescuentos() {
+    double total = impuestoGanancias;
+    if (afiliadoSindical) {
+      // Estimación genérica si no está calculado
+      // total += (sueldoBasico * 0.02); 
+    }
+    for (var monto in deduccionesAdicionales.values) {
+      total += monto;
+    }
+    // Nota: Las deducciones de ley (11+3+3) suelen calcularse externamente o en el motor
+    return total;
+  }
+
   Liquidacion({
     required this.empresaId,
     required this.empleadoId,

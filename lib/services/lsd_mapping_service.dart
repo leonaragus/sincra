@@ -5,8 +5,8 @@ import 'sanidad_lsd_export.dart';
 /// Códigos para liquidación general (Convenios CCT)
 class GeneralesLsdCodigos {
   static const String sueldoBasico = 'SUELDO_BAS';
-  static const String horasExtras50 = 'HORAS_EXTR';
-  static const String horasExtras100 = 'HORAS_EXTR';
+  static const String horasExtras50 = 'HORAS_EXTR_50';
+  static const String horasExtras100 = 'HORAS_EXTR_100';
   static const String kilometros = 'KM_RECORR';
   static const String viaticos = 'VIAT_COM';
   static const String pernocte = 'PERNOCTE';

@@ -256,6 +256,10 @@ class LiquidacionOmniResult {
   final double netoACobrar;
   final String bloqueArt12Ley17250;
 
+  /// Costo laboral real estimado (Bruto + No Remunerativo + Contribuciones Patronales aprox)
+  /// Por ahora retornamos Bruto + No Remunerativo para compatibilidad
+  double get costoLaboralReal => totalBrutoRemunerativo + totalNoRemunerativo;
+
   LiquidacionOmniResult({
     required this.input,
     required this.config,
