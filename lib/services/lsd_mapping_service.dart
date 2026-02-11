@@ -99,11 +99,7 @@ class LsdMappingService {
     },
 
     // === DOCENTES ===
-    TeacherLsdCodigos.sueldoBasico: {
-      'afip': '110000', 
-      'desc': 'Sueldo', 
-      'sub': 'Remunerativo'
-    },
+    // TeacherLsdCodigos.sueldoBasico -> Usa GeneralesLsdCodigos.sueldoBasico
     TeacherLsdCodigos.antiguedad: {
       'afip': '110000', 
       'desc': 'Adicionales', 
@@ -181,16 +177,7 @@ class LsdMappingService {
       'sub': 'Descuentos'
     },
     // === COMUNES DESCUENTOS ===
-    GeneralesLsdCodigos.jubilacion: {
-      'afip': '810002', 
-      'desc': 'Jubilación', 
-      'sub': 'Descuentos/Aportes'
-    },
-    GeneralesLsdCodigos.obraSocial: {
-      'afip': '810003', 
-      'desc': 'Obra Social', 
-      'sub': 'Descuentos/Aportes'
-    },
+    // Jubilación y Obra Social usan códigos generales (lines 75, 80)
     'LEY19032': {
       'afip': '810002', 
       'desc': 'Ley 19.032', 
@@ -212,11 +199,7 @@ class LsdMappingService {
       'desc': 'Sueldo Anual Complementario', 
       'sub': 'Remunerativo'
     },
-    'VACACIONES': {
-      'afip': '150000', 
-      'desc': 'Vacaciones', 
-      'sub': 'Remunerativo'
-    },
+    // Vacaciones -> Usa GeneralesLsdCodigos.vacaciones
     'INDEMN_245': {
       'afip': '510001', 
       'desc': 'Indemnización Antigüedad', 

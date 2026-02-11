@@ -57,17 +57,8 @@ class HybridStore {
     });
   }
 
-  static void _removeFromSupabase(String type, String key) {
-    _runAsync(() async {
-      try {
-        await Supabase.instance.client
-            .from(SupabaseConfig.tableEntities)
-            .delete()
-            .eq('type', type)
-            .eq('key', key);
-      } catch (_) {}
-    });
-  }
+  // Método privado eliminado por no usarse
+  // static void _removeFromSupabase(String type, String key) { ... }
 
   static void _runAsync(Future<void> Function() fn) {
     fn().catchError((_) {});

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:syncra_arg/services/teacher_omni_engine.dart';
 import 'package:syncra_arg/models/teacher_types.dart';
-import 'package:syncra_arg/models/teacher_constants.dart';
+// import 'package:syncra_arg/models/teacher_constants.dart'; // Removed unused import
 
 void main() {
   group('TeacherOmniEngine - Cálculo Docente', () {

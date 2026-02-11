@@ -27,7 +27,6 @@ import 'gestion_ausencias_screen.dart';
 import 'gestion_prestamos_screen.dart';
 import 'biblioteca_cct_screen.dart';
 import 'dashboard_riesgos_screen.dart';
-import 'service_status_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -496,30 +495,7 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const Spacer(),
-            IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ServiceStatusScreen(),
-                    ),
-                  );
-                },
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.glassFill,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.glassBorder, width: 1),
-                  ),
-                  child: const Icon(
-                    Icons.monitor_heart,
-                    color: AppColors.accentEmerald,
-                    size: 20,
-                  ),
-                ),
-                tooltip: 'Estado de Robots/Servicios',
-              ),
+            // Service Status removed
               IconButton(
                 onPressed: () {
                   Navigator.push(
