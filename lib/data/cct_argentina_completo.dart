@@ -10,43 +10,43 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     descripcion: 'Convenio Colectivo de Trabajo para Empleados de Comercio. Escala vigente Febrero 2026.',
     actividad: 'Comercio',
     categorias: [
-      CategoriaCCT(
+      const CategoriaCCT(
         id: 'maestranza_a',
         nombre: 'Maestranza A',
         salarioBase: 1050000.0,
         descripcion: 'Personal de maestranza y servicios',
       ),
-      CategoriaCCT(
+      const CategoriaCCT(
         id: 'adm_a',
         nombre: 'Administrativo A',
         salarioBase: 1067268.0,
         descripcion: 'Personal administrativo nivel inicial',
       ),
-      CategoriaCCT(
+      const CategoriaCCT(
         id: 'adm_b',
         nombre: 'Administrativo B',
         salarioBase: 1075000.0,
         descripcion: 'Personal administrativo nivel intermedio',
       ),
-      CategoriaCCT(
+      const CategoriaCCT(
         id: 'adm_c',
         nombre: 'Administrativo C',
         salarioBase: 1100000.0,
         descripcion: 'Personal administrativo nivel superior',
       ),
-      CategoriaCCT(
+      const CategoriaCCT(
         id: 'vendedor_b',
         nombre: 'Vendedor B',
         salarioBase: 1085000.0,
         descripcion: 'Personal de ventas',
       ),
-      CategoriaCCT(
+      const CategoriaCCT(
         id: 'cajero_b',
         nombre: 'Cajero B',
         salarioBase: 1072000.0,
         descripcion: 'Personal de caja',
       ),
-      CategoriaCCT(
+      const CategoriaCCT(
         id: 'auxiliar_a',
         nombre: 'Auxiliar A',
         salarioBase: 1065000.0,
@@ -54,31 +54,31 @@ final List<CCTCompleto> cctArgentinaCompleto = [
       ),
     ],
     descuentos: [
-      DescuentoCCT(
+      const DescuentoCCT(
         id: 'obra_social',
         nombre: 'Obra Social',
         porcentaje: 3.0,
         descripcion: 'Descuento por obra social (OSECAC)',
       ),
-      DescuentoCCT(
+      const DescuentoCCT(
         id: 'jubilacion',
         nombre: 'Jubilación',
         porcentaje: 11.0,
         descripcion: 'Aporte jubilatorio',
       ),
-      DescuentoCCT(
+      const DescuentoCCT(
         id: 'ley_19032',
         nombre: 'Ley 19.032',
         porcentaje: 3.0,
         descripcion: 'INSSJP',
       ),
-      DescuentoCCT(
+      const DescuentoCCT(
         id: 'sindicato',
         nombre: 'Sindicato (SEC)',
         porcentaje: 2.0,
         descripcion: 'Aporte sindical',
       ),
-      DescuentoCCT(
+      const DescuentoCCT(
         id: 'faecys',
         nombre: 'FAECyS',
         porcentaje: 0.5,
@@ -86,13 +86,13 @@ final List<CCTCompleto> cctArgentinaCompleto = [
       ),
     ],
     zonas: [
-      ZonaCCT(
+      const ZonaCCT(
         id: 'zona_1',
         nombre: 'Zona Normal',
         adicionalPorcentaje: 0.0,
         descripcion: 'Zona sin adicional',
       ),
-      ZonaCCT(
+      const ZonaCCT(
         id: 'zona_2',
         nombre: 'Zona Desfavorable (Sur)',
         adicionalPorcentaje: 20.0,

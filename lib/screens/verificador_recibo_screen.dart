@@ -58,7 +58,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   @override
   void initState() {
     super.initState();
-    print('VerificadorReciboScreen v1.3 loaded'); // Debug version
+    debugPrint('VerificadorReciboScreen v1.3 loaded'); // Debug version
     _cargarDatosAutomaticos();
   }
 
@@ -293,7 +293,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               border: Border.all(color: Theme.of(context).dividerColor, width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -372,7 +372,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               border: Border.all(color: Theme.of(context).dividerColor, width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 15,
                   offset: const Offset(0, 6),
                 ),
@@ -384,10 +384,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3), width: 2),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3), width: 2),
                   ),
                   child: Icon(
                     Icons.document_scanner_outlined,
