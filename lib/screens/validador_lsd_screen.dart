@@ -10,6 +10,7 @@ import '../services/lsd_parser_service.dart';
 import '../services/lsd_validator_helper.dart';
 
 import '../services/validador_lsd_update_service.dart';
+import '../utils/file_saver.dart' as fs;
 
 class ValidadorLSDScreen extends StatefulWidget {
   const ValidadorLSDScreen({super.key});
@@ -254,23 +255,19 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
         if (compl != null) sb.writeln(compl.toLine());
       });
 
-      // Save file
-      final String? outputFile = await FilePicker.platform.saveFile(
-        dialogTitle: 'Guardar Archivo LSD Corregido',
+      // Save file using cross-platform helper
+      final String? savedPath = await fs.saveTextFile(
         fileName: 'LSD_Corregido.txt',
-        type: FileType.custom,
-        allowedExtensions: ['txt'],
+        content: sb.toString(),
       );
 
-      if (outputFile != null) {
-        final file = File(outputFile);
-        await file.writeAsBytes(latin1.encode(sb.toString()));
-        
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Archivo exportado correctamente'), backgroundColor: Colors.green),
-          );
-        }
+      if (savedPath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Archivo exportado correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
 
     } catch (e) {
