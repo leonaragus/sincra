@@ -28,7 +28,7 @@ import 'gestion_prestamos_screen.dart';
 import 'biblioteca_cct_screen.dart';
 import 'dashboard_riesgos_screen.dart';
 
-import 'verificador_recibos_screen.dart';
+import 'verificador_recibo_screen.dart';
 import 'validador_lsd_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -202,7 +202,7 @@ class HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const VerificadorRecibosScreen(),
+        builder: (context) => const VerificadorReciboScreen(),
       ),
     );
   }

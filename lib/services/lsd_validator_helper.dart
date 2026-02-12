@@ -37,7 +37,7 @@ class ValidationResult {
 }
 
 class LSDValidatorHelper {
-  static List<ValidationResult> validateParsedFile(LSDParsedFile file) {
+  static List<ValidationResult> validateParsedFile(LSDParsedFile file, {double? topeMin, double? topeMax}) {
     final results = <ValidationResult>[];
 
     // Group by CUIL
@@ -92,17 +92,32 @@ class LSDValidatorHelper {
 
       // 3. Bases Logic
       if (bases != null) {
-        final base4 = bases.getBaseAsDouble(3); // Index 3 is Base 4 (OS)
-        final base8 = bases.getBaseAsDouble(7); // Index 7 is Base 8 (Aporte OS)
+        final base1 = bases.getBaseAsDouble(0); // Base 1: Jubilación
+        final base4 = bases.getBaseAsDouble(3); // Base 4: Obra Social
+        final base8 = bases.getBaseAsDouble(7); // Base 8: Aporte OS
 
-        if (base4 < base8) {
-          errors.add(ValidationIssue(
-            'Inconsistencia Bases: Base 4 (OS) no puede ser menor que Base 8 (Aporte OS)',
-            ValidationIssueType.base4Inconsistent,
-            {'base4': base4, 'base8': base8}
+        // Validar contra topes si están disponibles
+        if (topeMin != null && base1 > 0 && base1 < topeMin) {
+          warnings.add(ValidationIssue(
+            'Base 1 ($base1) es menor al mínimo legal ($topeMin). ARCA podría rechazar si no hay justificación.',
+            ValidationIssueType.generic
           ));
         }
-      }
+
+        if (topeMax != null && base1 > topeMax) {
+          errors.add(ValidationIssue(
+            'Base 1 ($base1) supera el tope máximo legal ($topeMax). Debe toparse a $topeMax.',
+            ValidationIssueType.generic
+          ));
+        }
+
+        if (base4 < base8) {
+            errors.add(ValidationIssue(
+              'Inconsistencia Bases: Base 4 (OS) no puede ser menor que Base 8 (Aporte OS)',
+              ValidationIssueType.base4Inconsistent
+            ));
+          }
+        }
 
       // 4. Aportes Logic
       if (bases != null && conceptos.isNotEmpty) {

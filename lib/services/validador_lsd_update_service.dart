@@ -9,7 +9,7 @@ class ValidadorLSDUpdateService {
   static const String _tableName = 'lsd_rules_config';
   static const String _prefsKey = 'lsd_rules_config';
 
-  static Future<void> checkForUpdates() async {
+  static Future<bool> checkForUpdates() async {
     try {
       // Consultar la última configuración activa en Supabase
       final response = await Supabase.instance.client
@@ -43,11 +43,13 @@ class ValidadorLSDUpdateService {
           // Guardamos el JSON de configuración localmente
           await prefs.setString(_prefsKey, jsonEncode(remoteConfig));
           print('LSD Rules updated to version $remoteVersion');
+          return true; // Hubo actualización
         }
       }
     } catch (e) {
       print('Error checking LSD updates: $e');
     }
+    return false; // No hubo cambios o hubo error
   }
 
   static Future<Map<String, dynamic>> getActiveRules() async {

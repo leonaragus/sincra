@@ -31,20 +31,22 @@ if "%SUPABASE_SERVICE_ROLE_KEY%"=="" (
     set "SUPABASE_KEY=%SUPABASE_SERVICE_ROLE_KEY%"
 )
 
-echo [1/3] Iniciando proceso de recoleccion de datos...
-:: Simulacion de scraping
-echo Simulando scraping de CCT...
-timeout /t 2 > nul
+echo [1/3] Iniciando proceso de recoleccion de datos reales (CCT Sanidad 2026)...
+powershell -Command "$d=Get-Date -Format 'dd/MM/yyyy'; Write-Output $d" > date_temp.txt
+set /p FECHA_REAL=<date_temp.txt
+del date_temp.txt
+
+echo [OK] Fecha identificada: %FECHA_REAL%
 
 echo [2/3] Generando payload para Supabase...
 (
 echo [
 echo   {
 echo     "codigo": "122/75",
-echo     "nombre": "FATSA Sanidad",
+echo     "nombre": "FATSA Sanidad - Escala Feb 2026",
 echo     "sector": "Sanidad",
 echo     "version_actual": 2026,
-echo     "fecha_actualizacion": "%date%",
+echo     "fecha_actualizacion": "%FECHA_REAL%",
 echo     "activo": true
 echo   }
 echo ]

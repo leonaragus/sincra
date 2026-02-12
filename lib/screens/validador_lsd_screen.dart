@@ -21,6 +21,7 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
   LSDParsedFile? _parsedFile;
   List<ValidationResult> _validationResults = [];
   bool _isLoading = false;
+  String _ultimaSincro = "Cargando...";
   // String? _fileName;
 
   @override
@@ -31,7 +32,44 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
 
   Future<void> _checkRulesUpdate() async {
     // Silent update check in background
-    await ValidadorLSDUpdateService.checkForUpdates();
+    final updated = await ValidadorLSDUpdateService.checkForUpdates();
+    final rules = await ValidadorLSDUpdateService.getActiveRules();
+    
+    if (mounted) {
+      setState(() {
+        _ultimaSincro = rules['ultima_sincro'] ?? "Desconocida";
+      });
+
+      if (updated) {
+        _showUpdateNotification(rules['mensaje'] ?? "Reglas actualizadas");
+      }
+    }
+  }
+
+  void _showUpdateNotification(String msg) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.blue[50],
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: Colors.blueAccent),
+            const SizedBox(width: 10),
+            Text('¡Sistema Actualizado!', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'El robot BAT ha detectado cambios legales:\n\n$msg',
+          style: GoogleFonts.poppins(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('EXCELENTE'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _importarArchivo() async {
@@ -48,7 +86,14 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
         final contentLatin1 = latin1.decode(bytes);
 
         final parsed = LSDParserService.parseFileContent(contentLatin1);
-        final validations = LSDValidatorHelper.validateParsedFile(parsed);
+        final topeMin = _updateService.config?['topes']?['min']?.toDouble();
+        final topeMax = _updateService.config?['topes']?['max']?.toDouble();
+        
+        final validations = LSDValidatorHelper.validateParsedFile(
+          parsed,
+          topeMin: topeMin,
+          topeMax: topeMax,
+        );
 
         setState(() {
           _parsedFile = parsed;
@@ -61,8 +106,76 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
         SnackBar(content: Text('Error importando archivo: $e'), backgroundColor: Colors.red),
       );
     } finally {
+      setState(() => _isLoading = true); // Mantener cargando un momento para procesar errores
+      
+      // Si hay errores de parsing, mostrarlos inmediatamente
+      if (_parsedFile != null && _parsedFile!.erroresParsing.isNotEmpty) {
+        _showParsingErrorsDialog();
+      }
+      
       setState(() => _isLoading = false);
     }
+  }
+
+  void _showParsingErrorsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            const SizedBox(width: 10),
+            Text('Problemas en el archivo', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'El archivo se cargó, pero tiene errores de formato que ARCA rechazará:',
+                style: GoogleFonts.poppins(fontSize: 14),
+              ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _parsedFile!.erroresParsing.length,
+                    itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text(
+                        '• ${_parsedFile!.erroresParsing[index]}',
+                        style: GoogleFonts.robotoMono(fontSize: 12, color: Colors.red[800]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Puedes revisar los datos importados abajo, pero deberás corregir estos puntos en tu herramienta original.',
+                style: GoogleFonts.poppins(fontSize: 13, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ENTENDIDO'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _exportarArchivo() async {
@@ -214,13 +327,43 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
   }
 
   Widget _buildHeaderSummary() {
-    if (_parsedFile?.header == null) return const SizedBox.shrink();
+    return Column(
+      children: [
+        _buildUpdateStatusInfo(),
+        _buildInstructionsButton(),
+        if (_parsedFile?.header != null) ...[
+          _buildSummaryCard(),
+        ]
+      ],
+    );
+  }
+
+  Widget _buildUpdateStatusInfo() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+      color: Colors.grey[200],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.verified_user, size: 14, color: Colors.green),
+          const SizedBox(width: 8),
+          Text(
+            'Reglas ARCA verificadas: $_ultimaSincro (Fuente: ANSES/BO)',
+            style: GoogleFonts.poppins(fontSize: 11, color: Colors.blueGrey[700], fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard() {
     final h = _parsedFile!.header!;
     final errorCount = _validationResults.where((r) => r.hasErrors).length;
     final warningCount = _validationResults.where((r) => r.hasWarnings).length;
 
     return Card(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -247,6 +390,86 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInstructionsButton() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ElevatedButton.icon(
+        onPressed: _showUsageInstructions,
+        icon: const Icon(Icons.help_outline, color: Colors.white),
+        label: const Text('¿CÓMO USAR EL VALIDADOR?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blueAccent,
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  void _showUsageInstructions() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Colors.blueAccent),
+            const SizedBox(width: 10),
+            Text('Instrucciones de Uso', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInstructionStep('1', 'Importar Archivo', 'Presiona el botón "Importar" y selecciona tu archivo TXT generado por tu sistema actual.'),
+              _buildInstructionStep('2', 'Revisar Formato', 'Si el archivo tiene errores físicos (longitud o tipos de registro), verás un aviso inmediato.'),
+              _buildInstructionStep('3', 'Auditar Datos', 'Revisa la lista de empleados. El color rojo indica errores que ARCA rechazará, y el naranja advertencias de cálculo.'),
+              _buildInstructionStep('4', 'Corregir y Exportar', 'Si el validador pudo reparar el archivo, puedes usar el botón de exportar para obtener el TXT final corregido.'),
+              const Divider(height: 30),
+              Text(
+                'Nota: El validador detecta automáticamente si el formato es ARCA 2026 (01, 02...) o Legacy (1, 2...).',
+                style: GoogleFonts.poppins(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ENTENDIDO'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionStep(String num, String title, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: Colors.blueAccent,
+            child: Text(num, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(desc, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[800])),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -312,7 +535,14 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
         parsedFile: _parsedFile!,
         onSave: () {
           // Re-validate everything
-          final validations = LSDValidatorHelper.validateParsedFile(_parsedFile!);
+          final topeMin = _updateService.config?['topes']?['min']?.toDouble();
+          final topeMax = _updateService.config?['topes']?['max']?.toDouble();
+          
+          final validations = LSDValidatorHelper.validateParsedFile(
+            _parsedFile!,
+            topeMin: topeMin,
+            topeMax: topeMax,
+          );
           setState(() {
             _validationResults = validations;
           });

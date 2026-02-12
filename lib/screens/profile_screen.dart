@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/subscription_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/auth_middleware.dart';
@@ -17,6 +18,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _userInfo;
   bool _loading = true;
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -27,12 +29,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUserInfo() async {
     try {
       final userInfo = await AuthMiddleware.getCurrentUserInfo();
+      
+      // Cargar avatar
+      final user = Supabase.instance.client.auth.currentUser;
+      String? avatar;
+      if (user != null) {
+        try {
+          final profile = await Supabase.instance.client
+              .from('user_profiles')
+              .select('avatar_url')
+              .eq('id', user.id)
+              .maybeSingle();
+          if (profile != null) {
+            avatar = profile['avatar_url'];
+          }
+        } catch (_) {} // Ignorar si falla o tabla no existe
+      }
+
       setState(() {
         _userInfo = userInfo;
+        _avatarUrl = avatar;
         _loading = false;
       });
     } catch (e) {
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _uploadLogo() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 800);
+    if (image == null) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) throw Exception('No usuario autenticado');
+
+      final bytes = await image.readAsBytes();
+      final fileExt = image.path.split('.').last;
+      final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath = fileName;
+
+      // Upload to Supabase Storage
+      await Supabase.instance.client.storage
+          .from('avatars')
+          .uploadBinary(filePath, bytes, fileOptions: const FileOptions(upsert: true));
+
+      final imageUrl = Supabase.instance.client.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+      // Update Profile with ID explicit to avoid 23502 error
+      await Supabase.instance.client.from('user_profiles').upsert({
+        'id': user.id,
+        'avatar_url': imageUrl,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
+      setState(() {
+        _avatarUrl = imageUrl;
+        _loading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Logo actualizado correctamente')),
+        );
+      }
+    } catch (e) {
+      setState(() => _loading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al subir logo: $e')),
+        );
+      }
     }
   }
 
@@ -289,12 +361,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           Row(
             children: [
-              const Icon(Icons.person, color: AppColors.textSecondary, size: 20),
+              GestureDetector(
+                onTap: _uploadLogo,
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundImage: _avatarUrl != null ? NetworkImage(_avatarUrl!) : null,
+                  child: _avatarUrl == null
+                      ? const Icon(Icons.person, color: AppColors.primary, size: 24)
+                      : null,
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Usuario desde: ${user?.createdAt.substring(0, 10) ?? 'N/A'}',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Usuario desde: ${user?.createdAt.substring(0, 10) ?? 'N/A'}',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Toca el icono para cambiar logo',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+                    ),
+                  ],
                 ),
               ),
             ],
