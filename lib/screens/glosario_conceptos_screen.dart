@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/educational_concepts_service.dart';
 import '../theme/app_colors.dart';
+import 'biblioteca_cct_screen.dart';
 
 class GlosarioConceptosScreen extends StatefulWidget {
   const GlosarioConceptosScreen({super.key});
@@ -216,65 +218,110 @@ class _GlosarioConceptosScreenState extends State<GlosarioConceptosScreen> {
   Widget _buildAcademyBanner(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.secondary, AppColors.secondary.withOpacity(0.8)],
+          colors: [AppColors.secondary, AppColors.secondary.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.secondary.withOpacity(0.3),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: AppColors.glassBorder.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.school, color: Colors.white, size: 28),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.school, color: Colors.white, size: 24),
+              ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  '¿Querés aprender más?',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Elevar Formación Técnica',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      'Academia de Liquidadores',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 12,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           const Text(
-            'Convertite en un experto en liquidación de sueldos con nuestros cursos especializados.',
-            style: TextStyle(color: Colors.white, fontSize: 14),
+            'Convertite en un experto en liquidación de sueldos con nuestros cursos prácticos y actualizados.',
+            style: TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.business, color: Colors.white, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  EducationalConceptsService.nombreAcademia,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              // Botón WhatsApp
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final phone = EducationalConceptsService.contactoAcademia;
+                    final url = Uri.parse('https://wa.me/$phone?text=Hola! Me gustaría recibir información sobre los cursos de liquidación de sueldos.');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text('WhatsApp'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              // Botón Biblioteca
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (c) => const BibliotecaCCTScreen()));
+                  },
+                  icon: const Icon(Icons.menu_book, size: 18),
+                  label: const Text('Convenios'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white24),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

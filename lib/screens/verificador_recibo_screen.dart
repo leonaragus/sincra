@@ -12,6 +12,11 @@ import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
 import 'package:syncra_arg/utils/conceptos_builder.dart';
 import 'package:syncra_arg/theme/app_colors.dart';
 // import 'package:url_launcher/url_launcher.dart';
+import 'package:syncra_arg/screens/biblioteca_cct_screen.dart';
+import 'package:syncra_arg/screens/historial_liquidaciones_screen.dart';
+import 'package:syncra_arg/screens/plan_selection_screen.dart';
+import 'package:syncra_arg/screens/profile_screen.dart';
+import 'package:syncra_arg/screens/home_screen.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
 import 'package:syncra_arg/services/pdf_report_service.dart';
 import '../services/subscription_service.dart';
@@ -467,6 +472,34 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Botón Glosario Interactivo
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GlosarioConceptosScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.menu_book_outlined, color: AppColors.accentBlue),
+                  label: const Text(
+                    'Glosario Interactivo',
+                    style: TextStyle(
+                      color: AppColors.accentBlue,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    side: const BorderSide(color: AppColors.accentBlue, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
@@ -929,13 +962,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
             const SizedBox(height: 20),
           ],
 
-          // Widgets adicionales
-          _buildProyeccionesWidget(),
-        const SizedBox(height: 16),
-        _buildMetasUnidadesWidget(),
-        const SizedBox(height: 16),
-        _buildEstimadorLiquidacionWidget(),
-
         // Botones de acción
         Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
@@ -1068,57 +1094,232 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   
   Widget _buildMenuHamburguesa() {
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            child: const Text(
-              'Menú',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
+      backgroundColor: AppColors.background,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Header del Drawer
+            Container(
+              padding: const EdgeInsets.all(24),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                border: Border(bottom: BorderSide(color: AppColors.glassBorder, width: 1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.accentBlue.withValues(alpha: 0.2)),
+                    ),
+                    child: const Icon(Icons.account_balance_wallet, color: AppColors.accentBlue, size: 32),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Sincra Arg',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const Text(
+                    'Verificador de Recibos',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            // Lista de items
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                children: [
+                  _buildSectionHeader('PRINCIPAL'),
+                  _buildMenuItem(
+                    icon: Icons.home_rounded,
+                    label: 'Inicio',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        (route) => false,
+                      );
+                    },
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.library_books_rounded,
+                    label: 'Biblioteca de Convenios',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const BibliotecaCCTScreen()));
+                    },
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.book_rounded,
+                    label: 'Glosario de Conceptos',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GlosarioConceptosScreen()));
+                    },
+                  ),
+
+                  const Divider(height: 32, color: AppColors.glassBorder, indent: 20, endIndent: 20),
+                  
+                  _buildSectionHeader('HERRAMIENTAS'),
+                  _buildMenuItem(
+                    icon: Icons.history_rounded,
+                    label: 'Historial de Liquidaciones',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context, 
+                        MaterialPageRoute(
+                          builder: (context) => HistorialLiquidacionesScreen(
+                            empleadoCuil: _recibo?.cuilEmpleado ?? '00-00000000-0',
+                            empleadoNombre: _recibo?.nombreEmpleado ?? 'Usuario',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Escanear QR Docente',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherReceiptScanScreen()));
+                    },
+                  ),
+
+                  const Divider(height: 32, color: AppColors.glassBorder, indent: 20, endIndent: 20),
+
+                  _buildSectionHeader('CUENTA'),
+                  _buildMenuItem(
+                    icon: Icons.person_rounded,
+                    label: 'Mi Perfil',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+                    },
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.star_rounded,
+                    label: 'Planes Premium',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PlanSelectionScreen()));
+                    },
+                    isHighlight: true,
+                  ),
+                ],
+              ),
+            ),
+
+            // Footer
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundDark,
+                border: Border(top: BorderSide(color: AppColors.glassBorder, width: 1)),
+              ),
+              child: Row(
+                children: [
+                  const Text(
+                    'v1.3.5',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '© 2026 Sincra',
+                    style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.7), fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isHighlight = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: ListTile(
+        onTap: onTap,
+        dense: true,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Icon(
+          icon,
+          color: isHighlight ? AppColors.accentYellow : AppColors.textPrimary,
+          size: 22,
+        ),
+        title: Text(
+          label,
+          style: TextStyle(
+            color: isHighlight ? AppColors.accentYellow : AppColors.textPrimary,
+            fontSize: 15,
+            fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
           ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Inicio'),
-            onTap: () {
-              Navigator.pop(context); // Close drawer
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textMuted.withValues(alpha: 0.5), size: 18),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildListItem(IconData icon, Color color, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-  
-  Widget _buildProyeccionesWidget() {
-    return const SizedBox.shrink();
-  }
-  
-  Widget _buildMetasUnidadesWidget() {
-    return const SizedBox.shrink();
-  }
-  
-  Widget _buildEstimadorLiquidacionWidget() {
-    return const SizedBox.shrink();
-  }
-  
-  Widget _buildListItem(IconData icon, Color color, String text) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(text),
-    );
-  }
-  
-  Widget _buildSectionHeader(String title) {
-    return Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18));
-  }
-  
+
   Map<String, dynamic> _analizarPagoConvenio() {
     // Dummy implementation
     return {

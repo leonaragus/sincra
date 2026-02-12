@@ -18,7 +18,7 @@ class ConceptoEducativo {
 }
 
 class EducationalConceptsService {
-  static const String contactoAcademia = "381666666"; // Placeholder, se actualizará
+  static const String contactoAcademia = "549381666666"; // Número de WhatsApp de Elevar
   static const String nombreAcademia = "Elevar Formación Técnica";
 
   static const List<ConceptoEducativo> conceptos = [
@@ -28,7 +28,7 @@ class EducationalConceptsService {
       definicionCorta: "Es la remuneración base establecida por tu convenio colectivo.",
       explicacionDetallada: "Es el punto de partida de tu sueldo. Este monto se define en las paritarias de tu gremio (Comercio, Sanidad, UOCRA, etc.) y varía según tu categoría y antigüedad. Sobre este monto se calculan la mayoría de los adicionales y los descuentos.",
       categoria: "Remunerativo",
-      ejemplo: "Si sos Empleado de Comercio Maestranza A, tu básico hoy ronda los \$500.000 (aprox).",
+      ejemplo: "Si sos Empleado de Comercio Maestranza A, tu básico hoy ronda los \$1.050.000 (aprox).",
     ),
     ConceptoEducativo(
       titulo: "Antigüedad",
@@ -43,9 +43,28 @@ class EducationalConceptsService {
       categoria: "Remunerativo",
     ),
     ConceptoEducativo(
+      titulo: "SAC (Aguinaldo)",
+      definicionCorta: "Sueldo Anual Complementario (el famoso medio aguinaldo).",
+      explicacionDetallada: "Se paga en dos cuotas: junio y diciembre. Es el 50% de la mayor remuneración mensual devengada por todo concepto dentro de los semestres que culminan en los meses de junio y diciembre de cada año.",
+      categoria: "Remunerativo",
+      ejemplo: "Si tu mejor sueldo del semestre fue \$600.000, tu aguinaldo bruto será de \$300.000.",
+    ),
+    ConceptoEducativo(
       titulo: "Horas Extras 50% y 100%",
       definicionCorta: "Pago adicional por trabajar fuera de tu horario habitual.",
       explicacionDetallada: "Las horas al 50% se pagan cuando te quedas más tiempo de lunes a viernes (o sábados hasta las 13hs). Las del 100% (dobles) son para sábados después de las 13hs, domingos y feriados.",
+      categoria: "Remunerativo",
+    ),
+    ConceptoEducativo(
+      titulo: "Vacaciones Gozadas",
+      definicionCorta: "Pago de los días de descanso anual obligatorio.",
+      explicacionDetallada: "Se calculan dividiendo el sueldo bruto por 25 (el 'plus vacacional'). Por eso, un día de vacaciones vale un poco más que un día de trabajo normal (que se divide por 30).",
+      categoria: "Remunerativo",
+    ),
+    ConceptoEducativo(
+      titulo: "Adicional por Título",
+      definicionCorta: "Plus por poseer títulos secundarios, terciarios o universitarios.",
+      explicacionDetallada: "Muchos convenios (como Docentes o Administración Pública) pagan un extra fijo o porcentual si tenés un título relacionado con tu tarea.",
       categoria: "Remunerativo",
     ),
 
@@ -74,12 +93,30 @@ class EducationalConceptsService {
       explicacionDetallada: "Varía según el gremio (generalmente entre 2% y 2.5%). Si estás afiliado es obligatorio. Si no lo estás, a veces existe el 'Aporte Solidario' por el uso del convenio colectivo.",
       categoria: "Descuento",
     ),
+    ConceptoEducativo(
+      titulo: "Impuesto a las Ganancias",
+      definicionCorta: "Impuesto nacional sobre tus ingresos (4ta categoría).",
+      explicacionDetallada: "Es un impuesto progresivo que se aplica a los sueldos que superan el mínimo no imponible. Se calcula anualmente pero se retiene mensualmente.",
+      categoria: "Descuento",
+    ),
 
     // --- NO REMUNERATIVOS ---
     ConceptoEducativo(
       titulo: "Conceptos No Remunerativos",
       definicionCorta: "Pagos que van 'al bolsillo' pero no suman para jubilación.",
       explicacionDetallada: "Son sumas acordadas en paritarias que el empleador te paga pero sobre las cuales NO se hacen descuentos de jubilación (aunque sí suelen pagar Obra Social). Importante: generalmente NO se toman en cuenta para calcular el aguinaldo ni indemnizaciones, salvo excepciones.",
+      categoria: "No Remunerativo",
+    ),
+    ConceptoEducativo(
+      titulo: "Viáticos",
+      definicionCorta: "Compensación por gastos de traslado y comida.",
+      explicacionDetallada: "Suelen ser no remunerativos cuando se rinden con comprobantes, aunque algunos convenios fijan montos fijos sin rendición que pueden ser remunerativos.",
+      categoria: "No Remunerativo",
+    ),
+    ConceptoEducativo(
+      titulo: "Asignaciones Familiares",
+      definicionCorta: "Pagos de ANSES por hijos, escolaridad, etc.",
+      explicacionDetallada: "No son sueldo propiamente dicho, sino una prestación de seguridad social. No tienen descuentos y se pagan según el tramo de ingresos en el que te encuentres.",
       categoria: "No Remunerativo",
     ),
   ];

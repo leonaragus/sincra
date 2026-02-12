@@ -6,8 +6,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/cct_cloud_service.dart';
+import '../services/educational_concepts_service.dart';
 import '../theme/app_colors.dart';
+import 'glosario_conceptos_screen.dart';
 
 class BibliotecaCCTScreen extends StatefulWidget {
   const BibliotecaCCTScreen({super.key});
@@ -74,20 +78,138 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Biblioteca CCT'),
-        backgroundColor: AppColors.primary,
+        title: Text('Biblioteca de Convenios', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _buildBannerSincronizacion(),
+          _buildAcademyBanner(context),
           const SizedBox(height: 16),
           _buildInstruccionesRobot(),
           const SizedBox(height: 16),
           _buildFiltros(),
           const SizedBox(height: 16),
           _buildListaCCTs(),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcademyBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.secondary, AppColors.secondary.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: AppColors.glassBorder.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.school, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Elevar Formación Técnica',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      'Academia de Liquidadores',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 12,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Convertite en un experto en liquidación de sueldos con nuestros cursos prácticos y actualizados.',
+            style: TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              // Botón WhatsApp
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final phone = EducationalConceptsService.contactoAcademia;
+                    final url = Uri.parse('https://wa.me/$phone?text=Hola! Me gustaría recibir información sobre los cursos de liquidación de sueldos.');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text('WhatsApp'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Botón Glosario
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (c) => const GlosarioConceptosScreen()));
+                  },
+                  icon: const Icon(Icons.book, size: 18),
+                  label: const Text('Glosario'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white24),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -303,59 +425,183 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
   }
   
   void _verDetalleCCT(CCTMaster cct) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(cct.nombre),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetalleItem('Código:', cct.codigo),
-              _buildDetalleItem('Sector:', cct.sector ?? 'N/A'),
-              _buildDetalleItem('Versión:', cct.versionActual.toString()),
-              if (cct.fechaActualizacion != null)
-                _buildDetalleItem(
-                  'Actualización:',
-                  DateFormat('dd/MM/yyyy').format(cct.fechaActualizacion!),
-                ),
-              if (cct.descripcion != null) ...[
-                const SizedBox(height: 8),
-                const Text('Descripción:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(cct.descripcion!),
-              ],
-              if (cct.fuenteOficial != null) ...[
-                const SizedBox(height: 8),
-                const Text('Fuente:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(cct.fuenteOficial!, style: const TextStyle(fontSize: 11)),
-              ],
-            ],
-          ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.glassBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.assignment, color: AppColors.accentBlue, size: 32),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cct.codigo,
+                              style: const TextStyle(color: AppColors.accentBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            Text(
+                              cct.nombre,
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildDetalleRow('Sector', cct.sector ?? 'N/A', Icons.business),
+                  _buildDetalleRow('Versión', 'v${cct.versionActual}', Icons.history),
+                  if (cct.fechaActualizacion != null)
+                    _buildDetalleRow('Actualizado', DateFormat('dd/MM/yyyy').format(cct.fechaActualizacion!), Icons.calendar_today),
+                  
+                  if (cct.descripcion != null) ...[
+                    const SizedBox(height: 24),
+                    const Text('Descripción', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Text(cct.descripcion!, style: const TextStyle(color: AppColors.textSecondary, height: 1.5)),
+                  ],
+
+                  // Sección de Categorías y Escalas
+                  const SizedBox(height: 32),
+                  const Text('Escalas y Categorías', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 18)),
+                  const SizedBox(height: 16),
+                  
+                  if (cct.jsonEstructura != null && cct.jsonEstructura!['categorias'] != null)
+                    ..._buildCategoriasList(cct.jsonEstructura!['categorias'])
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.glassFill,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.glassBorder),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, color: AppColors.textMuted, size: 20),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Las escalas detalladas están siendo procesadas por el robot BAT. Pronto verás todas las categorías aquí.',
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.accentBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('Entendido'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-  
-  Widget _buildDetalleItem(String label, String valor) {
+
+  List<Widget> _buildCategoriasList(dynamic categorias) {
+    if (categorias is! List) return [];
+    
+    return categorias.map((cat) {
+      final nombre = cat['nombre']?.toString() ?? 'Sin nombre';
+      final basico = cat['basico']?.toString() ?? 'Consultar';
+      
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundLight,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  if (cat['descripcion'] != null)
+                    Text(cat['descripcion'].toString(), style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text('Básico', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                Text(basico.contains('\$') ? basico : '\$$basico', 
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentBlue, fontSize: 16)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildDetalleRow(String label, String value, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Icon(icon, size: 18, color: AppColors.textMuted),
+          const SizedBox(width: 12),
+          Text('$label:', style: const TextStyle(color: AppColors.textMuted)),
           const SizedBox(width: 8),
-          Expanded(child: Text(valor)),
+          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
-  
+
   void _mostrarHistorialRobot() async {
     final historial = await CCTCloudService.obtenerHistorialRobot(limit: 20);
     
