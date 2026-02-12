@@ -434,10 +434,11 @@ class SanidadOmniEngine {
   }
 
   /// Plus Zona Patagónica usando porcentaje de la jurisdicción
-  static double adicionalZonaPatagonica(double basico, bool esZonaPatagonica, {String? jurisdiccion}) {
+  /// Para Sanidad (ATSA), la base incluye Básico + Antigüedad + Título + Tarea Crítica + Nocturnidad + Horas Extras
+  static double adicionalZonaPatagonica(double baseCalculo, bool esZonaPatagonica, {String? jurisdiccion}) {
     if (!esZonaPatagonica) return 0.0;
     final paritaria = SanidadNomenclador2026.getParitaria(jurisdiccion);
-    return basico * (paritaria.zonaPatagonicaPct / 100);
+    return baseCalculo * (paritaria.zonaPatagonicaPct / 100);
   }
 
   /// Nocturnidad usando porcentaje de la jurisdicción
@@ -556,17 +557,18 @@ class SanidadOmniEngine {
     final antig = adicionalAntiguedad(basico, anos, jurisdiccion: jur);
     final titulo = adicionalTitulo(basico, input.nivelTitulo, jurisdiccion: jur);
     final tareaCrit = adicionalTareaCriticaRiesgo(basico, input.tareaCriticaRiesgo, jurisdiccion: jur);
-    
-    // Zona patagónica: puede venir de parámetro o detectarse automáticamente
-    final esPatagonica = esZonaPatagonica ?? SanidadParitariasService.jurisdiccionesPatagonicas.contains(jur);
-    final plusPatagonia = adicionalZonaPatagonica(basico, esPatagonica, jurisdiccion: jur);
-    
     final noct = nocturnidad(basico, input.horasNocturnas, jurisdiccion: jur);
-    final fallo = falloCaja(input.categoria, input.manejoEfectivoCaja, jurisdiccion: jur);
     
     // === HORAS EXTRAS ===
     final horas50 = horasExtras50(basico, input.horasExtras50);
     final horas100 = horasExtras100(basico, input.horasExtras100);
+    
+    // Zona patagónica: para Sanidad (ATSA), la base incluye Básico + Antigüedad + Título + Tarea Crítica + Nocturnidad + Horas Extras
+    final esPatagonica = esZonaPatagonica ?? SanidadParitariasService.jurisdiccionesPatagonicas.contains(jur);
+    final baseZona = basico + antig + titulo + tareaCrit + noct + horas50 + horas100;
+    final plusPatagonia = adicionalZonaPatagonica(baseZona, esPatagonica, jurisdiccion: jur);
+    
+    final fallo = falloCaja(input.categoria, input.manejoEfectivoCaja, jurisdiccion: jur);
     
     // === CONCEPTOS PROPIOS (haberes) ===
     double totalConceptosPropios = 0;

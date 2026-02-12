@@ -15,6 +15,8 @@ import 'sanidad_omni_engine.dart';
 import 'validaciones_legales_service.dart';
 import 'historial_liquidaciones_service.dart';
 import 'auditoria_service.dart';
+import '../data/cct_argentina_completo.dart';
+import '../models/cct_completo.dart';
 
 /// Resultado de una liquidación individual
 class ResultadoLiquidacionIndividual {
@@ -517,15 +519,42 @@ class LiquidacionMasivaService {
       }
     }
     
-    // FALLBACK: Motor genérico para otros sectores
+    // FALLBACK: Motor genérico para otros sectores (CCT varios)
     else {
-      // Cálculo genérico básico
-      double basico = 450000; // Básico genérico
+      // 1. Intentar encontrar CCT correspondiente
+      CCTCompleto? cct;
+      final sectorLower = empleado.sector?.toLowerCase() ?? '';
       
-      // Antigüedad
-      final antiguedad = basico * 0.02 * empleado.antiguedadAnios; // 2% por año
+      if (sectorLower.contains('comercio')) {
+        cct = cctArgentinaCompleto.firstWhere((c) => c.id == 'cct_130_75');
+      } else if (sectorLower.contains('construccion') || sectorLower.contains('uocra')) {
+        cct = cctArgentinaCompleto.firstWhere((c) => c.id == 'cct_76_93');
+      } else if (sectorLower.contains('metalurgico') || sectorLower.contains('uom')) {
+        cct = cctArgentinaCompleto.firstWhere((c) => c.id == 'cct_metalurgico');
+      } else if (sectorLower.contains('gastronomico')) {
+        cct = cctArgentinaCompleto.firstWhere((c) => c.id == 'cct_gastronomicos');
+      }
       
-      // Conceptos recurrentes
+      // 2. Determinar Básico
+      double basico = 0;
+      if (cct != null) {
+        final categoria = cct.categorias.firstWhere(
+          (cat) => cat.nombre.toLowerCase() == empleado.categoria.toLowerCase(),
+          orElse: () => cct!.categorias.first,
+        );
+        basico = categoria.salarioBase;
+      } else {
+        basico = 450000; // Básico genérico si no hay CCT
+      }
+      
+      // 3. Antigüedad
+      double pctAntig = cct?.adicionalAntiguedad ?? 2.0; // 2% por defecto o lo que diga el CCT
+      if (cct?.porcentajeAntiguedadAnual != null && cct!.porcentajeAntiguedadAnual > 0) {
+        pctAntig = cct.porcentajeAntiguedadAnual;
+      }
+      final antiguedad = basico * (pctAntig / 100) * empleado.antiguedadAnios;
+      
+      // 4. Conceptos recurrentes
       double conceptosRemunerativos = 0;
       double conceptosNoRemunerativos = 0;
       double descuentos = 0;
@@ -540,14 +569,49 @@ class LiquidacionMasivaService {
         }
       }
       
-      final totalBruto = basico + antiguedad + conceptosRemunerativos;
-      final totalAportes = totalBruto * 0.17; // 17% aportes
+      // 5. ZONA PATAGÓNICA / DESFAVORABLE (FEDERAL COMPLIANCE ARCA 2026)
+      // Base: Todos los conceptos remunerativos (Básico + Antigüedad + Otros Remu)
+      final double baseZona = basico + antiguedad + conceptosRemunerativos;
+      double adicionalZona = 0;
+      
+      // Determinar si aplica zona (Sur de Argentina)
+      final provLower = empleado.provincia.toLowerCase();
+      final esZonaSur = provLower.contains('rio negro') || 
+                        provLower.contains('chubut') || 
+                        provLower.contains('santa cruz') || 
+                        provLower.contains('tierra del fuego') || 
+                        provLower.contains('neuquen') ||
+                        provLower.contains('la pampa') ||
+                        provLower.contains('patag');
+      
+      if (esZonaSur) {
+        double pctZona = 20.0; // 20% federal por defecto
+        
+        // Si el CCT tiene definición de zona, usar su porcentaje
+        if (cct != null && cct.zonas.isNotEmpty) {
+          final zonaCct = cct.zonas.firstWhere(
+            (z) => z.nombre.toLowerCase().contains('desfavorable') || z.nombre.toLowerCase().contains('patagon'),
+            orElse: () => cct!.zonas.first,
+          );
+          if (zonaCct.adicionalPorcentaje > 0) {
+            pctZona = zonaCct.adicionalPorcentaje;
+          }
+        }
+        
+        adicionalZona = baseZona * (pctZona / 100);
+      }
+      
+      final totalBruto = baseZona + adicionalZona;
+      
+      // 6. Aportes y Contribuciones (Standard LSD bases)
+      final totalAportes = totalBruto * 0.17; // 17% aportes ley
       final totalContribuciones = totalBruto * 0.23; // 23% contribuciones
       final neto = totalBruto + conceptosNoRemunerativos - totalAportes - descuentos;
       
       return {
         'basico': basico,
         'antiguedad': antiguedad,
+        'adicionalZona': adicionalZona,
         'conceptosRemunerativos': conceptosRemunerativos,
         'conceptosNoRemunerativos': conceptosNoRemunerativos,
         'totalBruto': totalBruto,
@@ -557,6 +621,7 @@ class LiquidacionMasivaService {
         'neto': neto,
         'mes': mes,
         'anio': anio,
+        'cct_aplicado': cct?.nombre ?? 'Genérico',
       };
     }
   }

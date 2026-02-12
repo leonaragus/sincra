@@ -732,10 +732,12 @@ class TeacherOmniEngine {
       }
       materialDidactico = cfg.materialDidacticoMonto ?? 0.0;
       final double otrosBonif = conceptosPropios.where((c) => c.esRemunerativo && c.esBonificable).fold(0.0, (s, c) => s + c.monto);
-      final double B = estadoDoc + materialDidactico + otrosBonif;
-      final double C = A + B;
-      antig = TeacherOmniEngine.adicionalAntiguedad(C, anos, use140);
-      final double D = A + B + antig;
+      final double B_bonif = estadoDoc + materialDidactico + otrosBonif;
+      final double C_bonif = A + B_bonif;
+      antig = TeacherOmniEngine.adicionalAntiguedad(C_bonif, anos, use140);
+
+      final double remuSinZona = A + estadoDoc + materialDidactico + antig + conceptosPropios.where((c) => c.esRemunerativo).fold(0.0, (s, c) => s + c.monto);
+      final double D = remuSinZona;
       final double pctPatagonia = cfg.plusZonaPatagonicaPorcentaje ?? 20.0;
       adicionalZonaPatagonica = esZonaPatagonica && D > 0 ? D * (pctPatagonia / 100) : 0.0;
       zonaAdd = adicionalZona(D, input.zona);

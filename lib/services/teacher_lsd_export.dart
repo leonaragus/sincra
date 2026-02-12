@@ -177,13 +177,10 @@ Future<String> teacherOmniToLsdTxt({
   // Las bases 4 (OS), 8 (Aporte OS) y 9 (LRT) se autocompletan en el motor si no se envían,
   // pero las enviamos explícitamente para mayor seguridad.
   final bases = List<double>.filled(10, 0.0);
-  bases[0] = liquidacion.baseImponibleTopeada; // Base 1
-  bases[1] = liquidacion.baseImponibleTopeada; // Base 2
-  bases[2] = liquidacion.baseImponibleTopeada; // Base 3
-  
-  // Base 9 (LRT) suele ser el Total Remunerativo (a veces sin tope, pero LSD valida consistencia)
-  // Para seguridad en validación "Base Inconsistente", usamos la misma que Base 1 si no hay diferencial.
-  bases[8] = liquidacion.baseImponibleTopeada; // Base 9 (Array index 8)
+  // ARCA 2026: Llenar bases 1 a 9 con el total remunerativo topeado para consistencia federal
+  for (int i = 0; i < 9; i++) {
+    bases[i] = liquidacion.baseImponibleTopeada;
+  }
 
   final r4 = LSDGenerator.generateRegistro4Bases(
     cuilEmpleado: cuil,

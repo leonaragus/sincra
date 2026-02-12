@@ -8,6 +8,8 @@ enum ValidationIssueType {
   aporteJubilacionDiff,
   aporteLeyDiff,
   aporteOSDiff,
+  zonaPatagonicaInconsistent, // Nueva: Base de Zona no coincide con Remu
+  basesInconsistent, // Nueva: Bases 1-9 no coinciden entre sí
 }
 
 class ValidationIssue {
@@ -112,12 +114,74 @@ class LSDValidatorHelper {
         }
 
         if (base4 < base8) {
+          errors.add(ValidationIssue(
+            'Inconsistencia Bases: Base 4 (OS) no puede ser menor que Base 8 (Aporte OS)',
+            ValidationIssueType.base4Inconsistent
+          ));
+        }
+
+        // 3.1 Consistencia Federal Bases 1 a 9 (ARCA 2026)
+        for (int i = 1; i < 9; i++) {
+          if ((bases.getBaseAsDouble(0) - bases.getBaseAsDouble(i)).abs() > 1.0) {
             errors.add(ValidationIssue(
-              'Inconsistencia Bases: Base 4 (OS) no puede ser menor que Base 8 (Aporte OS)',
-              ValidationIssueType.base4Inconsistent
+              'Inconsistencia Federal: La Base ${i + 1} (${bases.getBaseAsDouble(i)}) difiere de la Base 1 (${bases.getBaseAsDouble(0)}). En liquidaciones federales deben coincidir.',
+              ValidationIssueType.basesInconsistent
+            ));
+            break; 
+          }
+        }
+      }
+
+      // 3.2 Validación de Conceptos vs Bases y Zona Patagónica
+      if (conceptos.isNotEmpty && bases != null) {
+        double totalRemu = 0.0;
+        double montoZona = 0.0;
+        bool tieneZona = false;
+
+        for (var c in conceptos) {
+          final desc = c.descripcion.toUpperCase();
+          final esZona = desc.contains('ZONA PATAGONICA') || desc.contains('ADICIONAL ZONA') || desc.contains('ZONA DESFAVORABLE');
+          
+          if (c.tipo == 'H' || c.tipo == 'R') { // Haberes / Remunerativos
+            totalRemu += c.importeAsDouble;
+            if (esZona) {
+              montoZona = c.importeAsDouble;
+              tieneZona = true;
+            }
+          }
+        }
+
+        // Verificar que el total remunerativo coincida con Base 1 (con margen de redondeo)
+        final base1 = bases.getBaseAsDouble(0);
+        if ((totalRemu - base1).abs() > 2.0) {
+          errors.add(ValidationIssue(
+            'Total Remunerativo (\$${totalRemu.toStringAsFixed(2)}) no coincide con Base Imponible 1 (\$${base1.toStringAsFixed(2)}). ARCA rechazará la declaración.',
+            ValidationIssueType.generic
+          ));
+        }
+
+        // REGLA CRÍTICA: Base de Zona Patagónica (Federal Compliance)
+        if (tieneZona) {
+          final double baseCalculadaZona = totalRemu - montoZona;
+          // Asumimos porcentajes comunes: 20%, 30%, 40%, 50%, 80% o 100%
+          bool zonaValida = false;
+          final pcts = [0.20, 0.30, 0.40, 0.50, 0.80, 1.00, 0.11, 0.12]; // Incluimos variaciones de CCT y Docentes (80%, 100%)
+          
+          for (var p in pcts) {
+            if ((baseCalculadaZona * p - montoZona).abs() < 5.0) {
+              zonaValida = true;
+              break;
+            }
+          }
+
+          if (!zonaValida) {
+            errors.add(ValidationIssue(
+              'Cálculo de Zona Patagónica incorrecto: El monto (\$${montoZona.toStringAsFixed(2)}) no parece estar calculado sobre el total de conceptos remunerativos (\$${baseCalculadaZona.toStringAsFixed(2)}). Regla Federal ARCA 2026 exige base completa.',
+              ValidationIssueType.zonaPatagonicaInconsistent
             ));
           }
         }
+      }
 
       // 4. Aportes Logic
       if (bases != null && conceptos.isNotEmpty) {

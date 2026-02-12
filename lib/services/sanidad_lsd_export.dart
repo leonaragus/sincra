@@ -207,13 +207,14 @@ Future<String> sanidadOmniToLsdTxt({
   // Registro 4 - Bases imponibles
   // --- CORRECCIÓN ARCA: Usar generador de 10 bases completas ---
   final bases = List<double>.filled(10, 0.0);
-  bases[0] = liquidacion.baseImponibleTopeada; // Base 1
-  bases[1] = liquidacion.baseImponibleTopeada; // Base 2
-  bases[2] = liquidacion.baseImponibleTopeada; // Base 3
+  // Según requerimiento Sanidad ATSA 2026: 
+  // Las bases 1 a 9 deben reflejar el nuevo total remunerativo (que incluye la Zona recalculada)
+  final baseCalculada = liquidacion.baseImponibleTopeada;
   
-  // Base 9 (LRT) suele ser el Total Remunerativo
-  bases[8] = liquidacion.baseImponibleTopeada; // Base 9 (Array index 8)
-
+  for (int i = 0; i < 9; i++) {
+    bases[i] = baseCalculada;
+  }
+  
   final r4Bases = LSDGenerator.generateRegistro4Bases(
     cuilEmpleado: cuil,
     bases: bases,
