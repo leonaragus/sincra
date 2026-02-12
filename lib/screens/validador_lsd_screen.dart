@@ -86,8 +86,9 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
         final contentLatin1 = latin1.decode(bytes);
 
         final parsed = LSDParserService.parseFileContent(contentLatin1);
-        final topeMin = _updateService.config?['topes']?['min']?.toDouble();
-        final topeMax = _updateService.config?['topes']?['max']?.toDouble();
+        final rules = await ValidadorLSDUpdateService.getActiveRules();
+        final topeMin = rules['topes']?['min']?.toDouble();
+        final topeMax = rules['topes']?['max']?.toDouble();
         
         final validations = LSDValidatorHelper.validateParsedFile(
           parsed,
@@ -533,10 +534,11 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
       builder: (context) => _EmployeeDetailDialog(
         result: res,
         parsedFile: _parsedFile!,
-        onSave: () {
+        onSave: () async {
           // Re-validate everything
-          final topeMin = _updateService.config?['topes']?['min']?.toDouble();
-          final topeMax = _updateService.config?['topes']?['max']?.toDouble();
+          final rules = await ValidadorLSDUpdateService.getActiveRules();
+          final topeMin = rules['topes']?['min']?.toDouble();
+          final topeMax = rules['topes']?['max']?.toDouble();
           
           final validations = LSDValidatorHelper.validateParsedFile(
             _parsedFile!,

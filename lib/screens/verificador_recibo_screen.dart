@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:image_picker/image_picker.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
@@ -7,7 +6,6 @@ import 'package:syncra_arg/services/verificacion_recibo_service.dart';
 import 'teacher_receipt_scan_screen.dart';
 import 'package:syncra_arg/models/recibo_escaneado.dart';
 import 'package:syncra_arg/services/hybrid_store.dart';
-import 'package:syncra_arg/services/parametros_legales_service.dart';
 import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
 import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
 // import 'package:syncra_arg/utils/app_help.dart';
@@ -1067,10 +1065,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   }
 
   // Helper methods to satisfy compilation
-  Widget _buildSelectorConvenio() {
-    // Simplified selector
-    return const SizedBox.shrink();
-  }
   
   Widget _buildMenuHamburguesa() {
     return Drawer(
