@@ -199,33 +199,47 @@ class LSDFormatEngine {
     if (date is DateTime) {
       dateTime = date;
     } else if (date is String) {
+      final String dateStr = date.trim();
+      if (dateStr.isEmpty) {
+        throw FormatException('La fecha no puede estar vacía');
+      }
+
       // Intentar parsear diferentes formatos de fecha
       try {
         // Formato DD/MM/YYYY o DD-MM-YYYY
-        if (date.contains('/') || date.contains('-')) {
-          final parts = date.replaceAll('/', '-').split('-');
+        if (dateStr.contains('/') || dateStr.contains('-')) {
+          final parts = dateStr.replaceAll('/', '-').split('-');
           if (parts.length == 3) {
+            // Intentar DD-MM-YYYY
             final day = int.parse(parts[0]);
             final month = int.parse(parts[1]);
             final year = int.parse(parts[2]);
-            dateTime = DateTime(year, month, day);
+            
+            // Validar que el año sea de 4 dígitos (común en Argentina)
+            if (year < 100) {
+              // Si es YY, asumir 20YY
+              dateTime = DateTime(2000 + year, month, day);
+            } else {
+              dateTime = DateTime(year, month, day);
+            }
           } else {
-            throw FormatException('Formato de fecha inválido: $date');
+            throw FormatException('Formato de fecha inválido (esperado DD/MM/YYYY): $dateStr');
           }
-        } else if (date.length == 8) {
+        } else if (dateStr.length == 8) {
           // Formato YYYYMMDD
-          final year = int.parse(date.substring(0, 4));
-          final month = int.parse(date.substring(4, 6));
-          final day = int.parse(date.substring(6, 8));
+          final year = int.parse(dateStr.substring(0, 4));
+          final month = int.parse(dateStr.substring(4, 6));
+          final day = int.parse(dateStr.substring(6, 8));
           dateTime = DateTime(year, month, day);
         } else {
-          dateTime = DateTime.parse(date);
+          // Intentar parseo ISO
+          dateTime = DateTime.parse(dateStr);
         }
       } catch (e) {
-        throw FormatException('No se pudo parsear la fecha: $date', e);
+        throw FormatException('No se pudo interpretar la fecha "$dateStr". Use formato DD/MM/AAAA.');
       }
     } else {
-      throw ArgumentError('La fecha debe ser DateTime o String');
+      throw ArgumentError('La fecha debe ser DateTime o String, se recibió: ${date.runtimeType}');
     }
     
     // Formatear como AAAAMMDD
@@ -340,16 +354,9 @@ class LSDGenerator {
     final periodoFormateado = _formatearPeriodo(periodo);
     buffer.write(LSDFormatEngine.formatLSDField(periodoFormateado, 6, 'string'));
     
-    DateTime dateTime;
-    if (fechaPago is DateTime) {
-      dateTime = fechaPago;
-    } else {
-      dateTime = DateTime.parse(fechaPago.toString());
-    }
-    final year = dateTime.year.toString().padLeft(4, '0');
-    final month = dateTime.month.toString().padLeft(2, '0');
-    final day = dateTime.day.toString().padLeft(2, '0');
-    buffer.write('$year$month$day');
+    // Usar el método robusto formatDate para la fecha de pago
+    final fechaPagoBytes = LSDFormatEngine.formatDate(fechaPago);
+    buffer.write(latin1.decode(fechaPagoBytes));
     
     final razonSocialLimpia = LSDFormatEngine.limpiarTexto(razonSocial ?? '');
     buffer.write(LSDFormatEngine.formatLSDField(razonSocialLimpia, 30, 'string'));
