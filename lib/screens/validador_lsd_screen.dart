@@ -1,7 +1,8 @@
 
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io' as io;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/lsd_parsed_data.dart';
@@ -81,8 +82,16 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
       );
 
       if (result != null && result.files.isNotEmpty) {
-        final file = File(result.files.single.path!);
-        final bytes = await file.readAsBytes();
+        final platformFile = result.files.single;
+        final Uint8List bytes;
+        
+        if (kIsWeb) {
+           bytes = platformFile.bytes!;
+         } else {
+           // Usamos el alias io.File para evitar conflictos en web
+           bytes = platformFile.bytes ?? await io.File(platformFile.path!).readAsBytes();
+         }
+        
         final contentLatin1 = latin1.decode(bytes);
 
         final parsed = LSDParserService.parseFileContent(contentLatin1);
