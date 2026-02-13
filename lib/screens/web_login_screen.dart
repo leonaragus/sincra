@@ -199,119 +199,121 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   Widget _buildLoginSide() {
     return Padding(
       padding: const EdgeInsets.all(48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Iniciá sesión',
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Iniciá sesión',
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Vinculá tu cuenta escaneando el código',
-            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withValues(alpha: 0.5)),
-            textAlign: TextAlign.center,
-          ),
-          
-          const SizedBox(height: 40),
-          
-          // Contenedor del QR con diseño moderno
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
+            const SizedBox(height: 8),
+            Text(
+              'Vinculá tu cuenta escaneando el código',
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withValues(alpha: 0.5)),
+              textAlign: TextAlign.center,
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Contenedor del QR con diseño moderno
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
+                  ),
+                ],
+              ),
+              child: QrImageView(
+                data: _sessionId,
+                version: QrVersions.auto,
+                size: 180.0, // Reducido un poco para evitar overflow
+                foregroundColor: const Color(0xFF0D1B2A),
+                gapless: true,
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('o ingresá clave', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
                 ),
+                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
               ],
             ),
-            child: QrImageView(
-              data: _sessionId,
-              version: QrVersions.auto,
-              size: 200.0,
-              foregroundColor: const Color(0xFF0D1B2A),
-              gapless: true,
-            ),
-          ),
-          
-          const SizedBox(height: 40),
-          
-          Row(
-            children: [
-              Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('o ingresá clave', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
+            
+            const SizedBox(height: 24),
+            
+            // Input de clave refinado
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
-              Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Input de clave refinado
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: TextField(
-              controller: _codigo,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 20,
-                letterSpacing: 8,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-              maxLength: 6,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: '000000',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
-                counterText: '',
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                prefixIcon: const Icon(Icons.key, color: Colors.amber, size: 18),
-                suffixIcon: IconButton(
-                  onPressed: _loading ? null : _ingresarCodigo,
-                  icon: _loading 
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber))
-                    : const Icon(Icons.arrow_forward_rounded, color: Colors.amber),
+              child: TextField(
+                controller: _codigo,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 20,
+                  letterSpacing: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+                maxLength: 6,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: '000000',
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
+                  counterText: '',
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  prefixIcon: const Icon(Icons.key, color: Colors.amber, size: 18),
+                  suffixIcon: IconButton(
+                    onPressed: _loading ? null : _ingresarCodigo,
+                    icon: _loading 
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber))
+                      : const Icon(Icons.arrow_forward_rounded, color: Colors.amber),
+                  ),
                 ),
               ),
             ),
-          ),
-          
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Text(
-                _error!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                ),
+              ),
+            
+            const SizedBox(height: 32),
+            
+            Text(
+              '¿No tenés la App? Descargala en Play Store',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.4),
+                decoration: TextDecoration.underline,
               ),
             ),
-          
-          const SizedBox(height: 32),
-          
-          Text(
-            '¿No tenés la App? Descargala en Play Store',
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.4),
-              decoration: TextDecoration.underline,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -153,7 +153,40 @@ class LSDValidatorHelper {
 
         // Verificar que el total remunerativo coincida con Base 1 (con margen de redondeo)
         final base1 = bases.getBaseAsDouble(0);
-        if ((totalRemu - base1).abs() > 2.0) {
+        
+        // CORRECCIÓN: Considerar tope máximo en la comparación
+        double totalEsperado = totalRemu;
+        if (topeMax != null && totalRemu > topeMax) {
+          totalEsperado = topeMax;
+        }
+
+        // CORRECCIÓN DOCENTES: En Guía 4, algunos conceptos como FONID/CONECTIVIDAD 
+        // a veces se excluyen de la base 1 pero se informan como remunerativos (tipo H).
+        // Si hay una diferencia significativa, intentamos ver si restando esos conceptos coincide.
+        bool coincide = (totalEsperado - base1).abs() <= 2.0;
+        
+        if (!coincide) {
+          double montoExcluidoDocente = 0.0;
+          for (var c in conceptos) {
+            final cod = c.codigo.toUpperCase();
+            if (cod.contains('FONID') || cod.contains('CONECT') || cod.contains('CONEC') || cod.contains('IPC_FONID') || cod.contains('COMP_FONID')) {
+              if (c.tipo == 'H' || c.tipo == 'R') {
+                montoExcluidoDocente += c.importeAsDouble;
+              }
+            }
+          }
+          
+          double totalEsperadoDocente = totalRemu - montoExcluidoDocente;
+          if (topeMax != null && totalEsperadoDocente > topeMax) {
+            totalEsperadoDocente = topeMax;
+          }
+
+          if ((totalEsperadoDocente - base1).abs() <= 2.0) {
+            coincide = true;
+          }
+        }
+
+        if (!coincide) {
           errors.add(ValidationIssue(
             'Total Remunerativo (\$${totalRemu.toStringAsFixed(2)}) no coincide con Base Imponible 1 (\$${base1.toStringAsFixed(2)}). ARCA rechazará la declaración.',
             ValidationIssueType.generic
