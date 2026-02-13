@@ -3,11 +3,10 @@
 // Exportación individual y masiva
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'package:archive/archive.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import '../utils/file_saver.dart';
 import 'sanidad_omni_engine.dart';
 import 'lsd_engine.dart';
 import 'lsd_mapping_service.dart';
@@ -346,7 +345,7 @@ Future<String> generarPackARCASanidad({
     resumenBytes,
   ));
   
-  // 4. Comprimir y guardar
+  // 4. Comprimir y guardar usando el utility cross-platform
   final zipEncoder = ZipEncoder();
   final zipBytes = zipEncoder.encode(archive);
   
@@ -354,12 +353,14 @@ Future<String> generarPackARCASanidad({
     throw Exception('Error al comprimir el pack ARCA');
   }
   
-  final dir = await getApplicationDocumentsDirectory();
-  final zipPath = '${dir.path}/Pack_ARCA_Sanidad_${periodoLimpio}_$fechaHoy.zip';
-  final zipFile = File(zipPath);
-  await zipFile.writeAsBytes(zipBytes);
+  final fileName = 'Pack_ARCA_Sanidad_${periodoLimpio}_$fechaHoy.zip';
+  final path = await saveFile(
+    fileName: fileName,
+    bytes: zipBytes,
+    mimeType: 'application/zip',
+  );
   
-  return zipPath;
+  return path ?? fileName;
 }
 
 /// Genera resumen de liquidaciones en texto plano

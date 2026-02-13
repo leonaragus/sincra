@@ -563,22 +563,30 @@ class SanidadOmniEngine {
     final horas50 = horasExtras50(basico, input.horasExtras50);
     final horas100 = horasExtras100(basico, input.horasExtras100);
     
-    // Zona patagónica: para Sanidad (ATSA), la base incluye Básico + Antigüedad + Título + Tarea Crítica + Nocturnidad + Horas Extras
-    final esPatagonica = esZonaPatagonica ?? SanidadParitariasService.jurisdiccionesPatagonicas.contains(jur);
-    final baseZona = basico + antig + titulo + tareaCrit + noct + horas50 + horas100;
-    final plusPatagonia = adicionalZonaPatagonica(baseZona, esPatagonica, jurisdiccion: jur);
-    
-    final fallo = falloCaja(input.categoria, input.manejoEfectivoCaja, jurisdiccion: jur);
-    
     // === CONCEPTOS PROPIOS (haberes) ===
     double totalConceptosPropios = 0;
+    double totalRemunerativosPropios = 0;
     for (final c in input.conceptosPropios) {
       if (c['esDescuento'] != true) {
-        totalConceptosPropios += (c['monto'] as num?)?.toDouble() ?? 0;
+        final monto = (c['monto'] as num?)?.toDouble() ?? 0;
+        totalConceptosPropios += monto;
+        
+        // En LSD, 11XXXX son remunerativos, 12XXXX y 13XXXX son SAC/Vac, 2XXXXX son indemnizaciones (no rem)
+        // Para simplificar, si no se marca como no rem, lo tomamos como rem para la base de zona
+        if (c['esNoRemunerativo'] != true) {
+           totalRemunerativosPropios += monto;
+        }
       }
     }
 
-    // Base para cálculos (sueldo mensual completo)
+    // Zona patagónica: para Sanidad (ATSA), la base incluye Básico + Antigüedad + Título + Tarea Crítica + Nocturnidad + Horas Extras + Conceptos Remunerativos Propios
+    final esPatagonica = esZonaPatagonica ?? SanidadParitariasService.jurisdiccionesPatagonicas.contains(jur);
+    final baseZona = basico + antig + titulo + tareaCrit + noct + horas50 + horas100 + totalRemunerativosPropios;
+    final plusPatagonia = adicionalZonaPatagonica(baseZona, esPatagonica, jurisdiccion: jur);
+ 
+     final fallo = falloCaja(input.categoria, input.manejoEfectivoCaja, jurisdiccion: jur);
+     
+     // Base para cálculos (sueldo mensual completo)
     final sueldoMensualCompleto = basico + antig + titulo + tareaCrit + plusPatagonia + noct + fallo + horas50 + horas100 + totalConceptosPropios;
     final mejorRem = input.mejorRemuneracion ?? sueldoMensualCompleto;
     

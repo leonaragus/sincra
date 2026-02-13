@@ -3,11 +3,9 @@
 // LSD con códigos ARCA 2026 (120000, 810001, 810002, 810003). Reg1 tipo S, Reg2 150ch, Reg3 10 bases 230ch.
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import '../utils/file_saver.dart';
 import '../theme/app_colors.dart';
 import '../models/teacher_types.dart';
 import '../models/teacher_constants.dart';
@@ -364,13 +362,30 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
   }
 
   Future<void> _generarReciboPdf(Map<String, dynamic> legajo) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final p = await _escribirReciboPdfEnCarpeta(dir.path, legajo);
-    if (p != null && mounted) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recibo: $p'))); OpenFile.open(p); }
+    final pdfBytes = await _generarBytesReciboPdf(legajo);
+    if (pdfBytes == null) return;
+
+    final cuilLimpio = (legajo['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
+    final nombre = legajo['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
+    final nombreArchivo = 'recibo_sac_${nombre}_$cuilLimpio.pdf';
+
+    final filePath = await saveFile(
+      fileName: nombreArchivo,
+      bytes: pdfBytes,
+      mimeType: 'application/pdf',
+    );
+
+    if (mounted && filePath != null) {
+      final esWeb = filePath == 'descargado';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(esWeb ? 'Recibo generado y descargado' : 'Recibo: $filePath')),
+      );
+      if (!esWeb) openFile(filePath);
+    }
   }
 
-  /// Escribe el PDF del recibo SAC en [dirPath]. Retorna la ruta del archivo o null.
-  Future<String?> _escribirReciboPdfEnCarpeta(String dirPath, Map<String, dynamic> legajo) async {
+  /// Genera los bytes del PDF del recibo SAC.
+  Future<List<int>?> _generarBytesReciboPdf(Map<String, dynamic> legajo) async {
     final conceptos = _getConceptosCompletos();
     final bruto = _totalHaberesRem();
     final noRem = _totalHaberesNoRem();
@@ -392,7 +407,8 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
     final baseDeCalculo = mayorRem > 0 ? (mayorRem / 2.0) : null;
     final mesPeriodo = _semestre == 1 ? 'Junio' : 'Diciembre';
     final leyendaDep = 'Período $mesPeriodo $_anio - Banco ${inst['bancoAcreditacion'] ?? inst['razonSocial'] ?? ''}';
-    final pdfBytes = await PdfRecibo.generarCompleto(
+    
+    return await PdfRecibo.generarCompleto(
       empresa: emp,
       empleado: empr,
       conceptos: conceptosPdf,
@@ -406,15 +422,10 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
       leyendaUltimoDepositoAportes: leyendaDep,
       incluirBloqueFirmaLey25506: true,
     );
-    final cuilLimpio = (legajo['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
-    final nombre = legajo['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
-    final f = File('$dirPath${Platform.pathSeparator}recibo_sac_${nombre}_$cuilLimpio.pdf');
-    await f.writeAsBytes(pdfBytes);
-    return f.path;
   }
 
-  /// Escribe el archivo LSD ARCA 2026 para [legajo] en [dirPath].
-  Future<String?> _escribirLsdEnCarpeta(String dirPath, Map<String, dynamic> legajo) async {
+  /// Escribe el archivo LSD ARCA 2026 para [legajo]. Retorna el contenido como String.
+  String? _generarContenidoLsd(Map<String, dynamic> legajo) {
     final sac = _getSacActual();
     if (sac <= 0) return null;
     final cuit = _instSeleccionada?['cuit']?.toString().replaceAll(RegExp(r'[^\d]'), '') ?? '';
@@ -483,11 +494,7 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
       sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
-      final nombre = legajo['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
-      final name = 'LSD_SAC_${nombre}_${DateFormat('yyyyMMdd').format(DateTime.now())}.txt';
-      final f = File('$dirPath${Platform.pathSeparator}$name');
-      await f.writeAsString(sb.toString(), encoding: latin1);
-      return f.path;
+      return sb.toString();
     } catch (_) { return null; }
   }
 
@@ -500,58 +507,47 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
       return StatefulBuilder(builder: (ctx2, setD) => AlertDialog(
         title: const Text('Recibos SAC para empleados de la institución'),
         content: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Se crearán PDF y LSD en una carpeta en Descargas. Elija empleados:', style: TextStyle(fontSize: 12)),
+          const Text('Se generarán PDF y LSD para los empleados seleccionados.', style: TextStyle(fontSize: 12)),
           const SizedBox(height: 8),
           ..._legajos.map((l) {
             final cuil = (l['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
             return CheckboxListTile(title: Text('${l['nombre']} — ${l['cuil']}'), value: cuilsSel.contains(cuil), onChanged: (v) => setD(() { if (v == true) cuilsSel.add(cuil); else cuilsSel.remove(cuil); }));
           }),
         ])),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx, <Map<String, dynamic>>[]), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, _legajos.where((l) => cuilsSel.contains((l['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''))).toList()), child: const Text('Generar en carpeta'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx, <Map<String, dynamic>>[]), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, _legajos.where((l) => cuilsSel.contains((l['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''))).toList()), child: const Text('Generar archivos'))],
       ));
     });
     if (seleccionados == null || seleccionados.isEmpty || !mounted) return;
 
     showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
-    Directory? baseDir;
-    try {
-      baseDir = await getDownloadsDirectory();
-    } catch (_) { baseDir = null; }
-    if (baseDir == null || !await baseDir.exists()) {
-      baseDir = await getApplicationDocumentsDirectory();
-    }
-    final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-    final nombreInst = (_instSeleccionada?['razonSocial']?.toString() ?? 'SAC').replaceAll(RegExp(r'[^\w]'), '_');
-    final carpeta = Directory('${baseDir.path}${Platform.pathSeparator}SAC_${nombreInst}_$stamp');
-    await carpeta.create(recursive: true);
-    final rutaCarpeta = carpeta.path;
-
     int pdfOk = 0, lsdOk = 0;
     for (final leg in seleccionados) {
-      final p = await _escribirReciboPdfEnCarpeta(rutaCarpeta, leg);
-      if (p != null) pdfOk++;
-      final l = await _escribirLsdEnCarpeta(rutaCarpeta, leg);
-      if (l != null) lsdOk++;
+      final pdfBytes = await _generarBytesReciboPdf(leg);
+      if (pdfBytes != null) {
+        final cuilLimpio = (leg['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
+        final nombre = leg['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
+        await saveFile(fileName: 'recibo_sac_${nombre}_$cuilLimpio.pdf', bytes: pdfBytes, mimeType: 'application/pdf');
+        pdfOk++;
+      }
+      
+      final lsdContenido = _generarContenidoLsd(leg);
+      if (lsdContenido != null) {
+        final nombre = leg['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
+        final name = 'LSD_SAC_${nombre}_${DateFormat('yyyyMMdd').format(DateTime.now())}.txt';
+        await saveTextFile(fileName: name, content: lsdContenido, mimeType: 'text/plain');
+        lsdOk++;
+      }
+      
+      // Pequeño delay para no saturar el navegador con descargas simultáneas
+      await Future.delayed(const Duration(milliseconds: 300));
     }
 
     if (!mounted) return;
     Navigator.pop(context); // cierra el CircularProgressIndicator
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Archivos generados'),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('$pdfOk PDF y $lsdOk LSD guardados en:', style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          SelectableText(rutaCarpeta, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
-          FilledButton(onPressed: () { Navigator.pop(ctx); OpenFile.open(rutaCarpeta); }, child: const Text('Abrir carpeta')),
-        ],
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Se procesaron $pdfOk recibos y $lsdOk archivos LSD.'))
     );
   }
 
@@ -650,13 +646,16 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
       sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
-      final dir = await getApplicationDocumentsDirectory();
       final name = 'LSD_SAC_Docente_${_legajoSeleccionado!['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado'}_${DateFormat('yyyyMMdd').format(DateTime.now())}.txt';
-      final f = File('${dir.path}/$name');
-      await f.writeAsString(sb.toString(), encoding: latin1);
+      final filePath = await saveTextFile(fileName: name, content: sb.toString(), mimeType: 'text/plain');
+      
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exportado: ${f.path}')));
-      OpenFile.open(f.path);
+      
+      final esWeb = filePath == 'descargado';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(esWeb ? 'LSD generado y descargado' : 'Exportado: $filePath')),
+      );
+      if (!esWeb && filePath != null) openFile(filePath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));

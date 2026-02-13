@@ -1510,14 +1510,12 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       
       if (!mounted) return;
       
-      // final esWeb = path == 'descargado'; // Removed unused variable
-      // ExcelExportService guarda directo a archivo en mobile/desktop. 
-      // Para web necesitaríamos adaptar el servicio, pero asumimos entorno desktop/mobile por ahora o que el servicio maneja web.
+      final esWeb = path == 'web_download' || path == 'descargado';
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Libro de Sueldos generado: $path')),
+        SnackBar(content: Text(esWeb ? 'Libro de Sueldos descargado' : 'Libro de Sueldos generado: $path')),
       );
-      openFile(path);
+      if (!esWeb) openFile(path);
       
     } catch (e) {
       if (!mounted) return;

@@ -3,11 +3,10 @@
 // Genera reportes profesionales en formato .xlsx
 // ========================================================================
 
-import 'dart:io';
 import 'package:excel/excel.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/empleado_completo.dart';
 import 'empleados_service.dart';
+import '../utils/file_saver.dart';
 
 class ExcelExportService {
   /// Genera Excel de libro de sueldos mensual
@@ -118,19 +117,18 @@ class ExcelExportService {
       }
     }
     
-    // Guardar archivo
-    final dir = await getApplicationDocumentsDirectory();
-    final fileName = 'LibroSueldos_${mes}_${anio}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-    final filePath = '${dir.path}/$fileName';
-    
     final fileBytes = excel.encode();
-    if (fileBytes != null) {
-      File(filePath)
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(fileBytes);
-    }
-    
-    return filePath;
+    if (fileBytes == null) return '';
+
+    final fileName = 'LibroSueldos_${mes}_${anio}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
+    final result = await saveFile(
+      fileName: fileName,
+      bytes: fileBytes,
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+
+    return result ?? '';
   }
   
   /// Genera Excel de evolución salarial (12 meses)
@@ -192,19 +190,18 @@ class ExcelExportService {
       row++;
     }
     
-    // Guardar
-    final dir = await getApplicationDocumentsDirectory();
-    final fileName = 'EvolucionSalarial_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-    final filePath = '${dir.path}/$fileName';
-    
     final fileBytes = excel.encode();
-    if (fileBytes != null) {
-      File(filePath)
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(fileBytes);
-    }
-    
-    return filePath;
+    if (fileBytes == null) return '';
+
+    final fileName = 'EvolucionSalarial_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
+    final result = await saveFile(
+      fileName: fileName,
+      bytes: fileBytes,
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+
+    return result ?? '';
   }
   
   /// Genera Excel de resumen por provincia/categoría
@@ -277,19 +274,18 @@ class ExcelExportService {
       row++;
     }
     
-    // Guardar
-    final dir = await getApplicationDocumentsDirectory();
-    final fileName = 'ResumenProvincial_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-    final filePath = '${dir.path}/$fileName';
-    
     final fileBytes = excel.encode();
-    if (fileBytes != null) {
-      File(filePath)
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(fileBytes);
-    }
-    
-    return filePath;
+    if (fileBytes == null) return '';
+
+    final fileName = 'ResumenProvincial_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
+    final result = await saveFile(
+      fileName: fileName,
+      bytes: fileBytes,
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+
+    return result ?? '';
   }
   
   static String _nombreMes(int mes) {

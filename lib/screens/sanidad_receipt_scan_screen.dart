@@ -2,12 +2,12 @@
 // On-Device: ML Kit OCR + prioridad QR JSON > QR URL > OCR.
 // OCR y QR solo en Android/iOS; en Windows/desktop se muestra aviso.
 
-import 'dart:io' show Platform;
+// import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+// import 'package:mobile_scanner/mobile_scanner.dart'; // Comentado para compatibilidad web
 import '../services/sanidad_receipt_scan_service.dart';
 import '../theme/app_colors.dart';
 import 'sanidad_ocr_review_screen.dart';
@@ -97,9 +97,9 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
   @override
   Widget build(BuildContext context) {
     // OCR (ML Kit) y QR (mobile_scanner) solo tienen implementación nativa en Android e iOS.
-    // En Windows/desktop no están los plugins nativos: MissingPluginException.
+    // En Windows/desktop/Web no están los plugins nativos: MissingPluginException.
     // Por eso mostramos aviso y deshabilitamos opciones.
-    final bool isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+    final bool isDesktop = kIsWeb || (!kIsWeb && (Theme.of(context).platform == TargetPlatform.windows || Theme.of(context).platform == TargetPlatform.linux || Theme.of(context).platform == TargetPlatform.macOS));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -130,20 +130,22 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
         children: [
           Icon(Icons.warning_amber, size: 60, color: Colors.orange.shade400),
           const SizedBox(height: 20),
-          const Text(
-            'Escaneo no disponible en Windows/Desktop',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          Text(
+            kIsWeb ? 'Escaneo no disponible en Web' : 'Escaneo no disponible en Windows/Desktop',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          const Text(
-            'El escaneo de recibos (OCR y códigos QR) está disponible solo en Android e iOS.',
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          Text(
+            kIsWeb 
+              ? 'El escaneo de recibos (OCR y códigos QR) no está disponible en la versión Web por limitaciones técnicas.'
+              : 'El escaneo de recibos (OCR y códigos QR) está disponible solo en Android e iOS.',
+            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
-            'Complete los datos manualmente o use un dispositivo móvil.',
+            'Complete los datos manualmente o use la aplicación móvil.',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
@@ -262,8 +264,7 @@ class _QrScannerPage extends StatefulWidget {
 }
 
 class _QrScannerPageState extends State<_QrScannerPage> {
-  final SanidadReceiptScanService _svc = SanidadReceiptScanService();
-
+  /*
   void _onDetect(BarcodeCapture capture) {
     final raw = _svc.getQrRawFromBarcode(capture);
     if (raw == null) return;
@@ -292,6 +293,7 @@ class _QrScannerPageState extends State<_QrScannerPage> {
       widget.onResult(parsed);
     }
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -302,6 +304,13 @@ class _QrScannerPageState extends State<_QrScannerPage> {
         backgroundColor: Colors.black87,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
+      body: const Center(
+        child: Text(
+          'El escaneo QR no está disponible en esta plataforma.',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+      /*
       body: Stack(
         children: [
           MobileScanner(
@@ -326,6 +335,7 @@ class _QrScannerPageState extends State<_QrScannerPage> {
           ),
         ],
       ),
+      */
     );
   }
 }

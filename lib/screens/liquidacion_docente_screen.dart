@@ -2,13 +2,10 @@
 // Se abre desde "Institución ya creada" (con cuit/razon) o "Liquidación mensual".
 // Toda la lógica de cálculo (TeacherOmniEngine, exports, PDF, LSD, Pack ARCA) vive aquí.
 
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../utils/image_bytes_reader.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import '../utils/file_saver.dart';
 import '../models/teacher_types.dart';
 import '../models/teacher_constants.dart';
 import '../models/empresa.dart';
@@ -675,13 +672,20 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     if (cuit.length != 11) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CUIT empresa debe tener 11 dígitos'))); return; }
     try {
       final txt = await teacherOmniToLsdTxt(liquidacion: r, cuitEmpresa: cuit, razonSocial: _razonSocialController.text, domicilio: _domicilioController.text);
-      final dir = await getApplicationDocumentsDirectory();
-      final name = 'LSD_Docente_${r.input.nombre.replaceAll(RegExp(r'[^\w]'), '_')}_${DateFormat('yyyyMMdd').format(DateTime.now())}';
-      final f = File('${dir.path}/$name.txt');
-      await f.writeAsString(txt, encoding: latin1);
+      
+      final name = 'LSD_Docente_${r.input.nombre.replaceAll(RegExp(r'[^\w]'), '_')}_${DateFormat('yyyyMMdd').format(DateTime.now())}.txt';
+      final filePath = await saveTextFile(fileName: name, content: txt, mimeType: 'text/plain');
+      
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exportado: ${f.path}')));
-      OpenFile.open(f.path);
+      
+      final esWeb = filePath == 'descargado';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(esWeb ? 'Archivo LSD generado y descargado' : 'Exportado: $filePath'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      if (!esWeb && filePath != null) openFile(filePath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -833,14 +837,17 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
         incluirBloqueFirmaLey25506: true,
       );
 
-      final dir = await getApplicationDocumentsDirectory();
       final cuilLimpio = r.input.cuil.replaceAll(RegExp(r'[^\d]'), '');
-      final file = File('${dir.path}/recibo_docente_${cuilLimpio}_${DateTime.now().millisecondsSinceEpoch}.pdf');
-      await file.writeAsBytes(pdfBytes);
+      final fileName = 'recibo_docente_${cuilLimpio}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final filePath = await saveFile(fileName: fileName, bytes: pdfBytes, mimeType: 'application/pdf');
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF generado: ${file.path}')));
-      OpenFile.open(file.path);
+      
+      final esWeb = filePath == 'descargado';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(esWeb ? 'PDF generado y descargado' : 'PDF generado: $filePath')),
+      );
+      if (!esWeb && filePath != null) openFile(filePath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al generar PDF: $e')));
@@ -858,7 +865,19 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
       final res = await generarPackCompletoARCA2026(liquidacion: r, cuitEmpresa: cuit, razonSocial: _razonSocialController.text.trim(), domicilio: _domicilioController.text.trim(), artPct: artPct, artCuotaFija: artCuotaFija);
       if (!mounted) return;
       final fmt = NumberFormat.currency(locale: 'es_AR', symbol: '\$', decimalDigits: 2);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pack ARCA 2026 generado. Neto: ${fmt.format(res.neto)} | Costo Laboral Real: ${fmt.format(res.costoLaboralReal)}\n${res.carpeta}'), duration: const Duration(seconds: 6), action: SnackBarAction(label: 'Abrir carpeta', onPressed: () => OpenFile.open(res.carpeta))));
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pack ARCA 2026 generado. Neto: ${fmt.format(res.neto)} | Costo Laboral Real: ${fmt.format(res.costoLaboralReal)}'), 
+          duration: const Duration(seconds: 6), 
+          action: SnackBarAction(
+            label: 'Abrir', 
+            onPressed: () {
+              if (res.zipPath.isNotEmpty) openFile(res.zipPath);
+            }
+          )
+        )
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error Pack ARCA: $e')));
@@ -1279,17 +1298,16 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
               final csv = ContabilidadService.exportarHolistor(asiento, DateTime.now());
               
               // Guardar archivo
-              final directory = await getApplicationDocumentsDirectory();
-              final file = File('${directory.path}/asiento_docente_${DateTime.now().millisecondsSinceEpoch}.csv');
-              await file.writeAsString(csv);
+              final name = 'Asiento_Docente_${DateTime.now().millisecondsSinceEpoch}.csv';
+              final filePath = await saveTextFile(fileName: name, content: csv, mimeType: 'text/csv');
               
               if (mounted) {
                 Navigator.pop(ctx);
+                final esWeb = filePath == 'descargado';
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Exportado a: ${file.path}')),
+                  SnackBar(content: Text(esWeb ? 'CSV descargado: $name' : 'Exportado a: $filePath')),
                 );
-                // Abrir archivo (opcional, si hay visor)
-                 OpenFile.open(file.path);
+                if (!esWeb && filePath != null) openFile(filePath);
               }
             },
             icon: const Icon(Icons.save),
@@ -1447,10 +1465,11 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
       
       if (!mounted) return;
       
+      final esWeb = path == 'web_download' || path == 'descargado';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Libro de Sueldos generado: $path')),
+        SnackBar(content: Text(esWeb ? 'Libro de Sueldos descargado' : 'Libro de Sueldos generado: $path')),
       );
-      OpenFile.open(path);
+      if (!esWeb) openFile(path);
       
     } catch (e) {
       if (!mounted) return;
@@ -1782,7 +1801,34 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
               value: e.tipo, 
               child: Text(e.esSueldoFijo ? '${e.descripcion} (Sueldo Fijo)' : '${e.descripcion} (${e.puntos} pts)')
             )).toList(), 
-            onChanged: (v) { if (v != null) { setState(() => _cargo = v); _recalcular(); } }
+            onChanged: (v) { 
+              if (v != null) { 
+                setState(() {
+                  _cargo = v;
+                  final item = NomencladorFederal2026.itemPorTipo(v);
+                  if (item != null) {
+                    if (item.esHoraCatedra) {
+                      _cantCargosController.text = '0';
+                      final cfg = JurisdiccionDBOmni.get(_jurisdiccion);
+                      if (cfg != null && _horasCatController.text == '0') {
+                        _horasCatController.text = (cfg.topeHorasCatedra ~/ 2).toString();
+                      }
+                    } else {
+                      if (_cantCargosController.text == '0') _cantCargosController.text = '1';
+                      _horasCatController.text = '0';
+                    }
+                    
+                    // Pre-seleccionar nivel si es obvio por el cargo
+                    if (item.descripcion.toLowerCase().contains('inicial')) _nivel = NivelEducativo.inicial;
+                    else if (item.descripcion.toLowerCase().contains('primaria') || item.descripcion.toLowerCase().contains('grado')) _nivel = NivelEducativo.primario;
+                    else if (item.descripcion.toLowerCase().contains('media') || item.descripcion.toLowerCase().contains('secundaria')) _nivel = NivelEducativo.secundario;
+                    else if (item.descripcion.toLowerCase().contains('terciaria')) _nivel = NivelEducativo.terciario;
+                    else if (item.descripcion.toLowerCase().contains('superior')) _nivel = NivelEducativo.superior;
+                  }
+                }); 
+                _recalcular(); 
+              } 
+            }
           ),
           DropdownButtonFormField<NivelEducativo>(value: _nivel, decoration: const InputDecoration(labelText: 'Nivel'), items: const [DropdownMenuItem(value: NivelEducativo.inicial, child: Text('Inicial')), DropdownMenuItem(value: NivelEducativo.primario, child: Text('Primario')), DropdownMenuItem(value: NivelEducativo.secundario, child: Text('Secundario')), DropdownMenuItem(value: NivelEducativo.terciario, child: Text('Terciario')), DropdownMenuItem(value: NivelEducativo.superior, child: Text('Superior'))], onChanged: (v) { if (v != null) { setState(() => _nivel = v); _recalcular(); } }),
           DropdownButtonFormField<ZonaDesfavorable>(value: _zona, decoration: const InputDecoration(labelText: 'Zona desfavorable'), items: const [DropdownMenuItem(value: ZonaDesfavorable.a, child: Text('Zona A (0%)')), DropdownMenuItem(value: ZonaDesfavorable.b, child: Text('Zona B (20%)')), DropdownMenuItem(value: ZonaDesfavorable.c, child: Text('Zona C (40%)')), DropdownMenuItem(value: ZonaDesfavorable.d, child: Text('Zona D (80%)')), DropdownMenuItem(value: ZonaDesfavorable.e, child: Text('Zona E (110%)'))], onChanged: (v) { if (v != null) { setState(() => _zona = v); _recalcular(); } }),

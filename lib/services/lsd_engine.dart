@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:io';
 import '../config/arca_lsd_config.dart';
 import '../models/liquidacion.dart';
 import '../services/parametros_legales_service.dart';
@@ -823,12 +822,13 @@ class LSDGenerator {
   /// [longitudEsperada] - Longitud esperada de las líneas (default 195 para ARCA LSD)
   /// 
   /// Retorna la ruta completa del archivo guardado
-  static Future<String> guardarArchivoTXT({
+  /// Valida el contenido del archivo LSD y devuelve los bytes en formato Windows-1252 (ANSI)
+  /// Lanza [StateError] si la validación falla.
+  static Uint8List validarYObtenerBytesLSD({
     required String contenido,
-    required String nombreArchivo,
     int longitudEsperada = 195,
-  }) async {
-    // ========== VALIDACIÓN FINAL ANTES DE GUARDAR ==========
+  }) {
+    // ========== VALIDACIÓN FINAL ==========
     final lineas = contenido.split('\n').where((l) => l.trim().isNotEmpty).toList();
     final errores = <String>[];
     
@@ -860,7 +860,7 @@ class LSDGenerator {
       }
     }
     
-    // BLOQUEAR DESCARGA si hay errores
+    // BLOQUEAR si hay errores
     if (errores.isNotEmpty) {
       throw StateError(
         'ERROR CRÍTICO: El archivo no puede generarse debido a inconsistencias:\n'
@@ -869,14 +869,9 @@ class LSDGenerator {
       );
     }
     
-    final file = File('$nombreArchivo.txt');
-    
     // Codificar el contenido en Windows-1252 (ANSI) - OBLIGATORIO
     // Usar latin1 que es compatible con Windows-1252 para caracteres básicos
-    final bytes = latin1.encode(contenido);
-    await file.writeAsBytes(bytes);
-    
-    return file.path;
+    return latin1.encode(contenido);
   }
 
   /// Asigna el código AFIP a un concepto según la lógica de mapeo de ARCA

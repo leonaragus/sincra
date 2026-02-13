@@ -2,11 +2,9 @@
 // Institución + Legajo, período. VacacionesService + sueldo de TeacherOmniEngine. Export LSD.
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import '../utils/file_saver.dart';
 import '../theme/app_colors.dart';
 import '../services/instituciones_service.dart';
 import '../services/teacher_omni_engine.dart' show TeacherOmniEngine, LiquidacionOmniResult;
@@ -246,13 +244,16 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
       sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
-      final dir = await getApplicationDocumentsDirectory();
       final name = 'LSD_Vacaciones_Docente_${_legajoSeleccionado!['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'emp'}_${DateFormat('yyyyMMdd').format(DateTime.now())}.txt';
-      final f = File('${dir.path}/$name');
-      await f.writeAsString(sb.toString(), encoding: latin1);
+      final filePath = await saveTextFile(fileName: name, content: sb.toString(), mimeType: 'text/plain');
+      
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exportado: ${f.path}')));
-      OpenFile.open(f.path);
+      
+      final esWeb = filePath == 'descargado';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(esWeb ? 'LSD generado y descargado' : 'Exportado: $filePath')),
+      );
+      if (!esWeb && filePath != null) openFile(filePath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));

@@ -1,28 +1,22 @@
 
 import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/contabilidad/mapeo_contable.dart';
 import '../models/contabilidad/cuenta_contable.dart';
 
 class ContabilidadConfigService {
-  static const String _fileName = 'perfil_contable.json';
-
-  static Future<File> _getFile() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/$_fileName');
-  }
+  static const String _storageKey = 'perfil_contable_json';
 
   static Future<void> guardarPerfil(PerfilContable perfil) async {
-    final file = await _getFile();
-    await file.writeAsString(jsonEncode(perfil.toMap()));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_storageKey, jsonEncode(perfil.toMap()));
   }
 
   static Future<PerfilContable> cargarPerfil() async {
     try {
-      final file = await _getFile();
-      if (await file.exists()) {
-        final content = await file.readAsString();
+      final prefs = await SharedPreferences.getInstance();
+      final content = prefs.getString(_storageKey);
+      if (content != null && content.isNotEmpty) {
         return PerfilContable.fromMap(jsonDecode(content));
       }
     } catch (e) {

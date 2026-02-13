@@ -9,7 +9,7 @@ import '../services/reportes_service.dart';
 import '../services/excel_export_service.dart';
 import '../theme/app_colors.dart';
 import 'package:intl/intl.dart';
-import 'package:open_file/open_file.dart';
+import '../utils/file_saver.dart';
 
 class DashboardGerencialScreen extends StatefulWidget {
   final String? empresaCuit;
@@ -545,15 +545,17 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
       
       Navigator.pop(context); // Cerrar diálogo
       
+      final esWeb = rutaArchivo == 'web_download' || rutaArchivo == 'descargado';
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Excel generado exitosamente'),
+        SnackBar(
+          content: Text(esWeb ? 'Excel descargado exitosamente' : 'Excel generado exitosamente'),
           backgroundColor: Colors.green,
         ),
       );
       
       // Abrir archivo
-      await OpenFile.open(rutaArchivo);
+      if (!esWeb) await openFile(rutaArchivo);
       
     } catch (e) {
       Navigator.pop(context); // Cerrar diálogo

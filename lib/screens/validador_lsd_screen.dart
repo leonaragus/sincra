@@ -1,8 +1,6 @@
 
 import 'dart:convert';
-import 'dart:io' as io;
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/lsd_parsed_data.dart';
@@ -80,18 +78,16 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['txt'],
+        withData: true,
       );
 
       if (result != null && result.files.isNotEmpty) {
         final platformFile = result.files.single;
-        final Uint8List bytes;
+        final bytes = platformFile.bytes;
         
-        if (kIsWeb) {
-           bytes = platformFile.bytes!;
-         } else {
-           // Usamos el alias io.File para evitar conflictos en web
-           bytes = platformFile.bytes ?? await io.File(platformFile.path!).readAsBytes();
-         }
+        if (bytes == null) {
+          throw Exception("No se pudieron leer los bytes del archivo");
+        }
         
         final contentLatin1 = latin1.decode(bytes);
 

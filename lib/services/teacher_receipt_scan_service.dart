@@ -5,9 +5,8 @@
 // ========================================================================
 
 import 'dart:convert';
-import 'dart:ui' show Size;
 import 'package:flutter/foundation.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+// import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Origen de los datos extraídos
@@ -64,50 +63,6 @@ class TeacherReceiptScanService {
   static final TeacherReceiptScanService _instance = TeacherReceiptScanService._();
   factory TeacherReceiptScanService() => _instance;
   TeacherReceiptScanService._();
-
-  TextRecognizer? _textRecognizer;
-
-  TextRecognizer get _recognizer {
-    _textRecognizer ??= TextRecognizer(script: TextRecognitionScript.latin);
-    return _textRecognizer!;
-  }
-
-  /// Liberar recurso (llamar al cerrar el flujo de escaneo)
-  void close() {
-    _textRecognizer?.close();
-    _textRecognizer = null;
-  }
-
-  // --- Regex 2026: precisos pero permisivos con fotos de baja calidad ---
-  // Se prioriza detectar todo lo posible; lo faltante se completa a mano o con otra foto.
-
-  /// CUIL: \d{2}-\d{8}-\d{1} o con guión/espacio mal leído: \d{2}[-\s]?\d{8}[-\s]?\d
-  static final RegExp _reCuil = RegExp(r'\b\d{2}-\d{8}-\d{1}\b');
-  static final RegExp _reCuilLax = RegExp(r'\b\d{2}[-\s]?\d{8}[-\s]?\d\b');
-
-  /// Sueldo Básico: 1 o 2 decimales; admite punto o coma. Incluye "Sueldo" por variantes.
-  static final RegExp _reBasico = RegExp(
-    r'(?i)(?:Básico|Basico|Sueldo|001|S\.?Basico).*?(\d{1,3}(?:\.\d{3})*[.,]\d{1,2})',
-  );
-  /// Fallback: número de 4–7 dígitos tras Básico/Sueldo (por si se pierde la coma).
-  static final RegExp _reBasicoLax = RegExp(
-    r'(?i)(?:Básico|Basico|Sueldo|001|S\.?Basico).*?(\d{4,7})\b',
-  );
-
-  /// % Antigüedad: (\d{1,3})\s?%
-  static final RegExp _reAntig = RegExp(
-    r'(?:Antig|Años|Aniversario).*?(\d{1,3})\s?%',
-    caseSensitive: false,
-  );
-
-  /// Valor Índice: entero 1–4 dígitos, 2–6 decimales (fotos borrosas pueden perder decimales).
-  static final RegExp _reValorIndice = RegExp(r'\b\d{1,4}[.,]\d{2,6}\b');
-
-  /// Puntos: 2–5 dígitos (Ptos|Pje|Puntos|Pts).
-  static final RegExp _rePuntos = RegExp(
-    r'(?:Ptos|Pje|Puntos|Pts)[:\s]*(\d{2,5})',
-    caseSensitive: false,
-  );
 
   /// Convierte formato argentino 1.234,56 a double. On-Device.
   static double? cleanAmount(String? s) {
@@ -202,19 +157,23 @@ class TeacherReceiptScanService {
   // --- OCR (on-device) ---
 
   /// Ejecuta OCR sobre [imagePath] (ruta a archivo). Procesamiento 100% local.
-  /// [InputImage.fromFilePath] requiere path. Si se usa [InputImage.fromFile],
-  /// hay que pasar File. Aquí asumimos path o se puede cambiar a XFile/File.
   Future<OcrExtractResult> runOcrFromPath(String imagePath) async {
     try {
+      /*
       final inputImage = InputImage.fromFilePath(imagePath);
       final RecognizedText recognized = await _recognizer.processImage(inputImage);
       final String full = recognized.text;
       return _applyRegex(full);
+      */
+      return const OcrExtractResult(
+        source: OcrExtractSource.ocr,
+        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
+      );
     } catch (e, st) {
       debugPrint('TeacherReceiptScanService.runOcr: $e\n$st');
       return const OcrExtractResult(
         source: OcrExtractSource.ocr,
-        error: 'No se pudo leer la imagen. Complete los datos a mano o escanee una foto con mejor resolución.',
+        error: 'No se pudo leer la imagen.',
       );
     }
   }
@@ -222,6 +181,7 @@ class TeacherReceiptScanService {
   /// OCR desde bytes. [bytes] en formato NV21/YUV (p. ej. cámara Android). Para archivos use [runOcrFromPath].
   Future<OcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
     try {
+      /*
       final inputImage = InputImage.fromBytes(
         bytes: bytes,
         metadata: InputImageMetadata(
@@ -233,70 +193,19 @@ class TeacherReceiptScanService {
       );
       final RecognizedText recognized = await _recognizer.processImage(inputImage);
       return _applyRegex(recognized.text);
+      */
+      return const OcrExtractResult(
+        source: OcrExtractSource.ocr,
+        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
+      );
     } catch (e, st) {
       debugPrint('TeacherReceiptScanService.runOcrFromBytes: $e\n$st');
       return const OcrExtractResult(
         source: OcrExtractSource.ocr,
-        error: 'No se pudo leer la imagen. Complete los datos a mano o escanee una foto con mejor resolución.',
+        error: 'No se pudo leer la imagen.',
       );
     }
   }
-
-  /// Aplica regex al texto OCR. Preciso pero permisivo con baja calidad de imagen.
-  /// Si algo no se detecta, el usuario lo completa a mano o escanea de nuevo. Usa cleanAmount para formato argentino.
-  OcrExtractResult _applyRegex(String full) {
-    String? cuil;
-    double? sueldoBasico;
-    double? antiguedadPct;
-    int? puntos;
-    double? valorIndice;
-
-    // CUIL: estricto primero; fallback laxo (guiones/espacios) y normalizamos
-    var mCuil = _reCuil.firstMatch(full);
-    if (mCuil != null) {
-      cuil = mCuil.group(0);
-    } else {
-      mCuil = _reCuilLax.firstMatch(full);
-      if (mCuil != null) cuil = _normalizeCuil(mCuil.group(0)!);
-    }
-
-    // Sueldo Básico: estricto (decimales); fallback solo dígitos si se pierde la coma
-    final mBas = _reBasico.firstMatch(full);
-    if (mBas != null) {
-      sueldoBasico = cleanAmount(mBas.group(1));
-    } else {
-      final mLax = _reBasicoLax.firstMatch(full);
-      if (mLax != null) sueldoBasico = cleanAmount(mLax.group(1));
-    }
-
-    // % Antigüedad
-    final mAnt = _reAntig.firstMatch(full);
-    if (mAnt != null) {
-      final n = int.tryParse(mAnt.group(1) ?? '');
-      if (n != null) antiguedadPct = n.toDouble();
-    }
-
-    // Valor Índice: 2–6 decimales
-    final mVi = _reValorIndice.firstMatch(full);
-    if (mVi != null) valorIndice = cleanAmount(mVi.group(0));
-
-    // Puntos: 2–5 dígitos
-    final mPt = _rePuntos.firstMatch(full);
-    if (mPt != null) puntos = int.tryParse(mPt.group(1) ?? '');
-
-    return OcrExtractResult(
-      cuil: cuil,
-      nombre: null,
-      sueldoBasico: sueldoBasico,
-      antiguedadPct: antiguedadPct,
-      puntos: puntos,
-      valorIndice: valorIndice,
-      source: OcrExtractSource.ocr,
-      rawTextOcr: full.length > 2000 ? '${full.substring(0, 2000)}...' : full,
-    );
-  }
-
-  // --- Escaneo QR con MobileScanner (decodificación; la cámara se maneja en UI) ---
 
   /// Parsea el contenido de [BarcodeCapture] si es código QR. Devuelve el string raw.
   String? getQrRawFromBarcode(BarcodeCapture capture) {
@@ -307,5 +216,10 @@ class TeacherReceiptScanService {
       if ((v ?? '').isNotEmpty) return v;
     }
     return null;
+  }
+
+  void close() {
+    // _textRecognizer?.close();
+    // _textRecognizer = null;
   }
 }

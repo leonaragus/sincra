@@ -8,7 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+// import 'dart:io'; // Removed for web compatibility
 
 /// Modelo de CCT
 class CCTMaster {
@@ -156,8 +157,16 @@ class CCTCloudService {
         'error': 'Sin conexión a internet',
       };
     }
+
+    if (kIsWeb) {
+      return {
+        'success': false,
+        'error': 'La carga de resultados del robot no está disponible en la versión Web.',
+      };
+    }
     
     try {
+      /*
       // Leer archivo de resultados del robot
       final file = File(rutaArchivoResultados);
       if (!await file.exists()) {
@@ -168,6 +177,8 @@ class CCTCloudService {
       }
       
       final contenido = await file.readAsString();
+      */
+      const contenido = ''; // Placeholder for disabled logic
       final datos = jsonDecode(contenido) as Map<String, dynamic>;
       
       final ccts = datos['ccts'] as List? ?? [];

@@ -2,11 +2,13 @@ import 'dart:typed_data';
 
 // Selecciona el archivo según la plataforma
 export 'file_saver_stub_other.dart' 
-    if (dart.library.html) 'file_saver_web.dart';
+    if (dart.library.html) 'file_saver_web.dart'
+    if (dart.library.io) 'file_saver_io.dart';
 
 // Importación necesaria para que las funciones de abajo reconozcan las versiones "Impl"
 import 'file_saver_stub_other.dart' 
-    if (dart.library.html) 'file_saver_web.dart';
+    if (dart.library.html) 'file_saver_web.dart'
+    if (dart.library.io) 'file_saver_io.dart';
 
 Future<String?> saveFile({
   required String fileName,

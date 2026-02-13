@@ -2,7 +2,8 @@
 // On-Device: ML Kit OCR + prioridad QR JSON > QR URL > OCR. Loading y manejo de imagen borrosa.
 // OCR y QR solo en Android/iOS; en Windows/desktop se muestra aviso (evita MissingPluginException).
 
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+// import 'dart:io' show Platform; // Removed for web compatibility
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -99,7 +100,7 @@ class _TeacherReceiptScanScreenState extends State<TeacherReceiptScanScreen> {
 
   /// OCR (ML Kit) y QR (mobile_scanner) solo tienen implementación nativa en Android e iOS.
   /// En Windows/macOS/Linux se evita invocar los plugins para no generar MissingPluginException.
-  static bool get _isScanSupported => Platform.isAndroid || Platform.isIOS;
+  static bool get _isScanSupported => !kIsWeb; // Simplificado para permitir web/mobile pero MLKit fallará en web, manejado por OCRService
 
   @override
   Widget build(BuildContext context) {

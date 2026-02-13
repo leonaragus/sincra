@@ -4,9 +4,9 @@
 // ========================================================================
 
 import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import 'package:archive/archive.dart';
 import 'package:intl/intl.dart';
+import '../utils/file_saver.dart';
 import '../models/teacher_types.dart';
 import 'teacher_omni_engine.dart';
 import 'teacher_lsd_export.dart';
@@ -226,15 +226,15 @@ String generarReciboTxtDocente({
 }
 
 class TeacherArcaPackResult {
-  final String carpeta;
+  final String zipPath;
   final double neto;
   final double costoLaboralReal;
   final List<String> archivos;
 
-  TeacherArcaPackResult({required this.carpeta, required this.neto, required this.costoLaboralReal, required this.archivos});
+  TeacherArcaPackResult({required this.zipPath, required this.neto, required this.costoLaboralReal, required this.archivos});
 }
 
-/// Genera y guarda el Pack Completo ARCA 2026: MD_Conceptos.txt, Liquidacion.txt, Recibo TXT.
+/// Genera y guarda el Pack Completo ARCA 2026 en un archivo ZIP (Multiplataforma)
 Future<TeacherArcaPackResult> generarPackCompletoARCA2026({
   required LiquidacionOmniResult liquidacion,
   required String cuitEmpresa,
@@ -246,33 +246,47 @@ Future<TeacherArcaPackResult> generarPackCompletoARCA2026({
   final cuit = cuitEmpresa.replaceAll(RegExp(r'[^\d]'), '');
   if (cuit.length != 11) throw ArgumentError('CUIT debe tener 11 dígitos');
 
-  final dir = await getApplicationDocumentsDirectory();
+  final archive = Archive();
   final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-  final carpeta = '${dir.path}${Platform.pathSeparator}ARCA_Pack_2026_$stamp';
-  await Directory(carpeta).create(recursive: true);
+  final fileNameZip = 'ARCA_Pack_2026_$stamp.zip';
+  
+  final archivosNombres = <String>[];
 
-  final archivos = <String>[];
-
+  // 1. MD_Conceptos.txt
   final mdConceptos = generarMDConceptosDocente(cajaPrevisional: liquidacion.config.cajaPrevisional);
-  final f1 = File('$carpeta${Platform.pathSeparator}MD_Conceptos.txt');
-  await f1.writeAsString(_normalizarEol(mdConceptos), encoding: latin1);
-  archivos.add(f1.path);
+  final mdBytes = latin1.encode(_normalizarEol(mdConceptos));
+  archive.addFile(ArchiveFile('MD_Conceptos.txt', mdBytes.length, mdBytes));
+  archivosNombres.add('MD_Conceptos.txt');
 
-  final liqTxt = await teacherOmniToLsdTxt(liquidacion: liquidacion, cuitEmpresa: cuit, razonSocial: razonSocial, domicilio: domicilio);
-  final f2 = File('$carpeta${Platform.pathSeparator}Liquidacion.txt');
-  await f2.writeAsString(_normalizarEol(liqTxt), encoding: latin1);
-  archivos.add(f2.path);
+  // 2. Liquidacion.txt
+  final liqTxt = await teacherOmniToLsdTxt(
+    liquidacion: liquidacion, 
+    cuitEmpresa: cuit, 
+    razonSocial: razonSocial, 
+    domicilio: domicilio
+  );
+  final liqBytes = latin1.encode(_normalizarEol(liqTxt));
+  archive.addFile(ArchiveFile('Liquidacion.txt', liqBytes.length, liqBytes));
+  archivosNombres.add('Liquidacion.txt');
 
+  // 3. Recibo.txt
   final cuilLimpio = liquidacion.input.cuil.replaceAll(RegExp(r'[^\d]'), '');
   final periodoShort = liquidacion.periodo.toLowerCase().contains('enero') ? '202601' : liquidacion.periodo.replaceAll(RegExp(r'[^\d]'), '').padLeft(6, '0').substring(0, 6);
-  final recibo = generarReciboTxtDocente(r: liquidacion, razonSocial: razonSocial, cuitEmpresa: cuitEmpresa, domicilio: domicilio, nombreEmpleado: liquidacion.input.nombre, cuilEmpleado: liquidacion.input.cuil);
-  final f3 = File('$carpeta${Platform.pathSeparator}Recibo_${cuilLimpio}_$periodoShort.txt');
-  await f3.writeAsString(_normalizarEol(recibo), encoding: latin1);
-  archivos.add(f3.path);
+  final recibo = generarReciboTxtDocente(
+    r: liquidacion, 
+    razonSocial: razonSocial, 
+    cuitEmpresa: cuitEmpresa, 
+    domicilio: domicilio, 
+    nombreEmpleado: liquidacion.input.nombre, 
+    cuilEmpleado: liquidacion.input.cuil
+  );
+  final recBytes = latin1.encode(_normalizarEol(recibo));
+  final recFileName = 'Recibo_${cuilLimpio}_$periodoShort.txt';
+  archive.addFile(ArchiveFile(recFileName, recBytes.length, recBytes));
+  archivosNombres.add(recFileName);
 
-  // --- NUEVO: Generar instructivo de mapeo AFIP ---
+  // 4. Instructivo de mapeo AFIP
   final codigosUsados = <String>[];
-  // Agregar conceptos estándar si tienen monto > 0
   if (liquidacion.sueldoBasico > 0) codigosUsados.add(TeacherLsdCodigos.sueldoBasico);
   if (liquidacion.adicionalAntiguedad > 0) codigosUsados.add(TeacherLsdCodigos.antiguedad);
   if (liquidacion.fonid > 0) codigosUsados.add(TeacherLsdCodigos.fonid);
@@ -282,23 +296,38 @@ Future<TeacherArcaPackResult> generarPackCompletoARCA2026({
   if (liquidacion.itemAula > 0) codigosUsados.add(TeacherLsdCodigos.itemAula);
   if (liquidacion.estadoDocente > 0) codigosUsados.add(TeacherLsdCodigos.estadoDocente);
   if (liquidacion.presentismo > 0) codigosUsados.add(TeacherLsdCodigos.presentismo);
-  // Agregar conceptos propios
   for (final c in liquidacion.conceptosPropios) {
     if (c.monto > 0) {
       codigosUsados.add(c.codigo.length > 10 ? c.codigo.substring(0, 10) : c.codigo);
     }
   }
-  // Descuentos estándar
   if (liquidacion.aporteJubilacion > 0) codigosUsados.add(TeacherLsdCodigos.jubilacion);
   if (liquidacion.aporteObraSocial > 0) codigosUsados.add(TeacherLsdCodigos.obraSocial);
   if (liquidacion.aportePami > 0) codigosUsados.add(TeacherLsdCodigos.ley19032);
   
   final instructivo = LsdMappingService.generarInstructivo(codigosUsados.toSet().toList());
-  final f4 = File('$carpeta${Platform.pathSeparator}INSTRUCTIVO_IMPORTANTE_AFIP.txt');
-  await f4.writeAsString(_normalizarEol(instructivo), encoding: utf8); // UTF8 para que se lea bien en cualquier editor moderno
-  archivos.add(f4.path);
+  final insBytes = utf8.encode(_normalizarEol(instructivo));
+  archive.addFile(ArchiveFile('INSTRUCTIVO_IMPORTANTE_AFIP.txt', insBytes.length, insBytes));
+  archivosNombres.add('INSTRUCTIVO_IMPORTANTE_AFIP.txt');
+
+  // Comprimir
+  final zipEncoder = ZipEncoder();
+  final zipBytes = zipEncoder.encode(archive);
+  if (zipBytes == null) throw Exception('Error al comprimir el pack ARCA');
+
+  // Guardar usando utility cross-platform
+  final path = await saveFile(
+    fileName: fileNameZip,
+    bytes: zipBytes,
+    mimeType: 'application/zip',
+  );
 
   final costo = calcularCostoPatronal(liquidacion.totalBrutoRemunerativo, artPct: artPct, artCuotaFija: artCuotaFija);
 
-  return TeacherArcaPackResult(carpeta: carpeta, neto: liquidacion.netoACobrar, costoLaboralReal: costo.totalCostoLaboralReal, archivos: archivos);
+  return TeacherArcaPackResult(
+    zipPath: path ?? fileNameZip, 
+    neto: liquidacion.netoACobrar, 
+    costoLaboralReal: costo.totalCostoLaboralReal, 
+    archivos: archivosNombres
+  );
 }

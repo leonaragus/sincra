@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:syncra_arg/models/liquidacion.dart';
 
@@ -16,17 +16,11 @@ class BejermanImportService {
   static const int COL_UNIDADES = 5;
   static const int COL_IMPORTE = 6; // Neto o Importe del concepto
 
-  /// Importa un archivo Excel de Bejerman y lo convierte a una lista de comparativas
+  /// Importa los bytes de un archivo Excel de Bejerman y lo convierte a una lista de comparativas
   Future<List<ComparativaBejerman>> importarYComparar(
-    String filePath, 
+    Uint8List bytes, 
     List<Liquidacion> liquidacionesLocales
   ) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
-      throw Exception("El archivo no existe");
-    }
-
-    final bytes = await file.readAsBytes();
     final excel = Excel.decodeBytes(bytes);
     
     final Map<String, double> netosBejerman = {};

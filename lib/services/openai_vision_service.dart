@@ -1,6 +1,7 @@
 
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
+// import 'dart:io'; // Removed for web compatibility
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,13 +28,12 @@ class OpenAIVisionService {
   }
 
   /// Analiza una imagen usando GPT-4o con Vision
-  static Future<String> analyzeReceipt(File imageFile) async {
+  static Future<String> analyzeReceipt(Uint8List bytes) async {
     final apiKey = await getApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       throw Exception('OpenAI API Key no configurada');
     }
 
-    final bytes = await imageFile.readAsBytes();
     final base64Image = base64Encode(bytes);
 
     final url = Uri.parse('https://api.openai.com/v1/chat/completions');

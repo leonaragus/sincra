@@ -2,11 +2,9 @@
 // Mesa WYSIWYG: TextFormField dinámicos, recálculo en tiempo real (listeners), conceptos manuales (Nombre, Monto, Código AFIP 6), override % Jub/OS/PAMI.
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import '../utils/file_saver.dart';
 import '../theme/app_colors.dart';
 import '../models/teacher_types.dart';
 import '../models/teacher_constants.dart';
@@ -359,14 +357,22 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
       incluirBloqueFirmaLey25506: true,
     );
 
-    final dir = await getApplicationDocumentsDirectory();
     final cuilLimpio = (legajo['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
     final nombre = legajo['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
-    final f = File('${dir.path}${Platform.pathSeparator}recibo_sac_${nombre}_$cuilLimpio.pdf');
-    await f.writeAsBytes(pdfBytes);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF: ${f.path}')));
-      OpenFile.open(f.path);
+    final nombreArchivo = 'recibo_sac_${nombre}_$cuilLimpio.pdf';
+
+    final filePath = await saveFile(
+      fileName: nombreArchivo,
+      bytes: pdfBytes,
+      mimeType: 'application/pdf',
+    );
+
+    if (mounted && filePath != null) {
+      final esWeb = filePath == 'descargado';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(esWeb ? 'PDF generado y descargado' : 'PDF: $filePath')),
+      );
+      if (!esWeb) openFile(filePath);
     }
   }
 
@@ -443,13 +449,16 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
       sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);
 
-      final dir = await getApplicationDocumentsDirectory();
       final nombre = legajo['nombre']?.toString().replaceAll(RegExp(r'[^\w]'), '_') ?? 'empleado';
-      final f = File('${dir.path}${Platform.pathSeparator}LSD_SAC_${nombre}_${DateFormat('yyyyMMdd').format(DateTime.now())}.txt');
-      await f.writeAsString(sb.toString(), encoding: latin1);
+      final name = 'LSD_SAC_${nombre}_${DateFormat('yyyyMMdd').format(DateTime.now())}.txt';
+      final filePath = await saveTextFile(fileName: name, content: sb.toString(), mimeType: 'text/plain');
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('LSD: ${f.path}')));
-        OpenFile.open(f.path);
+        final esWeb = filePath == 'descargado';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(esWeb ? 'LSD generado y descargado' : 'LSD: $filePath')),
+        );
+        if (!esWeb && filePath != null) openFile(filePath);
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error LSD: $e')));

@@ -34,10 +34,17 @@ class OcrService {
       final apiKey = await OpenAIVisionService.getApiKey();
       if (apiKey != null && apiKey.isNotEmpty) {
         try {
-           // OpenAI Vision needs bytes on web or File on mobile
-           // OpenAIVisionService likely needs refactoring too if it uses File
-           // For now, let's assume it might fail on web if using File
-           // We skip OpenAI for this quick fix on web unless we refactor it too
+          final bytes = await imageFile.readAsBytes();
+          final text = await OpenAIVisionService.analyzeReceipt(bytes);
+          
+          if (text.isNotEmpty) {
+            return OcrResult(
+              texto: text,
+              exito: true,
+              confianza: 0.95, // Alta confianza para GPT-4o
+              textoCrudo: text,
+            );
+          }
         } catch (e) {
           print("OpenAI Vision falló, intentando OCR local: $e");
           // Continuar con OCR local

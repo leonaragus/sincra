@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
-import 'dart:io';
+import '../utils/file_saver.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:ui';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/image_bytes_reader.dart';
@@ -394,12 +393,11 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     return limpio;
   }
   
-  Future<String> _generarArchivoLSD({
+  Future<Uint8List> _generarArchivoLSD({
     required Empresa empresa,
     required Empleado empleado,
     required Liquidacion liquidacion,
     required double sueldoBasico,
-    required Directory directory,
     required DateTime fechaGeneracion,
   }) async {
     // ========== VALIDACIÓN Y LIMPIEZA DE CUIT/CUIL ==========
@@ -430,7 +428,6 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     }
     
     // ========== GENERACIÓN DEL ARCHIVO ==========
-    final nombreArchivo = 'lsd_${cuitEmpresaLimpio}_${fechaGeneracion.millisecondsSinceEpoch}.txt';
     
     final registros = <Uint8List>[];
     
@@ -801,20 +798,18 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     
     final contenido = buffer.toString();
     
-    // VALIDACIÓN FINAL: Usar guardarArchivoTXT que valida:
-    // - Todas las líneas tienen 150 caracteres
+    // VALIDACIÓN FINAL: Obtener bytes validados
+    // - Todas las líneas tienen 195 caracteres
     // - Todos los CUILs pasan Módulo 11
     // - Codificación Windows-1252 (ANSI)
     try {
-      final nombreArchivoSinExtension = '${directory.path}/$nombreArchivo'.replaceAll('.txt', '');
-      final rutaArchivo = await LSDGenerator.guardarArchivoTXT(
+      final bytes = LSDGenerator.validarYObtenerBytesLSD(
         contenido: contenido,
-        nombreArchivo: nombreArchivoSinExtension,
       );
       
-      return rutaArchivo;
+      return bytes;
     } catch (e) {
-      // Si la validación falla, el error ya fue lanzado por guardarArchivoTXT
+      // Si la validación falla, el error ya fue lanzado por validarYObtenerBytesLSD
       // con mensaje detallado que bloquea la descarga
       rethrow;
     }
@@ -1263,13 +1258,16 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
         incluirBloqueFirmaLey25506: true,
       );
       
-      // Guardar PDF
-      final directory = await getApplicationDocumentsDirectory();
+      // Guardar PDF (Multiplataforma)
       final cuilEmpleadoLimpio = _empleadoSeleccionado!.replaceAll('-', '').replaceAll(' ', '');
       final fechaGeneracion = DateTime.now();
       final nombreArchivo = 'recibo_${cuilEmpleadoLimpio}_${fechaGeneracion.millisecondsSinceEpoch}.pdf';
-      final file = File('${directory.path}/$nombreArchivo');
-      await file.writeAsBytes(pdfBytes);
+      
+      final pdfFilePath = await saveFile(
+        fileName: nombreArchivo,
+        bytes: pdfBytes,
+        mimeType: 'application/pdf',
+      );
       
       // Guardar información del recibo
       final prefs = await SharedPreferences.getInstance();
@@ -1302,28 +1300,35 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
         'fechaGeneracion': fechaGeneracion.toIso8601String(),
         'periodo': _periodoController.text,
         'fechaPago': _fechaPagoController.text,
-        'ruta': file.path,
+        'ruta': pdfFilePath ?? nombreArchivo,
         'sueldoNeto': sueldoNeto,
         if (datosVacaciones != null) 'vacaciones': datosVacaciones,
       });
       
       await prefs.setString('recibos_$cuilEmpleadoLimpio', jsonEncode(recibos));
       
-      // Generar archivo LSD para AFIP
+      // Generar archivo LSD para AFIP (Opcional en este paso)
       String? lsdFilePath;
       try {
-        lsdFilePath = await _generarArchivoLSD(
+        final lsdBytes = await _generarArchivoLSD(
           empresa: empresa,
           empleado: empleado,
           liquidacion: _liquidacion!,
           sueldoBasico: sueldoBasico,
-          directory: directory,
           fechaGeneracion: fechaGeneracion,
         );
+        
+        // En este flujo generamos el archivo pero no lo descargamos automáticamente si es Web
+        // para no saturar con descargas, pero lo guardamos en disco si es Nativo
+        if (!kIsWeb) {
+           lsdFilePath = await saveFile(
+             fileName: 'lsd_${cuilEmpleadoLimpio}.txt',
+             bytes: lsdBytes,
+             mimeType: 'text/plain',
+           );
+        }
       } catch (e) {
         // Si falla la generación del LSD, continuar de todas formas
-        // El error se registra silenciosamente para no interrumpir el flujo
-        // pero no se muestra al usuario ya que el PDF ya se generó correctamente
       }
       
       // Mostrar diálogo de éxito
@@ -1343,7 +1348,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
             ),
           ),
           content: Text(
-            'El recibo se ha generado correctamente.\n\nSueldo Neto: \$${sueldoNeto.toStringAsFixed(2)}${lsdFilePath != null ? '\n\nArchivo LSD generado para AFIP.' : ''}',
+            'El recibo se ha generado correctamente.\n\nSueldo Neto: \$${sueldoNeto.toStringAsFixed(2)}${lsdFilePath != null ? '\n\nArchivo LSD guardado para AFIP.' : ''}',
             style: const TextStyle(color: AppColors.textSecondary),
           ),
           actions: [
@@ -1355,14 +1360,16 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  OpenFile.open(lsdFilePath!);
+                  openFile(lsdFilePath!);
                 },
                 child: const Text('Abrir LSD'),
               ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                OpenFile.open(file.path);
+                if (pdfFilePath != null) {
+                  openFile(pdfFilePath);
+                }
               },
               child: const Text('Abrir PDF'),
             ),
@@ -3270,19 +3277,21 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       
       if (!mounted) return;
       
+      final esWeb = path == 'web_download' || path == 'descargado';
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Excel generado correctamente'),
+          content: Text(esWeb ? 'Excel descargado' : 'Excel generado correctamente'),
           backgroundColor: Colors.green,
-          action: SnackBarAction(
+          action: esWeb ? null : SnackBarAction(
             label: 'ABRIR',
             textColor: Colors.white,
-            onPressed: () => OpenFile.open(path),
+            onPressed: () => openFile(path),
           ),
         ),
       );
       
-      OpenFile.open(path);
+      if (!esWeb) openFile(path);
 
     } catch (e) {
       if (!mounted) return;
@@ -3426,15 +3435,23 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     );
     
     try {
-      final directory = await getApplicationDocumentsDirectory();
       final fechaGeneracion = DateTime.now();
-      final lsdFilePath = await _generarArchivoLSD(
+      final lsdBytes = await _generarArchivoLSD(
         empresa: empresa,
         empleado: empleado,
         liquidacion: _liquidacion!,
         sueldoBasico: sueldoBasico,
-        directory: directory,
         fechaGeneracion: fechaGeneracion,
+      );
+      
+      // Guardar archivo (Multiplataforma)
+      final cuitEmpresa = empresa.cuit.replaceAll(RegExp(r'[^\d]'), '');
+      final nombreArchivo = 'lsd_${cuitEmpresa}_${fechaGeneracion.millisecondsSinceEpoch}.txt';
+      
+      final filePath = await saveFile(
+        fileName: nombreArchivo,
+        bytes: lsdBytes,
+        mimeType: 'text/plain',
       );
       
       if (!mounted) return;
@@ -3461,13 +3478,14 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cerrar'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                OpenFile.open(lsdFilePath);
-              },
-              child: const Text('Abrir Archivo'),
-            ),
+            if (filePath != null)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  openFile(filePath);
+                },
+                child: const Text('Abrir Archivo'),
+              ),
           ],
         ),
       );
@@ -3546,16 +3564,19 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       // Generar el contenido del archivo de conceptos
       final contenido = LSDGenerator.generarArchivoConceptosTXT();
       
-      // Guardar el archivo
-      final directory = await getApplicationDocumentsDirectory();
+      // Guardar el archivo (Multiplataforma)
       final fechaGeneracion = DateTime.now();
       final fechaStr = '${fechaGeneracion.year}${fechaGeneracion.month.toString().padLeft(2, '0')}${fechaGeneracion.day.toString().padLeft(2, '0')}_${fechaGeneracion.hour.toString().padLeft(2, '0')}${fechaGeneracion.minute.toString().padLeft(2, '0')}';
-      final filePath = '${directory.path}/conceptos_importacion_arca_$fechaStr.txt';
-      final file = File(filePath);
+      final nombreArchivo = 'conceptos_importacion_arca_$fechaStr.txt';
       
       // Codificar en Latin-1 (ANSI)
       final bytes = latin1.encode(contenido);
-      await file.writeAsBytes(bytes);
+      
+      final filePath = await saveFile(
+        fileName: nombreArchivo,
+        bytes: Uint8List.fromList(bytes),
+        mimeType: 'text/plain',
+      );
       
       if (!mounted) return;
       
@@ -3584,13 +3605,14 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cerrar'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                OpenFile.open(filePath);
-              },
-              child: const Text('Abrir Archivo'),
-            ),
+            if (filePath != null)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  openFile(filePath);
+                },
+                child: const Text('Abrir Archivo'),
+              ),
           ],
         ),
       );
@@ -3700,40 +3722,29 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
     );
     
     try {
-      // Generar contenido del archivo primero para validarlo
-      final directory = await getApplicationDocumentsDirectory();
+      // Generar contenido del archivo y validar automáticamente
       final fechaGeneracion = DateTime.now();
-      final lsdFilePath = await _generarArchivoLSD(
+      final lsdBytes = await _generarArchivoLSD(
         empresa: empresa,
         empleado: empleado,
         liquidacion: _liquidacion!,
         sueldoBasico: sueldoBasico,
-        directory: directory,
         fechaGeneracion: fechaGeneracion,
       );
       
-      // Leer el archivo generado para validarlo
-      final archivoGenerado = await File(lsdFilePath).readAsString();
-      final validacion = LSDGenerator.validarArchivoLSD(archivoGenerado);
+      // Guardar archivo (Multiplataforma)
+      final cuitEmpresa = empresa.cuit.replaceAll(RegExp(r'[^\d]'), '');
+      final nombreArchivo = 'lsd_${cuitEmpresa}_${fechaGeneracion.millisecondsSinceEpoch}.txt';
+      
+      final filePath = await saveFile(
+        fileName: nombreArchivo,
+        bytes: lsdBytes,
+        mimeType: 'text/plain',
+      );
       
       if (!mounted) return;
       
-      // Si hay errores, mostrar modal de error
-      final esValido = validacion['valido'] as bool;
-      if (!esValido) {
-        final erroresList = validacion['errores'] as List<dynamic>;
-        final erroresString = erroresList.map((e) => e.toString()).toList();
-        _mostrarErrorValidacionDetallado(erroresString);
-        // Eliminar archivo inválido
-        try {
-          await File(lsdFilePath).delete();
-        } catch (_) {
-          // Ignorar errores al eliminar
-        }
-        return;
-      }
-      
-      // Si todo está OK, mostrar diálogo de éxito con check
+      // Si todo está OK (ya se validó dentro de _generarArchivoLSD), mostrar éxito
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -3758,7 +3769,7 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
           ),
           content: const Text(
             'El archivo LSD para ARCA se ha generado y validado correctamente.\n\n'
-            '✓ Todas las líneas tienen 150 caracteres\n'
+            '✓ Todas las líneas tienen 195 caracteres\n'
             '✓ Todos los CUILs son válidos\n'
             '✓ Todos los conceptos tienen código asignado\n\n'
             'Puede subirlo al portal de ARCA para procesar la liquidación.',
@@ -3769,13 +3780,14 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cerrar'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                OpenFile.open(lsdFilePath);
-              },
-              child: const Text('Abrir Archivo'),
-            ),
+            if (filePath != null)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  openFile(filePath);
+                },
+                child: const Text('Abrir Archivo'),
+              ),
           ],
         ),
       );
@@ -3791,72 +3803,6 @@ class _LiquidadorFinalScreenState extends State<LiquidadorFinalScreen> {
       
       _mostrarErrorValidacion('Error al generar archivo LSD: ${e.toString()}');
     }
-  }
-  
-  /// Muestra un modal de error de validación detallado
-  void _mostrarErrorValidacionDetallado(List<String> errores) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.error, color: Colors.red, size: 28),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Error de Validación',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'El archivo no puede ser descargado. Corrija los siguientes errores:',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...errores.map((error) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.circle, size: 8, color: Colors.red),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        error,
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-            ],
-          ),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
-          ),
-        ],
-      ),
-    );
   }
   
   /// Muestra un error de validación simple

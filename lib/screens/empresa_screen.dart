@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+// import 'dart:io'; // Removed for web compatibility
 import 'dart:convert';
 import '../theme/app_colors.dart';
 import '../services/hybrid_store.dart';
@@ -14,6 +14,7 @@ import '../utils/validadores.dart';
 import '../data/rnos_docentes_data.dart';
 import 'dart:ui';
 import '../utils/app_help.dart';
+import '../utils/image_preview.dart';
 
 class EmpresaScreen extends StatefulWidget {
   final String? razonSocial;
@@ -1028,44 +1029,42 @@ class EmpresaScreenState extends State<EmpresaScreen> {
   }
 
   Widget _buildSafeImageFile(String path, {double? height}) {
-    final file = File(path);
-    if (!file.existsSync()) {
-      return Container(
-        height: height ?? 150,
-        decoration: BoxDecoration(
-          color: AppColors.glassFill,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Center(
-          child: Icon(
-            Icons.broken_image,
-            color: AppColors.textSecondary,
-            size: 48,
-          ),
-        ),
-      );
-    }
-    
-    return Image.file(
-      file,
-      height: height,
+    return buildImagePreview(
+      path: path,
+      width: double.infinity,
+      height: height ?? 150,
       fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          height: height ?? 150,
-          decoration: BoxDecoration(
-            color: AppColors.glassFill,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Center(
-            child: Icon(
+      errorWidget: _buildErrorWidget(height),
+    );
+  }
+
+  Widget _buildErrorWidget(double? height, {String? message}) {
+    return Container(
+      height: height ?? 150,
+      decoration: BoxDecoration(
+        color: AppColors.glassFill,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
               Icons.broken_image,
               color: AppColors.textSecondary,
               size: 48,
             ),
-          ),
-        );
-      },
+            if (message != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                message,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

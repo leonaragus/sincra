@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:open_file/open_file.dart';
-import 'dart:io';
+import '../utils/file_saver.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+// import 'dart:io'; // Removed for web compatibility
 import '../models/empresa.dart';
 import '../theme/app_colors.dart';
 import 'empleado_screen.dart';
@@ -259,8 +260,18 @@ class _ListaEmpleadosScreenState extends State<ListaEmpleadosScreen> {
                             color: AppColors.pastelBlue,
                           ),
                           onPressed: () {
-                            if (ruta.isNotEmpty && File(ruta).existsSync()) {
-                              OpenFile.open(ruta);
+                            if (ruta.isNotEmpty) {
+                              if (!kIsWeb) {
+                                // En nativo podemos intentar abrir el archivo si existe
+                                openFile(ruta);
+                              } else {
+                                // En web el manejo de archivos descargados es distinto
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Descarga no disponible desde el historial en Web.'),
+                                  ),
+                                );
+                              }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(

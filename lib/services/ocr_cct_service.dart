@@ -3,7 +3,7 @@
 // Escanea PDFs de convenios y extrae escalas salariales automáticamente
 // ========================================================================
 
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+// import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 
 class EscalaSalarialExtraida {
   final String categoria;
@@ -40,7 +40,7 @@ class ResultadoOCRCCT {
 }
 
 class OCRCCTService {
-  static final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  // static final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   
   /// Procesa un PDF de CCT y extrae escalas salariales
   /// 
@@ -48,10 +48,12 @@ class OCRCCTService {
   /// Este servicio trabaja con imágenes (jpg/png) del PDF.
   static Future<ResultadoOCRCCT> procesarImagenCCT(String imagePath) async {
     try {
+      /*
       final inputImage = InputImage.fromFilePath(imagePath);
       final recognizedText = await _textRecognizer.processImage(inputImage);
-      
       final textoCompleto = recognizedText.text;
+      */
+      const textoCompleto = "OCR deshabilitado en versión web.";
       
       // Extraer información del CCT
       final codigoCCT = _extraerCodigoCCT(textoCompleto);
@@ -253,6 +255,6 @@ class OCRCCTService {
   
   /// Limpia recursos
   static void dispose() {
-    _textRecognizer.close();
+    // _textRecognizer.close();
   }
 }
