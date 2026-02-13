@@ -18,6 +18,8 @@ import 'sanidad_interface_screen.dart';
 import '../utils/logo_avatar.dart';
 import '../utils/app_help.dart';
 
+import '../widgets/web_link_dialog.dart';
+
 // Sprint 1 + 2 + 3 + 4 + 5
 import 'gestion_empleados_screen.dart';
 import 'liquidacion_masiva_screen.dart';
@@ -50,6 +52,7 @@ class HomeScreenState extends State<HomeScreen> {
     super.initState();
     _cargarEmpresas();
     _initialSync = _syncAndMaybeShowSnackBar();
+    HybridStore.startRealtimeSync(); // Iniciar sincronización en tiempo real
   }
 
   Future<void> _syncAndMaybeShowSnackBar() async {
@@ -511,6 +514,29 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const Spacer(),
+            // Acceso Web Button
+            IconButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const WebLinkDialog(),
+                );
+              },
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+                ),
+                child: const Icon(
+                  Icons.qr_code_2,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              tooltip: 'Acceso Web',
+            ),
             // Service Status removed
             IconButton(
               onPressed: () {

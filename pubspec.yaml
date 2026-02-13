@@ -51,6 +51,7 @@ dependencies:
   provider: ^6.1.1 # Gestión de estado para temas
   file_picker: ^10.3.10
   google_fonts: ^8.0.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

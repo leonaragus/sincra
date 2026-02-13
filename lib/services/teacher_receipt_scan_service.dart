@@ -73,13 +73,6 @@ class TeacherReceiptScanService {
     return double.tryParse(conDecimal);
   }
 
-  /// Normaliza CUIL laxo (ej. "12 34567890 1") a "12-34567890-1".
-  static String _normalizeCuil(String s) {
-    final d = s.replaceAll(RegExp(r'[^\d]'), '');
-    if (d.length != 11) return s;
-    return '${d.substring(0, 2)}-${d.substring(2, 10)}-${d.substring(10)}';
-  }
-
   // --- Parsing de QR ---
 
   /// Si [raw] es JSON de liquidación (ARCA/AFIP o estándar 2026), prioriza extracción desde ahí.

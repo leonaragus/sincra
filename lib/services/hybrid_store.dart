@@ -82,6 +82,24 @@ class HybridStore {
     } catch (_) {}
   }
 
+  /// Inicia la escucha de cambios en tiempo real desde Supabase para sincronizar datos.
+  static void startRealtimeSync() {
+    Supabase.instance.client
+        .from(SupabaseConfig.tableEntities)
+        .stream(primaryKey: ['type', 'key'])
+        .listen((data) {
+          for (final record in data) {
+            final type = record['type']?.toString() ?? '';
+            final key = record['key']?.toString() ?? '';
+            final recordData = record['data'];
+            if (type.isNotEmpty) {
+              final jsonData = recordData != null ? jsonEncode(recordData) : '[]';
+              _local.localPut(type, key, jsonData);
+            }
+          }
+        });
+  }
+
   // -------- Instituciones (compatible InstitucionesService) --------
 
   static const String _tInstituciones = 'instituciones';

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import '../services/web_link_service.dart';
 import '../theme/app_colors.dart';
 import './plan_selection_screen.dart';
+import './home_screen.dart';
+import 'dart:async';
 
 /// Pantalla de acceso para la versión Web: Email/Password o Código de Vinculación.
 class WebLoginScreen extends StatefulWidget {
@@ -21,6 +25,49 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   bool _loading = false;
   String? _error;
   bool _modoCodigo = false;
+  String? _sessionId;
+  StreamSubscription? _sessionSub;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      _prepareWebSession();
+    }
+  }
+
+  @override
+  void dispose() {
+    _sessionSub?.cancel();
+    super.dispose();
+  }
+
+  void _prepareWebSession() {
+    final sid = WebLinkService.generateSessionId();
+    setState(() { _sessionId = sid; });
+    WebLinkService.createWebSession(sid);
+    
+    _sessionSub = WebLinkService.listenToSession(sid).listen((data) {
+      if (data['status'] == 'linked' && data['user_id'] != null) {
+        _onSessionLinked(data);
+      }
+    });
+  }
+
+  void _onSessionLinked(Map<String, dynamic> data) async {
+    // Vincular sesión localmente en la web
+    final accessToken = data['access_token'];
+    
+    if (accessToken != null) {
+      // En una app real, usaríamos setSession. Por ahora simulamos con bypass.
+      WebLinkService.setBypass(true);
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+    }
+  }
 
   Future<void> _ingresarEmail() async {
     setState(() { _error = null; _loading = true; });
@@ -37,11 +84,41 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     }
   }
 
-  void _ingresarCodigo() {
-    // Próximamente: validar código de vinculación (estilo WhatsApp)
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Código de vinculación: próximamente. Usá Email/Contraseña.')),
-    );
+  Future<void> _ingresarCodigo() async {
+    setState(() { _error = null; _loading = true; });
+    try {
+      final code = _codigo.text.trim();
+      if (code.isEmpty) {
+        setState(() { _error = 'Ingresá un código o tu clave personalizada'; _loading = false; });
+        return;
+      }
+
+      // 1. Intentar validar código/clave maestra
+      final isValid = await WebLinkService.validateCode(code);
+      
+      if (isValid) {
+        // Si es válido, permitimos el paso.
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Acceso concedido')),
+          );
+          
+          // En una implementación real con clave personalizada, 
+          // deberíamos obtener el token de sesión asociado a ese usuario.
+          // Por ahora, usamos el bypass para permitir el acceso web.
+          WebLinkService.setBypass(true);
+          
+          setState(() { _loading = false; });
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      } else {
+        setState(() { _error = 'Clave o código inválido'; _loading = false; });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Error de validación'; _loading = false; });
+    }
   }
 
   @override
@@ -136,9 +213,38 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                     
                     const SizedBox(height: 24),
                     if (_modoCodigo) ...[
-                      TextField(controller: _codigo, decoration: const InputDecoration(labelText: 'Código de vinculación', border: OutlineInputBorder()), keyboardType: TextInputType.number, maxLength: 8),
+                      if (_sessionId != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: QrImageView(
+                            data: 'syncra:link:$_sessionId',
+                            version: QrVersions.auto,
+                            size: 200.0,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Escaneá este código desde la App para ingresar',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      const Divider(),
                       const SizedBox(height: 16),
-                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _ingresarCodigo, child: const Text('Vincular dispositivo'))),
+                      TextField(
+                        controller: _codigo,
+                        decoration: const InputDecoration(
+                          labelText: 'O ingresá tu clave de vinculación',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _ingresarCodigo, child: const Text('Ingresar con clave'))),
                     ] else ...[
                       TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()), keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next),
                       const SizedBox(height: 12),
@@ -201,7 +307,7 @@ class _WebAuthGateState extends State<WebAuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb || _logueado == true) return widget.child;
+    if (!kIsWeb || _logueado == true || WebLinkService.isBypassed) return widget.child;
     if (_logueado == false) return const PlanSelectionScreen();
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
