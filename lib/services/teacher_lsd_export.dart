@@ -103,9 +103,14 @@ Future<String> teacherOmniToLsdTxt({
 
   final conceptos = <Map<String, dynamic>>[];
 
-  void addHaber(String codigo, String desc, double monto) {
+  void addHaber(String codigo, String desc, double monto, {bool esRemunerativo = true}) {
     if (monto <= 0) return;
-    conceptos.add({'codigo': codigo, 'desc': desc, 'importe': monto, 'tipo': 'H'});
+    conceptos.add({
+      'codigo': codigo,
+      'desc': desc,
+      'importe': monto,
+      'tipo': esRemunerativo ? 'R' : 'N',
+    });
   }
 
   void addDescuento(String codigo, String desc, double monto) {
@@ -128,6 +133,29 @@ Future<String> teacherOmniToLsdTxt({
   addHaber(TeacherLsdCodigos.estadoDocente, 'Estado Docente', liquidacion.estadoDocente);
   addHaber(TeacherLsdCodigos.fonid, 'FONID', liquidacion.fonid);
   addHaber(TeacherLsdCodigos.conectividad, 'Conectividad', liquidacion.conectividad);
+
+  // Componentes específicos Neuquén (Remunerativos)
+  if (liquidacion.incDocenteLey25053 > 0) {
+    addHaber('FONID_LEY', 'Incentivo Docente Ley 25053', liquidacion.incDocenteLey25053);
+  }
+  if (liquidacion.compFonid > 0) {
+    addHaber('COMP_FONID', 'Complemento FONID', liquidacion.compFonid);
+  }
+  if (liquidacion.ipcFonid > 0) {
+    addHaber('IPC_FONID', 'IPC FONID', liquidacion.ipcFonid);
+  }
+
+  // Componentes específicos Neuquén (No Remunerativos)
+  if (liquidacion.conectividadNacional > 0) {
+    addHaber('CONEC_NAC', 'Conectividad Nacional', liquidacion.conectividadNacional, esRemunerativo: false);
+  }
+  if (liquidacion.conectividadProvincial > 0) {
+    addHaber('CONEC_PROV', 'Conectividad Provincial', liquidacion.conectividadProvincial, esRemunerativo: false);
+  }
+  if (liquidacion.redondeoMonto != 0) {
+    addHaber('REDONDEO', 'Redondeo', liquidacion.redondeoMonto.abs(), esRemunerativo: false);
+  }
+
   addHaber(TeacherLsdCodigos.horasCatedra, 'Horas Cátedra', liquidacion.horasCatedra);
   addHaber(TeacherLsdCodigos.equiparacion13047, 'Ajuste Equiparación Ley 13.047', liquidacion.ajusteEquiparacionLey13047);
   addHaber(TeacherLsdCodigos.fondoCompensador, 'Fondo Compensador', liquidacion.fondoCompensador);

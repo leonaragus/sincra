@@ -440,9 +440,15 @@ class LSDGenerator {
     buffer.write(cantidadFormateada.substring(cantidadFormateada.length - 4));
     
     String indicadorTipo;
-    if (tipo != null && (tipo.toUpperCase() == 'H' || tipo.toUpperCase() == 'D')) {
-      indicadorTipo = tipo.toUpperCase();
+    final tipoUpper = tipo?.toUpperCase();
+    if (tipoUpper == 'R' || tipoUpper == 'H') {
+      indicadorTipo = 'H'; // Remunerativo (Haber)
+    } else if (tipoUpper == 'N') {
+      indicadorTipo = 'N'; // No Remunerativo
+    } else if (tipoUpper == 'D') {
+      indicadorTipo = 'D'; // Descuento
     } else {
+      // Lógica de detección automática si no se provee tipo explícito
       final codigoUpper = codigoInternoFormateado;
       if (codigoUpper.contains('JUBILACION') || codigoUpper.contains('LEY19032') || codigoUpper.contains('OBRA_SOC') || codigoUpper.contains('RET_GANANC')) {
         indicadorTipo = 'D';

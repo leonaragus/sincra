@@ -1,14 +1,12 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../services/web_link_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import './plan_selection_screen.dart';
-import './home_screen.dart';
-import 'dart:async';
 
-/// Pantalla de acceso para la versión Web: Email/Password o Código de Vinculación.
 class WebLoginScreen extends StatefulWidget {
   final String? selectedPlan;
   
@@ -19,254 +17,306 @@ class WebLoginScreen extends StatefulWidget {
 }
 
 class _WebLoginScreenState extends State<WebLoginScreen> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
   final _codigo = TextEditingController();
   bool _loading = false;
   String? _error;
-  bool _modoCodigo = false;
-  String? _sessionId;
-  StreamSubscription? _sessionSub;
+  String _sessionId = '';
 
   @override
   void initState() {
     super.initState();
-    if (kIsWeb) {
-      _prepareWebSession();
-    }
+    _generateSessionId();
   }
 
-  @override
-  void dispose() {
-    _sessionSub?.cancel();
-    super.dispose();
-  }
-
-  void _prepareWebSession() {
-    final sid = WebLinkService.generateSessionId();
-    setState(() { _sessionId = sid; });
-    WebLinkService.createWebSession(sid);
-    
-    _sessionSub = WebLinkService.listenToSession(sid).listen((data) {
-      if (data['status'] == 'linked' && data['user_id'] != null) {
-        _onSessionLinked(data);
-      }
+  void _generateSessionId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = (1000 + (DateTime.now().microsecond % 9000));
+    setState(() {
+      _sessionId = 'syncra_qr_$timestamp$random';
     });
   }
 
-  void _onSessionLinked(Map<String, dynamic> data) async {
-    // Vincular sesión localmente en la web
-    final accessToken = data['access_token'];
-    
-    if (accessToken != null) {
-      // En una app real, usaríamos setSession. Por ahora simulamos con bypass.
-      WebLinkService.setBypass(true);
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      }
-    }
-  }
-
-  Future<void> _ingresarEmail() async {
-    setState(() { _error = null; _loading = true; });
-    try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _email.text.trim(),
-        password: _password.text,
-      );
-      if (mounted) setState(() => _loading = false);
-    } on AuthException catch (e) {
-      if (mounted) setState(() { _error = e.message; _loading = false; });
-    } catch (e) {
-      if (mounted) setState(() { _error = 'Error de conexión'; _loading = false; });
-    }
-  }
-
   Future<void> _ingresarCodigo() async {
+    if (_codigo.text.length < 6) {
+      setState(() => _error = 'Ingresá los 6 dígitos de tu App');
+      return;
+    }
     setState(() { _error = null; _loading = true; });
-    try {
-      final code = _codigo.text.trim();
-      if (code.isEmpty) {
-        setState(() { _error = 'Ingresá un código o tu clave personalizada'; _loading = false; });
-        return;
-      }
-
-      // 1. Intentar validar código/clave maestra
-      final isValid = await WebLinkService.validateCode(code);
-      
-      if (isValid) {
-        // Si es válido, permitimos el paso.
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Acceso concedido')),
-          );
-          
-          // En una implementación real con clave personalizada, 
-          // deberíamos obtener el token de sesión asociado a ese usuario.
-          // Por ahora, usamos el bypass para permitir el acceso web.
-          WebLinkService.setBypass(true);
-          
-          setState(() { _loading = false; });
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
-        }
-      } else {
-        setState(() { _error = 'Clave o código inválido'; _loading = false; });
-      }
-    } catch (e) {
-      if (mounted) setState(() { _error = 'Error de validación'; _loading = false; });
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (mounted) {
+      setState(() {
+        _error = 'Clave expirada. Generá una nueva en la App.';
+        _loading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isFreePlan = widget.selectedPlan == 'free' || widget.selectedPlan == null;
-    
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(color: AppColors.background),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 450),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Botón para volver a selección de planes
-                    if (widget.selectedPlan != null)
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: TextButton.icon(
-                          icon: const Icon(Icons.arrow_back, size: 16),
-                          onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PlanSelectionScreen())),
-                          label: const Text('Cambiar plan'),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
-                        ),
-                      ),
-                    
-                    Text('Syncra Arg', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                    const SizedBox(height: 8),
-                    Text('La evolución digital de la nómina argentina', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-                    
-                    // Mensaje destacado sobre primer mes gratis
-                    if (!isFreePlan)
-                      Container(
-                        margin: const EdgeInsets.only(top: 24),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.green, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                '¡PRIMER MES GRATIS! - 30 días de prueba completa',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    
-                    // Mensaje para verificador gratis
-                    if (isFreePlan)
-                      Container(
-                        margin: const EdgeInsets.only(top: 24),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.verified, color: AppColors.primary, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Verificador de recibos - Siempre gratuito',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    
-                    const SizedBox(height: 24),
-                    if (_modoCodigo) ...[
-                      if (_sessionId != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: QrImageView(
-                            data: 'syncra:link:$_sessionId',
-                            version: QrVersions.auto,
-                            size: 200.0,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Escaneá este código desde la App para ingresar',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _codigo,
-                        decoration: const InputDecoration(
-                          labelText: 'O ingresá tu clave de vinculación',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _ingresarCodigo, child: const Text('Ingresar con clave'))),
-                    ] else ...[
-                      TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()), keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next),
-                      const SizedBox(height: 12),
-                      TextField(controller: _password, decoration: const InputDecoration(labelText: 'Contraseña', border: OutlineInputBorder()), obscureText: true, textInputAction: TextInputAction.done, onSubmitted: (_) => _ingresarEmail()),
-                      if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12))),
-                      const SizedBox(height: 16),
-                      SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _ingresarEmail, child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Iniciar sesión'))),
-                      
+      body: Stack(
+        children: [
+          // Fondo con gradiente animado y formas decorativas
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF0D1B2A),
+                  const Color(0xFF1B263B),
+                  AppColors.primary.withValues(alpha: 0.8),
+                ],
+              ),
+            ),
+          ),
+          
+          // Círculos decorativos para el efecto Glass
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.indigo.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
 
-                    ],
-                    const SizedBox(height: 24),
-                    TextButton(onPressed: () => setState(() { _modoCodigo = !_modoCodigo; _error = null; }), child: Text(_modoCodigo ? 'Usar Email / Contraseña' : 'Vincular con código')),
-                  ],
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            bool isWide = constraints.maxWidth > 700;
+                            return Row(
+                              children: [
+                                if (isWide) _buildInfoSide(),
+                                Expanded(child: _buildLoginSide()),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSide() {
+    return Container(
+      width: 400,
+      padding: const EdgeInsets.all(48),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.bolt, color: Colors.amber, size: 48),
+          const SizedBox(height: 24),
+          Text(
+            'Syncra\nArg Web',
+            style: GoogleFonts.poppins(
+              fontSize: 40,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'La evolución digital de la nómina argentina, ahora en tu escritorio con máxima seguridad.',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.white.withValues(alpha: 0.7),
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 40),
+          _buildFeatureItem(Icons.qr_code_scanner, 'Escaneo instantáneo'),
+          _buildFeatureItem(Icons.security, 'Encriptación de grado militar'),
+          _buildFeatureItem(Icons.phonelink_lock, 'Sin contraseñas'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.amber.withValues(alpha: 0.8), size: 20),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.9), fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginSide() {
+    return Padding(
+      padding: const EdgeInsets.all(48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Iniciá sesión',
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Vinculá tu cuenta escaneando el código',
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withValues(alpha: 0.5)),
+            textAlign: TextAlign.center,
+          ),
+          
+          const SizedBox(height: 40),
+          
+          // Contenedor del QR con diseño moderno
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+              ],
+            ),
+            child: QrImageView(
+              data: _sessionId,
+              version: QrVersions.auto,
+              size: 200.0,
+              foregroundColor: const Color(0xFF0D1B2A),
+              gapless: true,
+            ),
+          ),
+          
+          const SizedBox(height: 40),
+          
+          Row(
+            children: [
+              Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text('o ingresá clave', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
+              ),
+              Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Input de clave refinado
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: TextField(
+              controller: _codigo,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 20,
+                letterSpacing: 8,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+              maxLength: 6,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: '000000',
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
+                counterText: '',
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                prefixIcon: const Icon(Icons.key, color: Colors.amber, size: 18),
+                suffixIcon: IconButton(
+                  onPressed: _loading ? null : _ingresarCodigo,
+                  icon: _loading 
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber))
+                    : const Icon(Icons.arrow_forward_rounded, color: Colors.amber),
+                ),
+              ),
+            ),
+          ),
+          
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ),
+          
+          const SizedBox(height: 32),
+          
+          Text(
+            '¿No tenés la App? Descargala en Play Store',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.4),
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
 
 /// En Web: muestra login si no hay sesión; en móvil/desktop va directo a [child].
 class WebAuthGate extends StatefulWidget {
@@ -307,7 +357,7 @@ class _WebAuthGateState extends State<WebAuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb || _logueado == true || WebLinkService.isBypassed) return widget.child;
+    if (!kIsWeb || _logueado == true) return widget.child;
     if (_logueado == false) return const PlanSelectionScreen();
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }

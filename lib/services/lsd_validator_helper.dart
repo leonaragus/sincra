@@ -162,13 +162,32 @@ class LSDValidatorHelper {
 
         // REGLA CRÍTICA: Base de Zona Patagónica (Federal Compliance)
         if (tieneZona) {
-          final double baseCalculadaZona = totalRemu - montoZona;
-          // Asumimos porcentajes comunes: 20%, 30%, 40%, 50%, 80% o 100%
+          // Intentamos validar con base completa (estándar)
+          final double baseCalculadaZonaEstandar = totalRemu - montoZona;
+          
+          // Intentamos validar con base reducida (excluyendo conceptos nacionales docentes que a veces no son base de zona)
+          double montoExcluidoDocente = 0.0;
+          for (var c in conceptos) {
+            final cod = c.codigo.toUpperCase();
+            if (cod.contains('FONID') || cod.contains('CONECT') || cod.contains('CONEC')) {
+              if (c.tipo == 'H' || c.tipo == 'R') {
+                montoExcluidoDocente += c.importeAsDouble;
+              }
+            }
+          }
+          final double baseCalculadaZonaDocente = baseCalculadaZonaEstandar - montoExcluidoDocente;
+
           bool zonaValida = false;
-          final pcts = [0.20, 0.30, 0.40, 0.50, 0.80, 1.00, 0.11, 0.12]; // Incluimos variaciones de CCT y Docentes (80%, 100%)
+          final pcts = [0.20, 0.30, 0.40, 0.50, 0.80, 1.00, 0.11, 0.12]; 
           
           for (var p in pcts) {
-            if ((baseCalculadaZona * p - montoZona).abs() < 5.0) {
+            // Probar base estándar
+            if ((baseCalculadaZonaEstandar * p - montoZona).abs() < 5.0) {
+              zonaValida = true;
+              break;
+            }
+            // Probar base docente (Neuquén/Río Negro)
+            if (baseCalculadaZonaDocente > 0 && (baseCalculadaZonaDocente * p - montoZona).abs() < 5.0) {
               zonaValida = true;
               break;
             }
@@ -176,7 +195,7 @@ class LSDValidatorHelper {
 
           if (!zonaValida) {
             errors.add(ValidationIssue(
-              'Cálculo de Zona Patagónica incorrecto: El monto (\$${montoZona.toStringAsFixed(2)}) no parece estar calculado sobre el total de conceptos remunerativos (\$${baseCalculadaZona.toStringAsFixed(2)}). Regla Federal ARCA 2026 exige base completa.',
+              'Cálculo de Zona Patagónica incorrecto: El monto (\$${montoZona.toStringAsFixed(2)}) no parece estar calculado sobre el total de conceptos remunerativos (\$${baseCalculadaZonaEstandar.toStringAsFixed(2)}) ni sobre la base docente (\$${baseCalculadaZonaDocente.toStringAsFixed(2)}).',
               ValidationIssueType.zonaPatagonicaInconsistent
             ));
           }
@@ -191,7 +210,13 @@ class LSDValidatorHelper {
          
          final teoricoJub = base1 * 0.11;
          final teoricoLey = base1 * 0.03;
-         final teoricoOS = base4 * 0.03;
+         
+         // Ajuste federal para Obra Social (Neuquén ISSN usa 5.5%)
+         double pctOS = 0.03;
+         if (compl?.rnos == '820000') {
+           pctOS = 0.055;
+         }
+         final teoricoOS = base4 * pctOS;
 
          double realJub = 0.0;
          double realLey = 0.0;

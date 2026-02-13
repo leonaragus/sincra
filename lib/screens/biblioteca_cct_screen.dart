@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/cct_cloud_service.dart';
 import '../services/educational_concepts_service.dart';
+import '../utils/robot_bat_helper.dart';
 import '../theme/app_colors.dart';
 import 'glosario_conceptos_screen.dart';
 
@@ -65,11 +66,11 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
       });
       
       if (res['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('CCT sincronizados correctamente'),
-            backgroundColor: Colors.green,
-          ),
+        final int cantidad = res['cantidad'] ?? 0;
+        RobotBatHelper.showUpdateNotification(
+          context: context,
+          title: 'BIBLIOTECA SINCRONIZADA',
+          message: 'El robot BAT ha descargado $cantidad convenios colectivos actualizados directamente desde la nube.',
         );
       }
     }

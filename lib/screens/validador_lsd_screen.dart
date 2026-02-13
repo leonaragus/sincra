@@ -8,6 +8,7 @@ import '../services/lsd_parser_service.dart';
 import '../services/lsd_validator_helper.dart';
 
 import '../services/validador_lsd_update_service.dart';
+import '../utils/robot_bat_helper.dart';
 import '../utils/file_saver.dart' as fs;
 
 class ValidadorLSDScreen extends StatefulWidget {
@@ -47,28 +48,10 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
   }
 
   void _showUpdateNotification(String msg) {
-    showDialog(
+    RobotBatHelper.showUpdateNotification(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.blue[50],
-        title: Row(
-          children: [
-            const Icon(Icons.auto_awesome, color: Colors.blueAccent),
-            const SizedBox(width: 10),
-            Text('¡Sistema Actualizado!', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: Text(
-          'El robot BAT ha detectado cambios legales:\n\n$msg',
-          style: GoogleFonts.poppins(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('EXCELENTE'),
-          ),
-        ],
-      ),
+      title: 'ACTUALIZACIÓN LSD',
+      message: msg,
     );
   }
 
