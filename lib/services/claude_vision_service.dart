@@ -145,25 +145,43 @@ El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento de leyes laborales arge
             }
           ]
         }
-      ]
-    });
+        ]
+      });
 
-    final response = await http.post(
-      url,
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: body,
-    );
+      final response = await http.post(
+        url,
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: body,
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
-      final content = data['content'][0]['text'];
-      return content;
-    } else {
-      throw Exception('Error Claude: ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final content = data['content'][0]['text'];
+        return content;
+      } else {
+        // Mejor diagnóstico de errores
+        String errorMsg = 'Error Claude: ${response.statusCode}';
+        try {
+          // Intentar leer el cuerpo del error si es JSON
+          final errBody = jsonDecode(response.body);
+          if (errBody['error'] != null) {
+            errorMsg += ' - ${errBody['error']['message']}';
+          } else {
+             errorMsg += ' - ${response.body}';
+          }
+        } catch (_) {
+           errorMsg += ' - ${response.body}';
+        }
+        
+        if (response.statusCode == 401) {
+           errorMsg += " (Verifique su API Key)";
+        }
+        
+        throw Exception(errorMsg);
+      }
     }
-  }
 }
