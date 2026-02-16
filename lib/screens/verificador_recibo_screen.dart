@@ -15,12 +15,10 @@ import 'package:syncra_arg/theme/app_colors.dart';
 // import 'package:url_launcher/url_launcher.dart';
 import 'package:syncra_arg/screens/biblioteca_cct_screen.dart';
 import 'package:syncra_arg/screens/historial_liquidaciones_screen.dart';
-import 'package:syncra_arg/screens/plan_selection_screen.dart';
 import 'package:syncra_arg/screens/profile_screen.dart';
 import 'package:syncra_arg/screens/home_screen.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
 import 'package:syncra_arg/services/pdf_report_service.dart';
-import '../services/subscription_service.dart';
 // import 'dart:io'; // Removed for web compatibility
 
 class VerificadorReciboScreen extends StatefulWidget {
@@ -211,8 +209,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
         return;
       }
       
-      // Registrar uso de cuota
-      await SubscriptionService.registerOcrScan();
+      // Registrar uso de cuota - DESHABILITADO
+      // await SubscriptionService.registerOcrScan();
 
       // Preparar contexto del convenio seleccionado
       String? contextoConvenio;

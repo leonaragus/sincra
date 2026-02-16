@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../theme/app_colors.dart';
-import './plan_selection_screen.dart';
 
 /// Pantalla de acceso para la versión Web: Email/Password o Código de Vinculación.
 class WebLoginScreen extends StatefulWidget {
@@ -67,8 +66,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isFreePlan = widget.selectedPlan == 'free' || widget.selectedPlan == null;
-    
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -83,77 +80,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Botón para volver a selección de planes
-                    if (widget.selectedPlan != null)
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: TextButton.icon(
-                          icon: const Icon(Icons.arrow_back, size: 16),
-                          onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PlanSelectionScreen())),
-                          label: const Text('Cambiar plan'),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
-                        ),
-                      ),
                     
                     Text('Syncra Arg', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                     const SizedBox(height: 8),
                     Text('La evolución digital de la nómina argentina', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-                    
-                    // Mensaje destacado sobre primer mes gratis
-                    if (!isFreePlan)
-                      Container(
-                        margin: const EdgeInsets.only(top: 24),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.green, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                '¡PRIMER MES GRATIS! - 30 días de prueba completa',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    
-                    // Mensaje para verificador gratis
-                    if (isFreePlan)
-                      Container(
-                        margin: const EdgeInsets.only(top: 24),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.verified, color: AppColors.primary, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Verificador de recibos - Siempre gratuito',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     
                     const SizedBox(height: 24),
                     
@@ -294,7 +224,7 @@ class _WebAuthGateState extends State<WebAuthGate> {
   @override
   Widget build(BuildContext context) {
     if (!kIsWeb || _logueado == true) return widget.child;
-    if (_logueado == false) return const PlanSelectionScreen();
+    if (_logueado == false) return const WebLoginScreen();
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

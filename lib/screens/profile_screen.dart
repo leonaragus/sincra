@@ -124,30 +124,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _openPlanSelection() async {
-    try {
-      final userInfo = await AuthMiddleware.getCurrentUserInfo();
-      final currentPlan = userInfo?['plan']?['plan_type'] ?? 'free';
-      
-      if (currentPlan == 'free') {
-        // Navegar a pantalla de selección de planes de Play Store
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (c) => const PlayStorePlanSelectionScreen()),
-        );
-      } else {
-        // Para usuarios pagos, mostrar opción de gestionar en Play Store
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gestiona tu suscripción desde Google Play Store')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
-  }
-
   Future<void> _configurarApiKey() async {
     final currentKey = await ClaudeVisionService.getApiKey() ?? '';
     final ctrl = TextEditingController(text: currentKey);
@@ -190,132 +166,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: const Text('Guardar'),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlanCard() {
-    if (_userInfo == null) return const SizedBox();
-    
-    final plan = _userInfo!['plan'];
-    final planType = plan?['plan_type'] ?? 'free';
-    final planConfig = SubscriptionService.subscriptionPlans[planType];
-    final isTrial = _userInfo!['is_trial'] ?? false;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                planType == 'free' ? Icons.verified : Icons.star,
-                color: planType == 'free' ? AppColors.primary : Colors.amber,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                planConfig?['name'] ?? 'Verificador de Recibo',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          if (isTrial && planType != 'free')
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green),
-              ),
-              child: Text(
-                'PRUEBA GRATIS - ${_userInfo!['trial_days_remaining']} días restantes',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ),
-          
-          const SizedBox(height: 12),
-          
-          if (planType != 'free')
-            Text(
-              '\$${planConfig?['price']?.toStringAsFixed(0) ?? '0'}/mes',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          
-          const SizedBox(height: 8),
-          
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: (planConfig?['features'] as List<dynamic>? ?? []).map((feature) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        feature.toString(),
-                        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          if (planType == 'free')
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _openPlanSelection,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('UPGRADE A PREMIUM', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            )
-          else
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _openPlanSelection,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.primary),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('GESTIONAR SUSCRIPCIÓN', style: TextStyle(color: AppColors.primary)),
-              ),
-            ),
         ],
       ),
     );
@@ -494,25 +344,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  _buildPlanCard(),
                   _buildUserInfo(),
                   const SizedBox(height: 20),
                   _buildSupportSection(),
-                  const SizedBox(height: 30),
-                  
+                  const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: _signOut,
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
+                        side: BorderSide(color: Colors.red.shade300),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text(
-                        'Cerrar Sesión',
-                        style: TextStyle(color: Colors.red),
-                      ),
+                      child: Text('Cerrar Sesión', style: TextStyle(color: Colors.red.shade700)),
                     ),
                   ),
                 ],

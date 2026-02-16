@@ -9,7 +9,6 @@ import 'package:url_strategy/url_strategy.dart'; // Import agregado
 
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
-import 'screens/plan_selection_screen.dart'; // Import restaurado
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -69,11 +68,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/home': (context) => const HomeScreen(),
         '/verificador': (context) => const VerificadorReciboScreen(),
-        '/web-login': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          return WebLoginScreen(selectedPlan: args?['plan']);
-        },
-        '/plans': (context) => const PlanSelectionScreen(),
+        '/web-login': (context) => const WebLoginScreen(),
       },
     );
   }
