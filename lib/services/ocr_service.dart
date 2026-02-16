@@ -4,18 +4,12 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
+// import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart'; // REMOVED - NO TESSERACT
 import 'claude_vision_service.dart';
 import '../models/recibo_model.dart';
 
 class OcrService {
   final ImagePicker _imagePicker = ImagePicker();
-  // Inicializamos el recognizer solo si no es web para evitar errores
-  // final TextRecognizer? _textRecognizer = 
-  //    kIsWeb ? null : TextRecognizer(script: TextRecognitionScript.latin);
-  
-  // Dummy wrapper to replace InputImage for now
-  // on mobile we would need the real one, but for web deploy we skip it
   
   // Future<ImageSource?> _elegirFuenteImagen() async {
   //   return ImageSource.gallery; // Simplificado para ejemplo
@@ -33,6 +27,7 @@ class OcrService {
   Future<OcrResult> procesarImagen(XFile imageFile, {String? contextoConvenio}) async {
     try {
       // 1. Intentar con Claude Vision si hay API Key configurada
+      // SIEMPRE intentar usar Claude primero, especialmente en Web
       final apiKey = await ClaudeVisionService.getApiKey();
       print("Claude API Key present: ${apiKey != null && apiKey.isNotEmpty}");
       
@@ -63,22 +58,22 @@ class OcrService {
           }
         } catch (e) {
           print("Claude Vision falló: $e");
-          // Si estamos en web y falla Claude, NO intentamos Tesseract porque falla
+          // Si estamos en web y falla Claude, reportamos el error directamente
+          // NO usamos Tesseract como fallback
           if (kIsWeb) {
              return OcrResult(
-              texto: "Error al procesar con Claude Vision: $e",
+              texto: "Error al procesar con Claude Vision: $e. Verifique su conexión y API Key.",
               exito: false,
               confianza: 0.0,
               textoCrudo: "Error: $e",
               esParcial: true
             );
           }
-          // En móvil podríamos intentar fallback, pero por ahora reportamos el error de Claude
         }
       } else {
          if (kIsWeb) {
              return OcrResult(
-              texto: "No se encontró API Key de Claude configurada.",
+              texto: "No se encontró API Key de Claude configurada. El sistema requiere una API Key válida para funcionar.",
               exito: false,
               confianza: 0.0,
               textoCrudo: "Falta API Key",
@@ -88,22 +83,17 @@ class OcrService {
       }
 
       if (kIsWeb) {
-        // Tesseract NO funciona bien en web sin configuración extra en index.html
-        // Mejor deshabilitarlo para evitar el crash NoSuchMethodError
+        // En Web, si llegamos aquí es porque no había API Key o falló algo antes y no se retornó
+        // Ya no usamos Tesseract.
         return OcrResult(
-          texto: "OCR Web fallback (Tesseract) deshabilitado. Verifique API Key de Claude.",
+          texto: "Error crítico: No se pudo procesar la imagen con Claude Vision.",
           exito: false,
           confianza: 0.0,
           textoCrudo: "",
           esParcial: true
         );
       } else {
-        // USAR TESSERACT PARA WEB - OCR REAL
-        final imageBytes = await imageFile.readAsBytes();
-        return await _procesarConTesseract(imageBytes, imageFile.path);
-      } else {
-        // USAR ML KIT PARA MÓVIL
-        // Commented out for web deploy compatibility
+        // USAR ML KIT PARA MÓVIL (si se rehabilitara)
         return OcrResult(
           texto: "OCR Móvil deshabilitado en versión web.",
           exito: false,
@@ -111,21 +101,11 @@ class OcrService {
           textoCrudo: "",
           esParcial: true
         );
-        /*
-        final inputImage = InputImage.fromFilePath(imageFile.path);
-        final RecognizedText recognizedText = await _textRecognizer!.processImage(inputImage);
-        return OcrResult(
-          texto: recognizedText.text,
-          exito: true,
-          confianza: _calcularConfianzaPromedio(recognizedText),
-          textoCrudo: recognizedText.text
-        );
-        */
       }
     } catch (e) {
       print("Error en procesamiento OCR: $e");
       return OcrResult(
-        texto: "Se detectaron problemas en el reconocimiento, pero mostramos todo lo que pudimos leer:",
+        texto: "Error general en el procesamiento: $e",
         exito: false,
         confianza: 0.0,
         textoCrudo: "Error: $e",
@@ -134,46 +114,7 @@ class OcrService {
     }
   }
 
-  Future<OcrResult> _procesarConTesseract(Uint8List imageBytes, String path) async {
-    try {
-      // Guardar imagen temporalmente para Tesseract (necesita path de archivo)
-      // On web, path is a blob url, Tesseract.js might handle it
-      
-      // Configurar Tesseract optimizado para recibos argentinos antiguos
-      final resultado = await FlutterTesseractOcr.extractText(
-        path, // On web this is blob:http://...
-        language: "spa", // Español
-        args: {
-          'psm': '6',    // Assume a single uniform block of text.
-        }
-      );
-      
-      if (resultado.isNotEmpty) {
-        return OcrResult(
-          texto: resultado,
-          exito: true,
-          confianza: 0.8, // Valor estimado para Tesseract
-          textoCrudo: resultado
-        );
-      } else {
-        return OcrResult(
-            texto: "No se pudo extraer texto.",
-            exito: false,
-            confianza: 0.0,
-            textoCrudo: "",
-            esParcial: true
-        );
-      }
-    } catch (e) {
-       return OcrResult(
-            texto: "Error Tesseract: $e",
-            exito: false,
-            confianza: 0.0,
-            textoCrudo: "Error: $e",
-            esParcial: true
-        );
-    }
-  }
+  // _procesarConTesseract REMOVED
   
   void dispose() {
     // _textRecognizer?.close();
