@@ -4,6 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../theme/app_colors.dart';
 
+/// Variable global para controlar el bypass de administrador
+bool isGlobalAdminBypass = false;
+
 /// Pantalla de acceso para la versión Web: Email/Password o Código de Vinculación.
 class WebLoginScreen extends StatefulWidget {
   const WebLoginScreen({super.key});
@@ -23,7 +26,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     if (codigoIngresado.toLowerCase() == 'vanesa2025') {
       // Simular login exitoso para administrador
       setState(() => _loading = true);
-      WebLoginScreen.isAdminBypass = true;
+      isGlobalAdminBypass = true;
       
       _bypassAdmin();
       return;
