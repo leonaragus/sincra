@@ -70,6 +70,23 @@ class MyApp extends StatelessWidget {
         '/verificador': (context) => const VerificadorReciboScreen(),
         '/web-login': (context) => const WebLoginScreen(),
       },
+      onGenerateRoute: (settings) {
+        // Simple auth guard
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user == null && settings.name != '/web-login') {
+          return MaterialPageRoute(builder: (_) => const WebLoginScreen());
+        }
+        return null;
+      },
+      home: Builder(
+        builder: (context) {
+          final user = Supabase.instance.client.auth.currentUser;
+          if (user == null) {
+            return const WebLoginScreen();
+          }
+          return const HomeScreen();
+        },
+      ),
     );
   }
 }

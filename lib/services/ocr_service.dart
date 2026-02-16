@@ -34,6 +34,8 @@ class OcrService {
     try {
       // 1. Intentar con Claude Vision si hay API Key configurada
       final apiKey = await ClaudeVisionService.getApiKey();
+      print("Claude API Key present: ${apiKey != null && apiKey.isNotEmpty}");
+      
       if (apiKey != null && apiKey.isNotEmpty) {
         ReciboModel? model;
         String text = "";
@@ -60,12 +62,42 @@ class OcrService {
             );
           }
         } catch (e) {
-          print("Claude Vision falló, intentando OCR local: $e");
-          // Continuar con OCR local
+          print("Claude Vision falló: $e");
+          // Si estamos en web y falla Claude, NO intentamos Tesseract porque falla
+          if (kIsWeb) {
+             return OcrResult(
+              texto: "Error al procesar con Claude Vision: $e",
+              exito: false,
+              confianza: 0.0,
+              textoCrudo: "Error: $e",
+              esParcial: true
+            );
+          }
+          // En móvil podríamos intentar fallback, pero por ahora reportamos el error de Claude
         }
+      } else {
+         if (kIsWeb) {
+             return OcrResult(
+              texto: "No se encontró API Key de Claude configurada.",
+              exito: false,
+              confianza: 0.0,
+              textoCrudo: "Falta API Key",
+              esParcial: true
+            );
+          }
       }
 
       if (kIsWeb) {
+        // Tesseract NO funciona bien en web sin configuración extra en index.html
+        // Mejor deshabilitarlo para evitar el crash NoSuchMethodError
+        return OcrResult(
+          texto: "OCR Web fallback (Tesseract) deshabilitado. Verifique API Key de Claude.",
+          exito: false,
+          confianza: 0.0,
+          textoCrudo: "",
+          esParcial: true
+        );
+      } else {
         // USAR TESSERACT PARA WEB - OCR REAL
         final imageBytes = await imageFile.readAsBytes();
         return await _procesarConTesseract(imageBytes, imageFile.path);
