@@ -1668,9 +1668,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   }
 
   Widget _buildValidacionMatematica(LiquidacionDetallada liq, Totales totales) {
-    // Calcular sumas de items individuales
+    // Calcular sumas de items individuales (para validación futura)
+    /*
     double sumHaberesRem = 0;
-    double sumHaberesNoRem = 0; // Algunos haberes pueden ser no remunerativos si el JSON lo indica
+    double sumHaberesNoRem = 0;
     
     for (var h in liq.haberes) {
       if (h.esRemunerativo) {
@@ -1682,6 +1683,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
 
     double sumRetenciones = liq.retenciones.fold(0, (sum, item) => sum + item.monto);
     double sumOtros = liq.otrosConceptos.fold(0, (sum, item) => sum + item.monto);
+    */
     
     // Asumimos que "otros conceptos" suelen ser no remunerativos o ajustes netos, 
     // pero para simplificar la validación básica:

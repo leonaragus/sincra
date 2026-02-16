@@ -6,9 +6,7 @@ import '../theme/app_colors.dart';
 
 /// Pantalla de acceso para la versión Web: Email/Password o Código de Vinculación.
 class WebLoginScreen extends StatefulWidget {
-  final String? selectedPlan;
-  
-  const WebLoginScreen({super.key, this.selectedPlan});
+  const WebLoginScreen({super.key});
 
   @override
   State<WebLoginScreen> createState() => _WebLoginScreenState();
@@ -17,7 +15,6 @@ class WebLoginScreen extends StatefulWidget {
 class _WebLoginScreenState extends State<WebLoginScreen> {
   final _codigo = TextEditingController();
   bool _loading = false;
-  String? _error;
 
   void _ingresarCodigo() {
     final codigoIngresado = _codigo.text.trim();
