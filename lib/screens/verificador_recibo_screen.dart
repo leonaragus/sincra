@@ -163,7 +163,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
     // Pero como OCRService tiene fallback a Tesseract en Web y FilePicker en Desktop, 
     // deberíamos permitir intentar.
     
-    // 0. Verificar cuota Freemium
+    // 0. Verificar cuota Freemium - DESHABILITADO
+    /*
     final canScan = await SubscriptionService.canPerformOcrScan();
 
     if (!canScan) {
@@ -191,6 +192,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
       );
       return;
     }
+    */
 
     setState(() {
         _estaProcesando = true;
@@ -1389,15 +1391,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
                     },
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.star_rounded,
-                    label: 'Planes Premium',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PlanSelectionScreen()));
-                    },
-                    isHighlight: true,
                   ),
                 ],
               ),
