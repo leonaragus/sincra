@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
+// import 'dart:typed_data'; // Unused
 // import 'dart:io'; // Removed for web compatibility
 import 'package:flutter/foundation.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility

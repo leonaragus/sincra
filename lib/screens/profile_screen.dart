@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/claude_vision_service.dart';
 import '../theme/app_colors.dart';
-import '../utils/auth_middleware.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
