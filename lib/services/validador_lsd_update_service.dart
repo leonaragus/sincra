@@ -26,7 +26,7 @@ class ValidadorLSDUpdateService {
         final mensaje = (response['mensaje'] ?? 'Reglas actualizadas') as String;
         final rawConfig = response['config_json'];
         final remoteConfigJson = rawConfig is Map 
-            ? Map<String, dynamic>.from(rawConfig as Map) 
+            ? Map<String, dynamic>.from(rawConfig) 
             : (rawConfig is String ? jsonDecode(rawConfig) as Map<String, dynamic> : <String, dynamic>{});
         final mergedConfig = <String, dynamic>{
           'version': remoteVersion,
@@ -78,11 +78,9 @@ class ValidadorLSDUpdateService {
     return {
       "version": 1,
       "topes": { "min": 0, "max": 99999999 },
-      "reglas_activas": ["all"]
-    };
       "reglas_activas": ["all"],
       "ultima_sincro": DateTime.now().toIso8601String(),
-      "mensaje": "Reglas por defecto"
-}
+      "mensaje": "Reglas por defecto",
+    };
   }
 }

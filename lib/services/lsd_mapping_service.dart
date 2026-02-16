@@ -243,11 +243,6 @@ class LsdMappingService {
       'desc': 'SAC Proporcional',
       'sub': 'Remunerativo'
     },
-    'VACACIONES': {
-      'afip': '130000',
-      'desc': 'Vacaciones',
-      'sub': 'Remunerativo'
-    },
     'VNG': {
       'afip': '130000',
       'desc': 'Vacaciones No Gozadas',
