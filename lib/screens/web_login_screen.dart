@@ -5,7 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../theme/app_colors.dart';
 
 /// Variable global para controlar el bypass de administrador
-bool isGlobalAdminBypass = false;
+bool isAdminBypass = false;
 
 /// Pantalla de acceso para la versión Web: Email/Password o Código de Vinculación.
 class WebLoginScreen extends StatefulWidget {
