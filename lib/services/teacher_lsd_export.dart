@@ -205,7 +205,8 @@ Future<String> teacherOmniToLsdTxt({
   sb.write(LSDGenerator.eolLsd);
 
   final out = sb.toString();
-  LSDGenerator.validarLongitud195(out);
+  // Validación final estricta (longitud de líneas + CUIL módulo 11)
+  LSDGenerator.validarYObtenerBytesLSD(contenido: out);
   return out;
 }
 
