@@ -112,6 +112,11 @@ Future<String> teacherOmniToLsdTxt({
     if (monto <= 0) return;
     conceptos.add({'codigo': codigo, 'desc': desc, 'importe': monto, 'tipo': 'D'});
   }
+  
+  void addNoRemunerativo(String codigo, String desc, double monto) {
+    if (monto <= 0) return;
+    conceptos.add({'codigo': codigo, 'desc': desc, 'importe': monto, 'tipo': 'N'});
+  }
 
   addHaber(TeacherLsdCodigos.sueldoBasico, 'Sueldo Básico', liquidacion.sueldoBasico);
   addHaber(TeacherLsdCodigos.antiguedad, 'Antigüedad', liquidacion.adicionalAntiguedad);
@@ -126,8 +131,9 @@ Future<String> teacherOmniToLsdTxt({
   if (liquidacion.materialDidactico > 0) addHaber('MATERIAL_DID', 'Material Didáctico', liquidacion.materialDidactico);
   addHaber(TeacherLsdCodigos.adicionalCiudad, 'Adicional Salarial Ciudad', liquidacion.adicionalSalarialCiudad);
   addHaber(TeacherLsdCodigos.estadoDocente, 'Estado Docente', liquidacion.estadoDocente);
-  addHaber(TeacherLsdCodigos.fonid, 'FONID', liquidacion.fonid);
-  addHaber(TeacherLsdCodigos.conectividad, 'Conectividad', liquidacion.conectividad);
+  // FONID y Conectividad se informan como haberes no remunerativos (tipo interno 'N')
+  addNoRemunerativo(TeacherLsdCodigos.fonid, 'FONID', liquidacion.fonid);
+  addNoRemunerativo(TeacherLsdCodigos.conectividad, 'Conectividad', liquidacion.conectividad);
   addHaber(TeacherLsdCodigos.horasCatedra, 'Horas Cátedra', liquidacion.horasCatedra);
   addHaber(TeacherLsdCodigos.equiparacion13047, 'Ajuste Equiparación Ley 13.047', liquidacion.ajusteEquiparacionLey13047);
   addHaber(TeacherLsdCodigos.fondoCompensador, 'Fondo Compensador', liquidacion.fondoCompensador);
@@ -159,12 +165,14 @@ Future<String> teacherOmniToLsdTxt({
     final codigoLimpio = sanitizarTextoARCA((c['codigo'] as String).trim().toUpperCase());
     final descripcionLimpia = sanitizarTextoARCA(c['desc'] as String? ?? '');
     
+    // Mapear tipo 'N' (no remunerativo) a 'H' para el formato LSD
+    final tipoLsd = (c['tipo'] as String?) == 'N' ? 'H' : c['tipo'] as String?;
     final r3 = LSDGenerator.generateRegistro3Conceptos(
       cuilEmpleado: cuil,
       codigoConcepto: codigoLimpio,
       importe: c['importe'] as double,
       descripcionConcepto: descripcionLimpia,
-      tipo: c['tipo'] as String?,
+      tipo: tipoLsd,
     );
     sb.write(latin1.decode(r3));
     sb.write(LSDGenerator.eolLsd);
@@ -177,9 +185,14 @@ Future<String> teacherOmniToLsdTxt({
   // Las bases 4 (OS), 8 (Aporte OS) y 9 (LRT) se autocompletan en el motor si no se envían,
   // pero las enviamos explícitamente para mayor seguridad.
   final bases = List<double>.filled(10, 0.0);
-  // ARCA 2026: Llenar bases 1 a 9 con el total remunerativo topeado para consistencia federal
+  // Calcular base imponible a partir de la suma de conceptos tipo 'H' del Registro 03 (incluye mapeo de 'N'→'H')
+  double baseCalculada = 0.0;
+  for (final c in conceptos) {
+    final tipoLsd = (c['tipo'] as String?) == 'N' ? 'H' : c['tipo'] as String?;
+    if (tipoLsd == 'H') baseCalculada += (c['importe'] as double);
+  }
   for (int i = 0; i < 9; i++) {
-    bases[i] = liquidacion.baseImponibleTopeada;
+    bases[i] = baseCalculada;
   }
 
   final r4 = LSDGenerator.generateRegistro4Bases(

@@ -175,6 +175,7 @@ class WebAuthGate extends StatefulWidget {
 
 class _WebAuthGateState extends State<WebAuthGate> {
   bool? _logueado;
+  static const String _forceLogoutVersion = '20260216a';
 
   @override
   void initState() {
@@ -195,11 +196,12 @@ class _WebAuthGateState extends State<WebAuthGate> {
   Future<void> _forceLogoutOnce() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = 'force_logout_once';
-      final flag = prefs.getBool(key) ?? true;
-      if (flag) {
+      final key = 'force_logout_version';
+      final last = prefs.getString(key);
+      final shouldLogout = last != _forceLogoutVersion;
+      if (shouldLogout) {
         await Supabase.instance.client.auth.signOut();
-        await prefs.setBool(key, false);
+        await prefs.setString(key, _forceLogoutVersion);
       }
     } catch (_) {}
   }

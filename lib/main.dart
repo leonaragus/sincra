@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/home_screen.dart';
 import 'screens/verificador_recibo_screen.dart';
 import 'screens/web_login_screen.dart';
@@ -10,6 +11,7 @@ import 'package:url_strategy/url_strategy.dart'; // Import agregado
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/plan_selection_screen.dart'; // Import restaurado
+import 'config/supabase_config.dart';
 
 void main() {
   setPathUrlStrategy(); // Función agregada aquí
@@ -18,6 +20,13 @@ void main() {
   PlatformDispatcher.instance.onError = (error, stack) => true;
 
   WidgetsFlutterBinding.ensureInitialized();
+  Supabase.initialize(
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
+    authOptions: const FlutterAuthClientOptions(
+      autoRefreshToken: true,
+    ),
+  );
 
   runApp(
     ChangeNotifierProvider(
