@@ -67,7 +67,6 @@ flutter:
 
   # Assets para Tesseract OCR (modelos de idioma)
   assets:
-    - .env
     - assets/
 
 flutter_native_splash:
