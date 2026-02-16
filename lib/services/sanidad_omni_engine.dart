@@ -61,18 +61,7 @@ class SanidadNomenclador2026 {
 
   /// Obtiene la paritaria de una jurisdicción (o genera default si no existe)
   static ParitariaSanidad getParitaria(String? jurisdiccion) {
-    String key = jurisdiccion ?? _defaultJurisdiccion;
-    key = key
-        .trim()
-        .toLowerCase()
-        .replaceAll('á', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ú', 'u')
-        .replaceAll('ü', 'u')
-        .replaceAll('ñ', 'n')
-        .replaceAll(RegExp(r'[^a-z]'), '');
+    final key = jurisdiccion ?? _defaultJurisdiccion;
     if (_paritariasCache.containsKey(key)) {
       return _paritariasCache[key]!;
     }
@@ -590,9 +579,9 @@ class SanidadOmniEngine {
       }
     }
 
-    // Zona patagónica: base de cálculo ajustada
+    // Zona patagónica: para Sanidad (ATSA), la base incluye Básico + Antigüedad + Título + Tarea Crítica + Nocturnidad + Horas Extras + Conceptos Remunerativos Propios
     final esPatagonica = esZonaPatagonica ?? SanidadParitariasService.jurisdiccionesPatagonicas.contains(jur);
-    final baseZona = basico + antig + titulo + tareaCrit + noct + totalRemunerativosPropios;
+    final baseZona = basico + antig + titulo + tareaCrit + noct + horas50 + horas100 + totalRemunerativosPropios;
     final plusPatagonia = adicionalZonaPatagonica(baseZona, esPatagonica, jurisdiccion: jur);
  
      final fallo = falloCaja(input.categoria, input.manejoEfectivoCaja, jurisdiccion: jur);

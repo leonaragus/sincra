@@ -51,6 +51,8 @@ dependencies:
   provider: ^6.1.1 # Gestión de estado para temas
   file_picker: ^10.3.10
   google_fonts: ^8.0.1
+  flutter_dotenv: ^6.0.0
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -62,6 +64,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Assets para Tesseract OCR (modelos de idioma)
+  assets:
+    - .env
+    - assets/
 
 flutter_native_splash:
   color: "#0D1B2A"
@@ -75,7 +82,3 @@ flutter_native_splash:
   android_12_dark:
     color_dark: "#0D1B2A"
   # Para "Syncra Arg" y eslogan: agregar image: "assets/images/splash_logo.png"
-
-  # Assets para Tesseract OCR (modelos de idioma)
-  assets:
-    - assets/

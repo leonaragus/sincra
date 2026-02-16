@@ -345,15 +345,15 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-      color: Colors.green[50],
+      color: Colors.grey[200],
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.verified, size: 16, color: Colors.green),
+          const Icon(Icons.verified_user, size: 14, color: Colors.green),
           const SizedBox(width: 8),
           Text(
-            'Reglas actualizadas: $_ultimaSincro',
-            style: GoogleFonts.poppins(fontSize: 12, color: Colors.green[800], fontWeight: FontWeight.bold),
+            'Reglas ARCA verificadas: $_ultimaSincro (Fuente: ANSES/BO)',
+            style: GoogleFonts.poppins(fontSize: 11, color: Colors.blueGrey[700], fontWeight: FontWeight.bold),
           ),
         ],
       ),

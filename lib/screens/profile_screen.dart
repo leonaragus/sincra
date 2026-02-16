@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/subscription_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/auth_middleware.dart';
-import '../services/openai_vision_service.dart';
+import '../services/claude_vision_service.dart';
 import 'play_store_plan_selection_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -149,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _configurarApiKey() async {
-    final currentKey = await OpenAIVisionService.getApiKey() ?? '';
+    final currentKey = await ClaudeVisionService.getApiKey() ?? '';
     final ctrl = TextEditingController(text: currentKey);
 
     if (!mounted) return;
@@ -157,19 +157,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Configurar OpenAI API Key'),
+        title: const Text('Configurar Claude API Key'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Ingrese su clave de API de OpenAI para habilitar el reconocimiento avanzado de recibos (Vision GPT-4o).',
+              'Ingrese su clave de API de Anthropic (Claude) para habilitar el reconocimiento avanzado de recibos.',
               style: TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: ctrl,
               decoration: const InputDecoration(
-                labelText: 'API Key (sk-...)',
+                labelText: 'API Key (sk-ant-...)',
                 border: OutlineInputBorder(),
               ),
               obscureText: true,
@@ -180,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () async {
-              await OpenAIVisionService.setApiKey(ctrl.text.trim());
+              await ClaudeVisionService.setApiKey(ctrl.text.trim());
               if (mounted) {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -469,7 +469,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           ListTile(
             leading: const Icon(Icons.key, color: Colors.purple),
-            title: const Text('Configuración API (OpenAI)'),
+            title: const Text('Configuración API (Claude)'),
             subtitle: const Text('Mejorar reconocimiento OCR'),
             onTap: _configurarApiKey,
             contentPadding: EdgeInsets.zero,

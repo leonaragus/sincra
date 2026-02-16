@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/home_screen.dart';
 import 'screens/verificador_recibo_screen.dart';
 import 'screens/web_login_screen.dart';
@@ -11,22 +10,21 @@ import 'package:url_strategy/url_strategy.dart'; // Import agregado
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/plan_selection_screen.dart'; // Import restaurado
-import 'config/supabase_config.dart';
 
-void main() {
-  setPathUrlStrategy(); // Función agregada aquí
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  setPathUrlStrategy(); 
+
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("No se pudo cargar el archivo .env: $e");
+  }
 
   FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
   PlatformDispatcher.instance.onError = (error, stack) => true;
-
-  WidgetsFlutterBinding.ensureInitialized();
-  Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-    authOptions: const FlutterAuthClientOptions(
-      autoRefreshToken: true,
-    ),
-  );
 
   runApp(
     ChangeNotifierProvider(
@@ -58,11 +56,14 @@ class MyApp extends StatelessWidget {
         Locale('en'),
       ],
       locale: const Locale('es', 'AR'),
-      home: WebAuthGate(child: const HomeScreen()),
+      home: const HomeScreen(),
       routes: {
         '/home': (context) => const HomeScreen(),
         '/verificador': (context) => const VerificadorReciboScreen(),
-        '/web-login': (context) => const WebLoginScreen(),
+        '/web-login': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          return WebLoginScreen(selectedPlan: args?['plan']);
+        },
         '/plans': (context) => const PlanSelectionScreen(),
       },
     );

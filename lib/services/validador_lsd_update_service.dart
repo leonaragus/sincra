@@ -21,19 +21,8 @@ class ValidadorLSDUpdateService {
           .maybeSingle();
 
       if (response != null) {
-        final remoteVersion = (response['version'] ?? 0) as int;
-        final updatedAt = (response['updated_at'] ?? DateTime.now().toIso8601String()).toString();
-        final mensaje = (response['mensaje'] ?? 'Reglas actualizadas') as String;
-        final rawConfig = response['config_json'];
-        final remoteConfigJson = rawConfig is Map 
-            ? Map<String, dynamic>.from(rawConfig) 
-            : (rawConfig is String ? jsonDecode(rawConfig) as Map<String, dynamic> : <String, dynamic>{});
-        final mergedConfig = <String, dynamic>{
-          'version': remoteVersion,
-          'ultima_sincro': updatedAt,
-          'mensaje': mensaje,
-          ...remoteConfigJson,
-        };
+        final remoteConfig = response['config_json'] as Map<String, dynamic>;
+        final remoteVersion = response['version'] as int;
         
         final prefs = await SharedPreferences.getInstance();
         final localConfigStr = prefs.getString(_prefsKey);
@@ -42,8 +31,8 @@ class ValidadorLSDUpdateService {
         if (localConfigStr == null) {
           shouldUpdate = true;
         } else {
-          final localConfig = jsonDecode(localConfigStr) as Map<String, dynamic>;
-          final localVersion = (localConfig['version'] ?? 0) as int;
+          final localConfig = jsonDecode(localConfigStr);
+          final localVersion = localConfig['version'] as int;
           
           if (remoteVersion > localVersion) {
             shouldUpdate = true;
@@ -52,15 +41,10 @@ class ValidadorLSDUpdateService {
 
         if (shouldUpdate) {
           // Guardamos el JSON de configuración localmente
-          await prefs.setString(_prefsKey, jsonEncode(mergedConfig));
+          await prefs.setString(_prefsKey, jsonEncode(remoteConfig));
           print('LSD Rules updated to version $remoteVersion');
           return true; // Hubo actualización
         }
-          // Refrescar fecha de sync para UI aunque no haya nueva versión
-          final localConfig = jsonDecode(localConfigStr!) as Map<String, dynamic>;
-          localConfig['ultima_sincro'] = updatedAt;
-          localConfig['mensaje'] = mensaje;
-          await prefs.setString(_prefsKey, jsonEncode(localConfig));
       }
     } catch (e) {
       print('Error checking LSD updates: $e');
@@ -78,9 +62,7 @@ class ValidadorLSDUpdateService {
     return {
       "version": 1,
       "topes": { "min": 0, "max": 99999999 },
-      "reglas_activas": ["all"],
-      "ultima_sincro": DateTime.now().toIso8601String(),
-      "mensaje": "Reglas por defecto",
+      "reglas_activas": ["all"]
     };
   }
 }

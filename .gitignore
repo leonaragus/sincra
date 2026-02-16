@@ -34,3 +34,5 @@ node_modules/
 # Logs
 *.lognode_modules/
 node_modules/
+
+.env

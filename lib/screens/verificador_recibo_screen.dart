@@ -5,6 +5,7 @@ import 'package:syncra_arg/services/ocr_service.dart';
 import 'package:syncra_arg/services/verificacion_recibo_service.dart';
 import 'teacher_receipt_scan_screen.dart';
 import 'package:syncra_arg/models/recibo_escaneado.dart';
+import 'package:syncra_arg/models/recibo_model.dart'; // Import nuevo modelo
 import 'package:syncra_arg/services/hybrid_store.dart';
 import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
 import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
@@ -30,7 +31,7 @@ class VerificadorReciboScreen extends StatefulWidget {
       _VerificadorReciboScreenState();
 }
 
-class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
+class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with SingleTickerProviderStateMixin {
   final OcrService _ocrService = OcrService();
   final VerificacionReciboService _verificacionService =
       VerificacionReciboService();
@@ -39,6 +40,14 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   String _textoOcr = '';
   ResultadoVerificacion? _resultado;
   ReciboEscaneado? _recibo;
+  ReciboModel? _reciboModel; // Nuevo modelo estructurado
+  late TabController _tabController;
+  
+  // Gestión de convenios
+  String? _convenioSeleccionadoId;
+  List<Map<String, dynamic>> _listaConveniosDisponibles = [];
+  bool _cargandoConvenios = true;
+
   double _ipcBase = 8.0;
   // final double _ipcConservador = 6.0; // Unused
   // final double _ipcOptimista = 10.0; // Unused
@@ -57,6 +66,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
     _ocrService.dispose();
     _ipcController.dispose();
     _ajusteController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -64,7 +74,58 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   void initState() {
     super.initState();
     debugPrint('VerificadorReciboScreen v1.3 loaded'); // Debug version
+    _tabController = TabController(length: 3, vsync: this);
     _cargarDatosAutomaticos();
+    _cargarListaConvenios();
+  }
+
+  Future<void> _cargarListaConvenios() async {
+    try {
+      final docentes = await HybridStore.getMaestroParitarias();
+      final sanidad = await HybridStore.getMaestroParitariasSanidad();
+      
+      final List<Map<String, dynamic>> opciones = [];
+      
+      // Opción por defecto
+      opciones.add({
+        'id': 'ninguno',
+        'nombre': 'Sin convenio específico (Genérico)',
+        'data': null
+      });
+
+      // Procesar Docentes
+      for (var d in docentes) {
+        final juris = d['jurisdiccion'] ?? 'Desconocida';
+        opciones.add({
+          'id': 'docente_$juris',
+          'nombre': 'Docente - $juris',
+          'data': d
+        });
+      }
+
+      // Procesar Sanidad
+      for (var s in sanidad) {
+        final juris = s['jurisdiccion'] ?? 'Desconocida';
+        opciones.add({
+          'id': 'sanidad_$juris',
+          'nombre': 'Sanidad - $juris (CCT 122/75)',
+          'data': s
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _listaConveniosDisponibles = opciones;
+          _convenioSeleccionadoId = 'ninguno';
+          _cargandoConvenios = false;
+        });
+      }
+    } catch (e) {
+      print('Error cargando convenios: $e');
+      if (mounted) {
+        setState(() => _cargandoConvenios = false);
+      }
+    }
   }
 
 
@@ -139,6 +200,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
         _textoOcr = '';
         _resultado = null;
         _recibo = null;
+        _reciboModel = null;
       });
 
     try {
@@ -152,16 +214,49 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       // Registrar uso de cuota
       await SubscriptionService.registerOcrScan();
 
+      // Preparar contexto del convenio seleccionado
+      String? contextoConvenio;
+      if (_convenioSeleccionadoId != null && _convenioSeleccionadoId != 'ninguno') {
+        final convenio = _listaConveniosDisponibles.firstWhere(
+          (c) => c['id'] == _convenioSeleccionadoId,
+          orElse: () => {'data': null}
+        );
+        
+        if (convenio['data'] != null) {
+          // Convertimos el mapa del convenio a una string legible para Claude
+          // Eliminamos campos innecesarios para ahorrar tokens
+          final dataMap = Map<String, dynamic>.from(convenio['data']);
+          dataMap.remove('updated_at');
+          dataMap.remove('id');
+          contextoConvenio = dataMap.toString();
+        }
+      }
+
       // setState(() => _rutaImagen = imagenFile.path);
 
       // 2. Procesar con OCR
       // Refactored to remove direct dependency on MLKit InputImage
-      final resultadoOcr = await _ocrService.procesarImagen(imagenFile);
+      final resultadoOcr = await _ocrService.procesarImagen(
+        imagenFile, 
+        contextoConvenio: contextoConvenio
+      );
       
       setState(() {
         _textoOcr = resultadoOcr.texto;
+        _reciboModel = resultadoOcr.reciboModel;
         _estaProcesando = false;
       });
+
+      if (_reciboModel != null) {
+        // Si tenemos el modelo estructurado, ya tenemos todo lo necesario.
+        // Asignamos valores dummy a _recibo y _resultado para activar la vista de resultados
+        // pero usaremos _reciboModel para renderizar.
+        setState(() {
+           _recibo = ReciboEscaneado(); 
+           _resultado = ResultadoVerificacion();
+        });
+        return;
+      }
 
       // 3. Parsear el texto - intentamos parsear incluso si el OCR fue parcial
       ReciboEscaneado reciboEscaneado;
@@ -368,6 +463,71 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       margin: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
+          // Selector de Convenio (Opcional)
+          if (!_cargandoConvenios && _listaConveniosDisponibles.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Theme.of(context).dividerColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.gavel, size: 16, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Convenio aplicable (Opcional)",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _convenioSeleccionadoId,
+                      hint: const Text("Seleccionar convenio..."),
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontSize: 14,
+                      ),
+                      dropdownColor: Theme.of(context).cardColor,
+                      items: _listaConveniosDisponibles.map((c) {
+                        return DropdownMenuItem<String>(
+                          value: c['id'],
+                          child: Text(
+                            c['nombre'],
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _convenioSeleccionadoId = val;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Tarjeta principal de escaneo
           Container(
             padding: const EdgeInsets.all(30),
@@ -651,6 +811,17 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
   }
 
   Widget _buildResultadoWidget() {
+    if (_reciboModel != null) {
+      return Column(
+        children: [
+          _buildStructuredResult(),
+          const SizedBox(height: 20),
+          _buildActionButtons(),
+          const SizedBox(height: 20),
+          _buildOcrTextSection(),
+        ],
+      );
+    }
 
     if (_resultado == null) return const SizedBox.shrink();
 
@@ -963,7 +1134,16 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
           ],
 
         // Botones de acción
-        Container(
+        _buildActionButtons(),
+
+        // Texto OCR - AHORA SIEMPRE VISIBLE
+        _buildOcrTextSection(),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1019,10 +1199,11 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               ),
             ],
           ),
-        ),
+        );
+  }
 
-        // Texto OCR - AHORA SIEMPRE VISIBLE
-        Container(
+  Widget _buildOcrTextSection() {
+    return Container(
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
@@ -1085,9 +1266,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
               ),
             ],
           ),
-        ),
-      ],
-    );
+        );
   }
 
   // Helper methods to satisfy compilation
@@ -1327,5 +1506,375 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> {
       'items_revisar': [],
       'alertas_graves': [],
     };
+  }
+
+  // --- NUEVA UI ESTRUCTURADA ---
+
+  Widget _buildStructuredResult() {
+    if (_reciboModel == null) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        // TabBar
+        Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).dividerColor),
+          ),
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: Theme.of(context).primaryColor,
+            labelColor: Theme.of(context).primaryColor,
+            unselectedLabelColor: Theme.of(context).hintColor,
+            tabs: const [
+              Tab(text: 'Datos'),
+              Tab(text: 'Liquidación'),
+              Tab(text: 'Auditoría IA'),
+            ],
+          ),
+        ),
+
+        // Contenido de las tabs
+        SizedBox(
+          height: 600, // Altura fija o usar Expanded si el padre lo permite
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildDatosGeneralesTab(),
+              _buildLiquidacionTab(),
+              _buildAuditoriaTab(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatosGeneralesTab() {
+    final cabecera = _reciboModel!.cabecera;
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('Empresa', cabecera.empresaNombre),
+            _buildInfoRow('CUIT Empresa', cabecera.empresaCuit),
+            const Divider(),
+            _buildInfoRow('Empleado', cabecera.empleadoNombre),
+            _buildInfoRow('CUIL Empleado', cabecera.empleadoCuil),
+            _buildInfoRow('Legajo', cabecera.legajo),
+            _buildInfoRow('Fecha Ingreso', cabecera.fechaIngreso),
+            _buildInfoRow('Antigüedad', cabecera.antiguedadReconocida),
+            const Divider(),
+            _buildInfoRow('Categoría', cabecera.categoriaProfesional),
+            _buildInfoRow('CCT', cabecera.cctAplicable),
+            _buildInfoRow('Período', cabecera.periodoAbonado),
+            _buildInfoRow('Lugar Pago', cabecera.lugarPago),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).hintColor,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isNotEmpty ? value : '-',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiquidacionTab() {
+    final liq = _reciboModel!.liquidacionDetallada;
+    final totales = _reciboModel!.totales;
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Haberes
+          if (liq.haberes.isNotEmpty)
+            _buildSectionCard('Haberes', liq.haberes.map((h) => 
+              _buildConceptoRow(h.codigo, h.descripcion, h.monto, Colors.green)
+            ).toList()),
+          
+          // Retenciones
+          if (liq.retenciones.isNotEmpty)
+            _buildSectionCard('Retenciones', liq.retenciones.map((r) => 
+              _buildConceptoRow(r.codigo, r.descripcion, -r.monto, Colors.red)
+            ).toList()),
+
+          // Otros
+          if (liq.otrosConceptos.isNotEmpty)
+            _buildSectionCard('Otros Conceptos', liq.otrosConceptos.map((o) => 
+              _buildConceptoRow('', o.descripcion, o.monto, Colors.blue)
+            ).toList()),
+
+          // Totales
+          Container(
+            margin: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Theme.of(context).primaryColor),
+            ),
+            child: Column(
+              children: [
+                _buildTotalRow('Total Bruto (Reportado)', totales.totalBruto),
+                _buildTotalRow('Total Retenciones (Reportado)', -totales.totalRetenciones, isNegative: true),
+                _buildTotalRow('No Remunerativo (Reportado)', totales.totalNoRemunerativo),
+                const Divider(),
+                _buildTotalRow('NETO A COBRAR (Reportado)', totales.netoACobrar, isBold: true, fontSize: 18),
+                
+                // Validación Matemática
+                _buildValidacionMatematica(liq, totales),
+
+                if (totales.netoEnLetras.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      totales.netoEnLetras,
+                      style: TextStyle(fontStyle: FontStyle.italic, color: Theme.of(context).hintColor),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValidacionMatematica(LiquidacionDetallada liq, Totales totales) {
+    // Calcular sumas de items individuales
+    double sumHaberesRem = 0;
+    double sumHaberesNoRem = 0; // Algunos haberes pueden ser no remunerativos si el JSON lo indica
+    
+    for (var h in liq.haberes) {
+      if (h.esRemunerativo) {
+        sumHaberesRem += h.monto;
+      } else {
+        sumHaberesNoRem += h.monto;
+      }
+    }
+
+    double sumRetenciones = liq.retenciones.fold(0, (sum, item) => sum + item.monto);
+    double sumOtros = liq.otrosConceptos.fold(0, (sum, item) => sum + item.monto);
+    
+    // Asumimos que "otros conceptos" suelen ser no remunerativos o ajustes netos, 
+    // pero para simplificar la validación básica:
+    // Neto Calculado = (Remunerativo + No Remunerativo + Otros) - Retenciones
+    
+    // Nota: El modelo JSON tiene "total_no_remunerativo" en totales, que debería coincidir con sumHaberesNoRem + sumOtros (aprox)
+    // Vamos a usar los totales reportados para la validación cruzada principal:
+    // Neto Teorico = Bruto + No Remunerativo - Retenciones
+    
+    final netoTeorico = totales.totalBruto + totales.totalNoRemunerativo - totales.totalRetenciones;
+    final diferencia = (totales.netoACobrar - netoTeorico).abs();
+    
+    if (diferencia < 1.0) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+             Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
+             SizedBox(width: 8),
+             Text("Cálculo matemático correcto", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                 Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                 SizedBox(width: 8),
+                 Text("Diferencia matemática detectada", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Neto calculado: \$${netoTeorico.toStringAsFixed(2)} (Dif: \$${diferencia.toStringAsFixed(2)})",
+              style: const TextStyle(color: Colors.orange, fontSize: 11),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildSectionCard(String title, List<Widget> children) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Divider(),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConceptoRow(String codigo, String descripcion, double monto, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          if (codigo.isNotEmpty)
+            SizedBox(width: 40, child: Text(codigo, style: const TextStyle(fontSize: 12))),
+          Expanded(child: Text(descripcion)),
+          Text(
+            '\$${monto.abs().toStringAsFixed(2)}',
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
+          Text(
+            '${isNegative ? "-" : ""}\$${amount.abs().toStringAsFixed(2)}',
+            style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditoriaTab() {
+    final audit = _reciboModel!.auditoriaIA;
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Confianza
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green),
+                const SizedBox(width: 12),
+                Text(
+                  'Confianza del análisis: ${(audit.puntuacionConfianzaOcr * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+              ],
+            ),
+          ),
+
+          // Análisis Legal
+          _buildSectionCard('Análisis Legal', [
+            Text(audit.analisisLegal.isNotEmpty ? audit.analisisLegal : 'Sin observaciones.'),
+          ]),
+
+          // Alertas
+          if (audit.alertasCriticas.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('Alertas Críticas', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                    ],
+                  ),
+                  const Divider(color: Colors.orange),
+                  ...audit.alertasCriticas.map((a) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                        Expanded(child: Text(a)),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
+
+          // Conceptos Complejos
+          if (audit.explicacionConceptosComplejos.isNotEmpty)
+            _buildSectionCard('Conceptos Complejos', [
+              Text(audit.explicacionConceptosComplejos),
+            ]),
+        ],
+      ),
+    );
   }
 }

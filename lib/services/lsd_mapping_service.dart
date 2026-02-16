@@ -88,7 +88,7 @@ class LsdMappingService {
       'sub': 'Descuentos'
     },
     GeneralesLsdCodigos.ganancias: {
-      'afip': '990000',
+      'afip': '810010',
       'desc': 'Retención Ganancias 4ta Cat.',
       'sub': 'Descuentos'
     },
@@ -99,79 +99,40 @@ class LsdMappingService {
     },
 
     // === DOCENTES ===
+    // TeacherLsdCodigos.sueldoBasico -> Usa GeneralesLsdCodigos.sueldoBasico
     TeacherLsdCodigos.antiguedad: {
-      'afip': '012000', 
-      'desc': 'Antigüedad', 
+      'afip': '110000', 
+      'desc': 'Adicionales', 
       'sub': 'Remunerativo'
     },
     TeacherLsdCodigos.fonid: {
-      'afip': '110000', 
-      'desc': 'FONID', 
+      'afip': '550000', 
+      'desc': 'Conceptos No Remunerativos Varios', 
       'sub': 'No Remunerativo'
     },
     TeacherLsdCodigos.conectividad: {
-      'afip': '110000', 
-      'desc': 'Conectividad', 
+      'afip': '550000', 
+      'desc': 'Conceptos No Remunerativos Varios', 
       'sub': 'No Remunerativo'
     },
     TeacherLsdCodigos.materialDidactico: {
-      'afip': '011000', 
-      'desc': 'Material Didáctico', 
-      'sub': 'Remunerativo'
+      'afip': '550000', 
+      'desc': 'Conceptos No Remunerativos Varios', 
+      'sub': 'No Remunerativo'
     },
     TeacherLsdCodigos.adicionalZona: {
-      'afip': '011000', 
-      'desc': 'Adicional Zona Desfavorable', 
+      'afip': '110000', 
+      'desc': 'Adicionales - Zona', 
       'sub': 'Remunerativo'
     },
     TeacherLsdCodigos.presentismo: {
-      'afip': '011000', 
-      'desc': 'Presentismo', 
+      'afip': '110000', 
+      'desc': 'Adicionales - Presentismo', 
       'sub': 'Remunerativo'
     },
     TeacherLsdCodigos.titulo: {
-      'afip': '012000', 
-      'desc': 'Adicional por Título', 
-      'sub': 'Remunerativo'
-    },
-    TeacherLsdCodigos.itemAula: {
-      'afip': '011000',
-      'desc': 'Ítem Aula',
-      'sub': 'Remunerativo'
-    },
-    TeacherLsdCodigos.adicionalCiudad: {
-      'afip': '011000',
-      'desc': 'Adicional Salarial Ciudad',
-      'sub': 'Remunerativo'
-    },
-    TeacherLsdCodigos.estadoDocente: {
-      'afip': '011000',
-      'desc': 'Estado Docente',
-      'sub': 'Remunerativo'
-    },
-    TeacherLsdCodigos.plusUbicacion: {
-      'afip': '011000',
-      'desc': 'Plus Ubicación/Ruralidad',
-      'sub': 'Remunerativo'
-    },
-    TeacherLsdCodigos.horasCatedra: {
-      'afip': '011000',
-      'desc': 'Horas Cátedra',
-      'sub': 'Remunerativo'
-    },
-    TeacherLsdCodigos.equiparacion13047: {
-      'afip': '011000',
-      'desc': 'Ajuste Equiparación Ley 13.047',
-      'sub': 'Remunerativo'
-    },
-    TeacherLsdCodigos.fondoCompensador: {
-      'afip': '112000',
-      'desc': 'Fondo Compensador',
-      'sub': 'No Remunerativo'
-    },
-    'GARANT_SAL': {
-      'afip': '011000',
-      'desc': 'Garantía Salarial',
+      'afip': '110000', 
+      'desc': 'Adicionales - Título', 
       'sub': 'Remunerativo'
     },
     // === SANIDAD ===
@@ -238,25 +199,10 @@ class LsdMappingService {
       'desc': 'Sueldo Anual Complementario', 
       'sub': 'Remunerativo'
     },
-    'SAC_PROP': {
-      'afip': '120000',
-      'desc': 'SAC Proporcional',
-      'sub': 'Remunerativo'
-    },
-    'VNG': {
-      'afip': '130000',
-      'desc': 'Vacaciones No Gozadas',
-      'sub': 'Remunerativo'
-    },
     // Vacaciones -> Usa GeneralesLsdCodigos.vacaciones
     'INDEMN_245': {
-      'afip': '211000', 
-      'desc': 'Indemnización Antigüedad Art. 245', 
-      'sub': 'Indemnizaciones'
-    },
-    'PREAVISO': {
-      'afip': '212000',
-      'desc': 'Indemnización Sustitutiva Preaviso',
+      'afip': '510001', 
+      'desc': 'Indemnización Antigüedad', 
       'sub': 'Indemnizaciones'
     },
   };

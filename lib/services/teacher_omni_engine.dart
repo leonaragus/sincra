@@ -829,21 +829,16 @@ class TeacherOmniEngine {
 
     double brutoRem;
     if (modoNeuquenRecibo) {
-      // Neuquén: componentes FONID (incDocenteLey25053, compFonid, ipcFonid) se consideran no remunerativos
-      brutoRem = A + antig + dto23315 + ubicacionZona + adicionalZonaPatagonica + a5D33516;
+      brutoRem = A + antig + dto23315 + ubicacionZona + adicionalZonaPatagonica + a5D33516 + incDocenteLey25053 + compFonid + ipcFonid;
     } else {
-      // General: FONID y Conectividad son no remunerativos para bases/aportes
-      brutoRem = A + antig + zonaAdd + adicionalZonaPatagonica + plusUbicacion + montoItemAula + addCiudad + estadoDoc + materialDidactico;
+      brutoRem = A + antig + zonaAdd + adicionalZonaPatagonica + plusUbicacion + montoItemAula + addCiudad + estadoDoc + materialDidactico + fonid + conectividad;
     }
     for (final c in conceptosFinales) { if (c.esRemunerativo) brutoRem += c.monto; }
 
     double noRem = 0.0;
     if (modoNeuquenRecibo) {
-      // Agregar componentes FONID y conectividad al bloque no remunerativo
-      noRem = conectividadNacional + conectividadProvincial + redondeoMonto + incDocenteLey25053 + compFonid + ipcFonid;
+      noRem = conectividadNacional + conectividadProvincial + redondeoMonto;
     } else {
-      // Agregar FONID y Conectividad al bloque no remunerativo
-      noRem = fonid + conectividad;
       for (final c in conceptosFinales) { if (!c.esRemunerativo) noRem += c.monto; }
     }
     final double fondoComp = input.subsidioParcialFondoCompensador ?? 0.0;

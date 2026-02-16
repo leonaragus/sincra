@@ -1,10 +1,12 @@
+import 'dart:convert';
 import 'dart:typed_data';
 // import 'dart:io'; // Removed for web compatibility
 import 'package:flutter/foundation.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
-import 'openai_vision_service.dart';
+import 'claude_vision_service.dart';
+import '../models/recibo_model.dart';
 
 class OcrService {
   final ImagePicker _imagePicker = ImagePicker();
@@ -28,25 +30,37 @@ class OcrService {
   }
 
   // Changed signature to use XFile instead of InputImage
-  Future<OcrResult> procesarImagen(XFile imageFile) async {
+  Future<OcrResult> procesarImagen(XFile imageFile, {String? contextoConvenio}) async {
     try {
-      // 1. Intentar con OpenAI Vision si hay API Key configurada
-      final apiKey = await OpenAIVisionService.getApiKey();
+      // 1. Intentar con Claude Vision si hay API Key configurada
+      final apiKey = await ClaudeVisionService.getApiKey();
       if (apiKey != null && apiKey.isNotEmpty) {
+        ReciboModel? model;
+        String text = "";
+        
         try {
           final bytes = await imageFile.readAsBytes();
-          final text = await OpenAIVisionService.analyzeReceipt(bytes);
+          text = await ClaudeVisionService.analyzeReceipt(bytes, contextoConvenio: contextoConvenio);
           
           if (text.isNotEmpty) {
+            // Intentar parsear el JSON estructurado
+            try {
+              final jsonMap = jsonDecode(text);
+              model = ReciboModel.fromJson(jsonMap);
+            } catch (e) {
+              print("Error parseando JSON de Claude: $e");
+            }
+
             return OcrResult(
               texto: text,
               exito: true,
-              confianza: 0.95, // Alta confianza para GPT-4o
+              confianza: 0.95, // Alta confianza para Claude
               textoCrudo: text,
+              reciboModel: model,
             );
           }
         } catch (e) {
-          print("OpenAI Vision falló, intentando OCR local: $e");
+          print("Claude Vision falló, intentando OCR local: $e");
           // Continuar con OCR local
         }
       }
@@ -140,6 +154,7 @@ class OcrResult {
   final double confianza;
   final String textoCrudo;
   final bool esParcial;
+  final ReciboModel? reciboModel; // Nuevo campo para el modelo estructurado
 
   OcrResult({
     required this.texto,
@@ -147,5 +162,6 @@ class OcrResult {
     required this.confianza,
     required this.textoCrudo,
     this.esParcial = false,
+    this.reciboModel,
   });
 }
