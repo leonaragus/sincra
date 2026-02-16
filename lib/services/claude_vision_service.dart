@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../config/api_keys.dart';
 
 class ClaudeVisionService {
   static const String _kApiKeyPref = 'claude_api_key';
@@ -13,7 +14,7 @@ class ClaudeVisionService {
     await prefs.setString(_kApiKeyPref, key);
   }
 
-  /// Obtiene la API Key guardada o del archivo .env
+  /// Obtiene la API Key guardada, del archivo .env o hardcodeada
   static Future<String?> getApiKey() async {
     // 1. Prioridad: Key guardada manualmente por el usuario
     final prefs = await SharedPreferences.getInstance();
@@ -22,8 +23,8 @@ class ClaudeVisionService {
       return savedKey;
     }
     
-    // 2. Fallback: Key del archivo .env
-    return dotenv.env['ANTHROPIC_API_KEY'];
+    // 2. Fallback: Key del archivo .env o configuración interna
+    return dotenv.env['ANTHROPIC_API_KEY'] ?? ApiKeys.anthropicApiKey;
   }
 
   /// Analiza una imagen usando Claude 3 Haiku y devuelve un JSON string
