@@ -26,10 +26,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserInfo() async {
     try {
-      final userInfo = await AuthMiddleware.getCurrentUserInfo();
+      // Direct access to current user
+      final user = Supabase.instance.client.auth.currentUser;
+      final userInfo = {'user': user};
       
       // Cargar avatar
-      final user = Supabase.instance.client.auth.currentUser;
       String? avatar;
       if (user != null) {
         try {

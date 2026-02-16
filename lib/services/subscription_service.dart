@@ -80,38 +80,7 @@ class SubscriptionService {
 
   /// Verificar si el usuario puede realizar un escaneo OCR
   static Future<bool> canPerformOcrScan() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return false;
-
-    // Obtener plan
-    final plan = await getCurrentUserPlan();
-    final planType = plan?['plan_type'] ?? 'free';
-    final limit = subscriptionPlans[planType]?['ocr_scans_limit'] as int? ?? 3;
-
-    // Si es ilimitado
-    if (limit == -1) return true;
-
-    // Obtener consumo del mes actual
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
-    
-    // Consultar tabla de cuotas o registros de uso
-    // Asumimos una tabla 'ocr_usage_logs' o similar
-    try {
-      final response = await Supabase.instance.client
-          .from('ocr_usage_logs')
-          .select('id')
-          .eq('user_id', user.id)
-          .gte('created_at', startOfMonth)
-          .count();
-      
-      final used = response.count;
-      return used < limit;
-    } catch (e) {
-      // Si falla la consulta (ej. tabla no existe), permitimos por defecto para no bloquear UX
-      // o implementamos fallback local.
-      return true; 
-    }
+    return true; // Acceso ilimitado para todos
   }
 
   /// Registrar un escaneo OCR realizado
@@ -176,6 +145,8 @@ class SubscriptionService {
 
   /// Verificar si el usuario tiene acceso a una función específica
   static Future<bool> hasAccessToFeature(String feature) async {
+    return true; // Acceso total para todos
+    /*
     final plan = await getCurrentUserPlan();
     if (plan == null) return false;
     
@@ -189,6 +160,7 @@ class SubscriptionService {
     if (feature == 'liquidacion' && planType == 'free') return false;
     
     return true;
+    */
   }
 
   /// Verificar límites de empresas

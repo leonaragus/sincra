@@ -17,9 +17,12 @@ class AuthMiddleware {
       case 'liquidacion':
       case 'empresas':
       case 'empleados':
-        // Solo usuarios con planes pagos
+        // Solo usuarios con planes pagos - AHORA TODOS TIENEN ACCESO
+        return true;
+        /*
         final plan = await SubscriptionService.getCurrentUserPlan();
         return plan != null && plan['plan_type'] != 'free';
+        */
         
       default:
         return true;
