@@ -71,8 +71,8 @@ class MyApp extends StatelessWidget {
         // Simple auth guard
         final user = Supabase.instance.client.auth.currentUser;
         
-        // Si no hay usuario y no estamos yendo al login, redirigir al login
-        if (user == null && settings.name != '/web-login') {
+        // Si no hay usuario, no es bypass y no estamos yendo al login, redirigir al login
+        if (user == null && !WebLoginScreen.isAdminBypass && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
         
