@@ -16,7 +16,6 @@ import 'parametros_legales_screen.dart';
 import 'teacher_interface_screen.dart';
 import 'sanidad_interface_screen.dart';
 import '../utils/logo_avatar.dart';
-import '../utils/robot_bat_helper.dart';
 import '../utils/app_help.dart';
 
 // Sprint 1 + 2 + 3 + 4 + 5
@@ -71,12 +70,26 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _showUpdateSnackBar(String date) {
-    RobotBatHelper.showUpdateNotification(
-      context: context,
-      title: 'PARITARIAS AL DÍA',
-      message: date.isNotEmpty
-          ? 'El robot BAT ha sincronizado nuevos convenios y escalas salariales actualizadas al $date.'
-          : 'El robot BAT ha sincronizado nuevos convenios y escalas salariales.',
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          date.isNotEmpty
+              ? 'Convenios actualizados al $date'
+              : 'Convenios actualizados',
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.glassFillStrong,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.glassBorder, width: 1),
+        ),
+      ),
     );
   }
 

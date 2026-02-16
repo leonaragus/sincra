@@ -153,40 +153,7 @@ class LSDValidatorHelper {
 
         // Verificar que el total remunerativo coincida con Base 1 (con margen de redondeo)
         final base1 = bases.getBaseAsDouble(0);
-        
-        // CORRECCIÓN: Considerar tope máximo en la comparación
-        double totalEsperado = totalRemu;
-        if (topeMax != null && totalRemu > topeMax) {
-          totalEsperado = topeMax;
-        }
-
-        // CORRECCIÓN DOCENTES: En Guía 4, algunos conceptos como FONID/CONECTIVIDAD 
-        // a veces se excluyen de la base 1 pero se informan como remunerativos (tipo H).
-        // Si hay una diferencia significativa, intentamos ver si restando esos conceptos coincide.
-        bool coincide = (totalEsperado - base1).abs() <= 2.0;
-        
-        if (!coincide) {
-          double montoExcluidoDocente = 0.0;
-          for (var c in conceptos) {
-            final cod = c.codigo.toUpperCase();
-            if (cod.contains('FONID') || cod.contains('CONECT') || cod.contains('CONEC') || cod.contains('IPC_FONID') || cod.contains('COMP_FONID')) {
-              if (c.tipo == 'H' || c.tipo == 'R') {
-                montoExcluidoDocente += c.importeAsDouble;
-              }
-            }
-          }
-          
-          double totalEsperadoDocente = totalRemu - montoExcluidoDocente;
-          if (topeMax != null && totalEsperadoDocente > topeMax) {
-            totalEsperadoDocente = topeMax;
-          }
-
-          if ((totalEsperadoDocente - base1).abs() <= 2.0) {
-            coincide = true;
-          }
-        }
-
-        if (!coincide) {
+        if ((totalRemu - base1).abs() > 2.0) {
           errors.add(ValidationIssue(
             'Total Remunerativo (\$${totalRemu.toStringAsFixed(2)}) no coincide con Base Imponible 1 (\$${base1.toStringAsFixed(2)}). ARCA rechazará la declaración.',
             ValidationIssueType.generic
@@ -195,32 +162,13 @@ class LSDValidatorHelper {
 
         // REGLA CRÍTICA: Base de Zona Patagónica (Federal Compliance)
         if (tieneZona) {
-          // Intentamos validar con base completa (estándar)
-          final double baseCalculadaZonaEstandar = totalRemu - montoZona;
-          
-          // Intentamos validar con base reducida (excluyendo conceptos nacionales docentes que a veces no son base de zona)
-          double montoExcluidoDocente = 0.0;
-          for (var c in conceptos) {
-            final cod = c.codigo.toUpperCase();
-            if (cod.contains('FONID') || cod.contains('CONECT') || cod.contains('CONEC')) {
-              if (c.tipo == 'H' || c.tipo == 'R') {
-                montoExcluidoDocente += c.importeAsDouble;
-              }
-            }
-          }
-          final double baseCalculadaZonaDocente = baseCalculadaZonaEstandar - montoExcluidoDocente;
-
+          final double baseCalculadaZona = totalRemu - montoZona;
+          // Asumimos porcentajes comunes: 20%, 30%, 40%, 50%, 80% o 100%
           bool zonaValida = false;
-          final pcts = [0.20, 0.30, 0.40, 0.50, 0.80, 1.00, 0.11, 0.12]; 
+          final pcts = [0.20, 0.30, 0.40, 0.50, 0.80, 1.00, 0.11, 0.12]; // Incluimos variaciones de CCT y Docentes (80%, 100%)
           
           for (var p in pcts) {
-            // Probar base estándar
-            if ((baseCalculadaZonaEstandar * p - montoZona).abs() < 5.0) {
-              zonaValida = true;
-              break;
-            }
-            // Probar base docente (Neuquén/Río Negro)
-            if (baseCalculadaZonaDocente > 0 && (baseCalculadaZonaDocente * p - montoZona).abs() < 5.0) {
+            if ((baseCalculadaZona * p - montoZona).abs() < 5.0) {
               zonaValida = true;
               break;
             }
@@ -228,7 +176,7 @@ class LSDValidatorHelper {
 
           if (!zonaValida) {
             errors.add(ValidationIssue(
-              'Cálculo de Zona Patagónica incorrecto: El monto (\$${montoZona.toStringAsFixed(2)}) no parece estar calculado sobre el total de conceptos remunerativos (\$${baseCalculadaZonaEstandar.toStringAsFixed(2)}) ni sobre la base docente (\$${baseCalculadaZonaDocente.toStringAsFixed(2)}).',
+              'Cálculo de Zona Patagónica incorrecto: El monto (\$${montoZona.toStringAsFixed(2)}) no parece estar calculado sobre el total de conceptos remunerativos (\$${baseCalculadaZona.toStringAsFixed(2)}). Regla Federal ARCA 2026 exige base completa.',
               ValidationIssueType.zonaPatagonicaInconsistent
             ));
           }
@@ -243,13 +191,7 @@ class LSDValidatorHelper {
          
          final teoricoJub = base1 * 0.11;
          final teoricoLey = base1 * 0.03;
-         
-         // Ajuste federal para Obra Social (Neuquén ISSN usa 5.5%)
-         double pctOS = 0.03;
-         if (compl?.rnos == '820000') {
-           pctOS = 0.055;
-         }
-         final teoricoOS = base4 * pctOS;
+         final teoricoOS = base4 * 0.03;
 
          double realJub = 0.0;
          double realLey = 0.0;

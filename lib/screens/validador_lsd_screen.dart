@@ -8,7 +8,6 @@ import '../services/lsd_parser_service.dart';
 import '../services/lsd_validator_helper.dart';
 
 import '../services/validador_lsd_update_service.dart';
-import '../utils/robot_bat_helper.dart';
 import '../utils/file_saver.dart' as fs;
 
 class ValidadorLSDScreen extends StatefulWidget {
@@ -48,10 +47,28 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
   }
 
   void _showUpdateNotification(String msg) {
-    RobotBatHelper.showUpdateNotification(
+    showDialog(
       context: context,
-      title: 'ACTUALIZACIÓN LSD',
-      message: msg,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.blue[50],
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: Colors.blueAccent),
+            const SizedBox(width: 10),
+            Text('¡Sistema Actualizado!', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'El robot BAT ha detectado cambios legales:\n\n$msg',
+          style: GoogleFonts.poppins(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('EXCELENTE'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -328,15 +345,15 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-      color: Colors.grey[200],
+      color: Colors.green[50],
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.verified_user, size: 14, color: Colors.green),
+          const Icon(Icons.verified, size: 16, color: Colors.green),
           const SizedBox(width: 8),
           Text(
-            'Reglas ARCA verificadas: $_ultimaSincro (Fuente: ANSES/BO)',
-            style: GoogleFonts.poppins(fontSize: 11, color: Colors.blueGrey[700], fontWeight: FontWeight.bold),
+            'Reglas actualizadas: $_ultimaSincro',
+            style: GoogleFonts.poppins(fontSize: 12, color: Colors.green[800], fontWeight: FontWeight.bold),
           ),
         ],
       ),
