@@ -12,6 +12,8 @@ import 'providers/theme_provider.dart';
 import 'screens/plan_selection_screen.dart'; // Import restaurado
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +24,13 @@ void main() async {
   } catch (e) {
     debugPrint("No se pudo cargar el archivo .env: $e");
   }
+
+  // Inicializar Supabase con configuración hardcodeada (segura para anon key)
+  // Esto permite que funcione sin .env en producción/web
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
+  );
 
   FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
   PlatformDispatcher.instance.onError = (error, stack) => true;
