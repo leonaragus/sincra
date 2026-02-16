@@ -26,7 +26,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     if (codigoIngresado.toLowerCase() == 'vanesa2025') {
       // Simular login exitoso para administrador
       setState(() => _loading = true);
-      isGlobalAdminBypass = true;
+      isAdminBypass = true;
       
       _bypassAdmin();
       return;
