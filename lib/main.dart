@@ -65,16 +65,25 @@ class MyApp extends StatelessWidget {
       ],
       locale: const Locale('es', 'AR'),
       routes: {
-        '/home': (context) => const HomeScreen(),
-        '/verificador': (context) => const VerificadorReciboScreen(),
         '/web-login': (context) => const WebLoginScreen(),
       },
       onGenerateRoute: (settings) {
         // Simple auth guard
         final user = Supabase.instance.client.auth.currentUser;
+        
+        // Si no hay usuario y no estamos yendo al login, redirigir al login
         if (user == null && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
+        
+        // Manejo manual de rutas protegidas
+        if (settings.name == '/home') {
+           return MaterialPageRoute(builder: (_) => const HomeScreen());
+        }
+        if (settings.name == '/verificador') {
+           return MaterialPageRoute(builder: (_) => const VerificadorReciboScreen());
+        }
+
         return null;
       },
       home: Builder(

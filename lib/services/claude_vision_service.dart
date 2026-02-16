@@ -45,9 +45,7 @@ class ClaudeVisionService {
     if (kIsWeb) {
       // 1. Proxy principal (rápido y estable)
       endpoints.add('https://corsproxy.io/?https://api.anthropic.com/v1/messages');
-      // 2. Proxy secundario (backup)
-      endpoints.add('https://api.allorigins.win/raw?url=${Uri.encodeComponent("https://api.anthropic.com/v1/messages")}');
-      // 3. Intento directo (por si el navegador lo permite en el futuro o configuración cambia)
+      // 2. Intento directo (por si el navegador lo permite en el futuro o configuración cambia)
       endpoints.add('https://api.anthropic.com/v1/messages');
     } else {
       // En móvil/desktop no hay CORS, ir directo
