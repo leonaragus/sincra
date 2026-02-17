@@ -6,7 +6,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:syncra_arg/config/api_keys.dart';
-import 'package:syncra_arg/config/supabase_config.dart';
 
 class ClaudeVisionService {
   static const String _kApiKeyPref = 'claude_api_key';
