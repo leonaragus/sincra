@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../models/teacher_types.dart';
 import '../utils/formatters.dart';
 import '../models/teacher_constants.dart';
-import '../models/ocr_confirm_result.dart';
 import '../models/plantilla_cargo_omni.dart';
 import '../services/teacher_receipt_scan_service.dart';
 import '../services/plantilla_cargo_service.dart';
@@ -23,16 +22,32 @@ class OcrReviewScreen extends StatefulWidget {
 }
 
 class _OcrReviewScreenState extends State<OcrReviewScreen> {
-  late TextEditingController _cuilCtr;
-  late TextEditingController _nombreCtr;
-  late TextEditingController _sueldoBasicoCtr;
-  late TextEditingController _antiguedadPctCtr;
+  late TextEditingController _empresaNombreCtr;
+  late TextEditingController _empresaCuitCtr;
+  late TextEditingController _empleadoNombreCtr;
+  late TextEditingController _empleadoCuilCtr;
+  late TextEditingController _legajoCtr;
+  late TextEditingController _fechaIngresoCtr;
+  late TextEditingController _antiguedadReconocidaCtr;
+  late TextEditingController _categoriaProfesionalCtr;
+  late TextEditingController _cctAplicableCtr;
+  late TextEditingController _periodoAbonadoCtr;
+  late TextEditingController _lugarPagoCtr;
+
+  late TextEditingController _totalBrutoCtr;
+  late TextEditingController _totalRetencionesCtr;
+  late TextEditingController _totalNoRemunerativoCtr;
+  late TextEditingController _netoACobrarCtr;
+  late TextEditingController _netoEnLetrasCtr;
+
   late TextEditingController _puntosCtr;
   late TextEditingController _valorIndiceCtr;
+  late TextEditingController _antiguedadPctCtr;
+  late TextEditingController _sueldoBasicoCtr;
+  late TextEditingController _codigoRnosCtr;
   late TextEditingController _cargasCtr;
   late TextEditingController _horasCatCtr;
   late TextEditingController _cantCargosCtr;
-  late TextEditingController _codigoRnosCtr;
 
   Jurisdiccion _jurisdiccion = Jurisdiccion.neuquen;
   TipoGestion _tipoGestion = TipoGestion.publica;
@@ -54,24 +69,50 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
   @override
   void initState() {
     super.initState();
-    _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
-    _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
-    _sueldoBasicoCtr = TextEditingController(
-      text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
+    _empresaNombreCtr = TextEditingController(text: widget.extract.cabecera?.empresaNombre ?? '');
+    _empresaCuitCtr = TextEditingController(text: widget.extract.cabecera?.empresaCuit ?? '');
+    _empleadoNombreCtr = TextEditingController(text: widget.extract.cabecera?.empleadoNombre ?? '');
+    _empleadoCuilCtr = TextEditingController(text: widget.extract.cabecera?.empleadoCuil ?? '');
+    _legajoCtr = TextEditingController(text: widget.extract.cabecera?.legajo ?? '');
+    _fechaIngresoCtr = TextEditingController(text: widget.extract.cabecera?.fechaIngreso ?? '');
+    _antiguedadReconocidaCtr = TextEditingController(text: widget.extract.cabecera?.antiguedadReconocida ?? '');
+    _categoriaProfesionalCtr = TextEditingController(text: widget.extract.cabecera?.categoriaProfesional ?? '');
+    _cctAplicableCtr = TextEditingController(text: widget.extract.cabecera?.cctAplicable ?? '');
+    _periodoAbonadoCtr = TextEditingController(text: widget.extract.cabecera?.periodoAbonado ?? '');
+    _lugarPagoCtr = TextEditingController(text: widget.extract.cabecera?.lugarPago ?? '');
+
+    _totalBrutoCtr = TextEditingController(
+      text: widget.extract.totales?.totalBruto != null ? _fmtNum(widget.extract.totales!.totalBruto!) : '',
     );
-    _antiguedadPctCtr = TextEditingController(
-      text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
+    _totalRetencionesCtr = TextEditingController(
+      text: widget.extract.totales?.totalRetenciones != null ? _fmtNum(widget.extract.totales!.totalRetenciones!) : '',
     );
+    _totalNoRemunerativoCtr = TextEditingController(
+      text: widget.extract.totales?.totalNoRemunerativo != null ? _fmtNum(widget.extract.totales!.totalNoRemunerativo!) : '',
+    );
+    _netoACobrarCtr = TextEditingController(
+      text: widget.extract.totales?.netoACobrar != null ? _fmtNum(widget.extract.totales!.netoACobrar!) : '',
+    );
+    _netoEnLetrasCtr = TextEditingController(text: widget.extract.totales?.netoEnLetras ?? '');
+
     _puntosCtr = TextEditingController(
       text: widget.extract.puntos?.toString() ?? '',
     );
     _valorIndiceCtr = TextEditingController(
       text: widget.extract.valorIndice != null ? _fmtNum(widget.extract.valorIndice!) : '',
     );
+    _antiguedadPctCtr = TextEditingController(
+      text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
+    );
+    _sueldoBasicoCtr = TextEditingController(
+      text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
+    );
+    _codigoRnosCtr = TextEditingController(
+      text: widget.extract.codigoRnos ?? '',
+    );
     _cargasCtr = TextEditingController(text: '0');
     _horasCatCtr = TextEditingController(text: '0');
     _cantCargosCtr = TextEditingController(text: '1');
-    _codigoRnosCtr = TextEditingController(text: '');
 
     if (widget.extract.jurisdiccionRaw != null && widget.extract.jurisdiccionRaw!.isNotEmpty) {
       final j = _parseJurisdiccion(widget.extract.jurisdiccionRaw!);
@@ -125,16 +166,32 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
 
   @override
   void dispose() {
-    _cuilCtr.dispose();
-    _nombreCtr.dispose();
-    _sueldoBasicoCtr.dispose();
-    _antiguedadPctCtr.dispose();
+    _empresaNombreCtr.dispose();
+    _empresaCuitCtr.dispose();
+    _empleadoNombreCtr.dispose();
+    _empleadoCuilCtr.dispose();
+    _legajoCtr.dispose();
+    _fechaIngresoCtr.dispose();
+    _antiguedadReconocidaCtr.dispose();
+    _categoriaProfesionalCtr.dispose();
+    _cctAplicableCtr.dispose();
+    _periodoAbonadoCtr.dispose();
+    _lugarPagoCtr.dispose();
+
+    _totalBrutoCtr.dispose();
+    _totalRetencionesCtr.dispose();
+    _totalNoRemunerativoCtr.dispose();
+    _netoACobrarCtr.dispose();
+    _netoEnLetrasCtr.dispose();
+
     _puntosCtr.dispose();
     _valorIndiceCtr.dispose();
+    _antiguedadPctCtr.dispose();
+    _sueldoBasicoCtr.dispose();
+    _codigoRnosCtr.dispose();
     _cargasCtr.dispose();
     _horasCatCtr.dispose();
     _cantCargosCtr.dispose();
-    _codigoRnosCtr.dispose();
     super.dispose();
   }
 
@@ -212,11 +269,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
   /// True si el OCR no detectó al menos un dato principal (CUIL, Básico, Puntos, etc.).
   bool get _hasMissingOcrFields {
     final e = widget.extract;
-    return (e.cuil == null || e.cuil!.trim().isEmpty) ||
-        (e.sueldoBasico == null) ||
-        (e.antiguedadPct == null) ||
-        (e.puntos == null) ||
-        (e.valorIndice == null);
+    return (e.cabecera?.empleadoCuil == null || e.cabecera!.empleadoCuil!.trim().isEmpty) ||
+        (e.totales?.netoACobrar == null);
   }
 
   String? _valorFederal(String key) {
@@ -374,7 +428,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
               padding: const EdgeInsets.all(12),
               child: Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.blue.shade900.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.blue.shade900.withOpacity(0.3), borderRadius: BorderRadius.circular(8)),
                 child: Row(children: [
                   const Icon(Icons.link, color: AppColors.pastelBlue, size: 20),
                   const SizedBox(width: 8),
@@ -387,7 +441,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.amber.shade900.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber.shade700, width: 1)),
+                decoration: BoxDecoration(color: Colors.amber.shade900.withOpacity(0.25), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber.shade700, width: 1)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -407,13 +461,29 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 100),
               children: [
-                _buildCard(label: 'CUIL', valorDetectado: widget.extract.cuil ?? '—', ctr: _cuilCtr),
-                _buildCard(label: 'Nombre', valorDetectado: widget.extract.nombre ?? '—', ctr: _nombreCtr),
-                _buildCard(label: 'Sueldo Básico', valorDetectado: AppNumberFormatter.format(widget.extract.sueldoBasico, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.sueldoBasico, valorIndice: false) : '—', ctr: _sueldoBasicoCtr, valorFederal: _valorFederal('sueldoBasico'), valorPlantilla: _valorPlantilla('sueldoBasico'), isNumero: true),
-                _buildCard(label: 'Antigüedad %', valorDetectado: AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false) : '—', ctr: _antiguedadPctCtr, valorPlantilla: _valorPlantilla('antiguedadPct'), isNumero: true),
+                _buildCard(label: 'Empresa', valorDetectado: widget.extract.cabecera?.empresaNombre ?? '—', ctr: _empresaNombreCtr),
+                _buildCard(label: 'CUIT Empresa', valorDetectado: widget.extract.cabecera?.empresaCuit ?? '—', ctr: _empresaCuitCtr),
+                _buildCard(label: 'Nombre Empleado', valorDetectado: widget.extract.cabecera?.empleadoNombre ?? '—', ctr: _empleadoNombreCtr),
+                _buildCard(label: 'CUIL Empleado', valorDetectado: widget.extract.cabecera?.empleadoCuil ?? '—', ctr: _empleadoCuilCtr),
+                _buildCard(label: 'Legajo', valorDetectado: widget.extract.cabecera?.legajo ?? '—', ctr: _legajoCtr),
+                _buildCard(label: 'Fecha Ingreso', valorDetectado: widget.extract.cabecera?.fechaIngreso ?? '—', ctr: _fechaIngresoCtr),
+                _buildCard(label: 'Antigüedad Reconocida', valorDetectado: widget.extract.cabecera?.antiguedadReconocida ?? '—', ctr: _antiguedadReconocidaCtr),
+                _buildCard(label: 'Categoría Profesional', valorDetectado: widget.extract.cabecera?.categoriaProfesional ?? '—', ctr: _categoriaProfesionalCtr),
+                _buildCard(label: 'CCT Aplicable', valorDetectado: widget.extract.cabecera?.cctAplicable ?? '—', ctr: _cctAplicableCtr),
+                _buildCard(label: 'Período Abonado', valorDetectado: widget.extract.cabecera?.periodoAbonado ?? '—', ctr: _periodoAbonadoCtr),
+                _buildCard(label: 'Lugar de Pago', valorDetectado: widget.extract.cabecera?.lugarPago ?? '—', ctr: _lugarPagoCtr),
+                
+                const Padding(padding: EdgeInsets.only(left: 16, top: 12), child: Text('Totales', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary))),
+                _buildCard(label: 'Total Bruto', valorDetectado: AppNumberFormatter.format(widget.extract.totales?.totalBruto, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.totales?.totalBruto, valorIndice: false) : '—', ctr: _totalBrutoCtr, isNumero: true),
+                _buildCard(label: 'Total Retenciones', valorDetectado: AppNumberFormatter.format(widget.extract.totales?.totalRetenciones, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.totales?.totalRetenciones, valorIndice: false) : '—', ctr: _totalRetencionesCtr, isNumero: true),
+                _buildCard(label: 'Total No Remunerativo', valorDetectado: AppNumberFormatter.format(widget.extract.totales?.totalNoRemunerativo, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.totales?.totalNoRemunerativo, valorIndice: false) : '—', ctr: _totalNoRemunerativoCtr, isNumero: true),
+                _buildCard(label: 'Neto a Cobrar', valorDetectado: AppNumberFormatter.format(widget.extract.totales?.netoACobrar, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.totales?.netoACobrar, valorIndice: false) : '—', ctr: _netoACobrarCtr, isNumero: true),
+                _buildCard(label: 'Neto en Letras', valorDetectado: widget.extract.totales?.netoEnLetras ?? '—', ctr: _netoEnLetrasCtr),
+
+                const Padding(padding: EdgeInsets.only(left: 16, top: 12), child: Text('Parámetros de liquidación', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary))),
                 _buildCard(label: 'Puntos', valorDetectado: widget.extract.puntos?.toString() ?? '—', ctr: _puntosCtr, valorFederal: _valorFederal('puntos'), valorPlantilla: _valorPlantilla('puntos'), isNumero: true),
                 _buildCard(label: 'Valor Índice', valorDetectado: AppNumberFormatter.format(widget.extract.valorIndice, valorIndice: true).isNotEmpty ? AppNumberFormatter.format(widget.extract.valorIndice, valorIndice: true) : '—', ctr: _valorIndiceCtr, valorFederal: _valorFederal('valorIndice'), valorPlantilla: _valorPlantilla('valorIndice'), isNumero: true),
-                const Padding(padding: EdgeInsets.only(left: 16, top: 12), child: Text('Parámetros de liquidación', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary))),
+                _buildCard(label: 'Antigüedad %', valorDetectado: AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false) : '—', ctr: _antiguedadPctCtr, valorPlantilla: _valorPlantilla('antiguedadPct'), isNumero: true),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   child: DropdownButtonFormField<Jurisdiccion>(
@@ -492,99 +562,54 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
   }
 
   void _confirmar() {
-    if (_cuilCtr.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Complete al menos el CUIL')));
+    final empleadoCuil = _empleadoCuilCtr.text.trim();
+    if (empleadoCuil.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CUIL del empleado es obligatorio')),
+      );
       return;
     }
 
-    final vi = _parseNumFromField(_valorIndiceCtr.text);
-    final sb = _parseNumFromField(_sueldoBasicoCtr.text);
-    final pts = _parseIntFromField(_puntosCtr.text);
-    final antigPct = _parseNumFromField(_antiguedadPctCtr.text);
-    final item = NomencladorFederal2026.itemPorTipo(_cargo);
-    final esHoraCat = item?.esHoraCatedra ?? false;
-    final tieneNumeric = vi != null || sb != null || pts != null || antigPct != null;
-
-    Future<void> continuarConJurisdiccion(bool? updatePlantilla) async {
-      if (updatePlantilla == true && tieneNumeric) {
-        final id = PlantillaCargoOmni.buildPerfilCargoId(
-          jurisdiccion: _jurisdiccion,
-          tipoGestion: _tipoGestion,
-          tipoNomenclador: _cargo,
-          antiguedadAnos: _anosAntiguedad(),
-          zona: _zona,
-          nivelUbicacion: _nivelUbicacion,
-        );
-        await PlantillaCargoService.save(PlantillaCargoOmni(
-          perfilCargoId: id,
-          valorIndice: vi,
-          sueldoBasico: sb,
-          puntos: pts,
-          antiguedadPct: antigPct,
-        ));
-      }
-      if (!mounted) return;
-
-      showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Actualizar parámetros globales'),
-          content: const Text('¿Desea actualizar los parámetros globales de la jurisdicción con estos nuevos valores detectados? (p. ej. Valor Índice)'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí')),
-          ],
-        ),
-      ).then((actualizar) {
-        if (actualizar == null) return;
-        if (actualizar == true && vi != null) {
-          final cfg = JurisdiccionDBOmni.get(_jurisdiccion);
-          if (cfg != null) cfg.valorIndice = vi;
-        }
-
-        final overrides = DocenteOmniOverrides(
-          valorIndiceOverride: vi,
-          sueldoBasicoOverride: sb,
-          puntosCargoOverride: esHoraCat ? null : pts,
-          puntosHoraCatedraOverride: esHoraCat ? pts : null,
-        );
-
-        final result = OcrConfirmResult(
-          nombre: _nombreCtr.text.trim().isEmpty ? null : _nombreCtr.text.trim(),
-          cuil: _cuilCtr.text.trim(),
-          jurisdiccion: _jurisdiccion,
-          tipoGestion: _tipoGestion,
-          cargo: _cargo,
-          nivel: _nivel,
-          zona: _zona,
-          fechaIngreso: _fechaIngreso,
-          cargasFamiliares: _parseIntFromField(_cargasCtr.text) ?? 0,
-          horasCatedra: _parseIntFromField(_horasCatCtr.text) ?? 0,
-          cantidadCargos: _parseIntFromField(_cantCargosCtr.text) ?? 1,
-          codigoRnos: _codigoRnosCtr.text.trim().isEmpty ? null : _codigoRnosCtr.text.trim(),
-          overrides: overrides,
-          updateJurisdiccion: actualizar == true,
-          jurisdiccionActualizada: _jurisdiccion,
-        );
-        if (!context.mounted) return;
-        Navigator.pop(context, result);
-      });
+    final netoACobrar = _parseNumFromField(_netoACobrarCtr.text);
+    if (netoACobrar == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Neto a Cobrar es obligatorio y debe ser un número válido')),
+      );
+      return;
     }
 
-    if (tieneNumeric) {
-      showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Actualizar plantilla'),
-          content: const Text('¿Desea actualizar esta plantilla para futuros cálculos de este perfil de cargo?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí')),
-          ],
-        ),
-      ).then((v) => continuarConJurisdiccion(v));
-    } else {
-      continuarConJurisdiccion(false);
-    }
+    final result = OcrExtractResult(
+      cabecera: Cabecera(
+        empresaNombre: _empresaNombreCtr.text.trim(),
+        empresaCuit: _empresaCuitCtr.text.trim(),
+        empleadoNombre: _empleadoNombreCtr.text.trim(),
+        empleadoCuil: empleadoCuil,
+        legajo: _legajoCtr.text.trim(),
+        fechaIngreso: _fechaIngresoCtr.text.trim(),
+        antiguedadReconocida: _antiguedadReconocidaCtr.text.trim(),
+        categoriaProfesional: _categoriaProfesionalCtr.text.trim(),
+        cctAplicable: _cctAplicableCtr.text.trim(),
+        periodoAbonado: _periodoAbonadoCtr.text.trim(),
+        lugarPago: _lugarPagoCtr.text.trim(),
+      ),
+      totales: Totales(
+        totalBruto: _parseNumFromField(_totalBrutoCtr.text),
+        totalRetenciones: _parseNumFromField(_totalRetencionesCtr.text),
+        totalNoRemunerativo: _parseNumFromField(_totalNoRemunerativoCtr.text),
+        netoACobrar: netoACobrar,
+        netoEnLetras: _netoEnLetrasCtr.text.trim(),
+      ),
+      puntos: _parseIntFromField(_puntosCtr.text),
+      valorIndice: _parseNumFromField(_valorIndiceCtr.text),
+      antiguedadPct: _parseNumFromField(_antiguedadPctCtr.text),
+      urlDetectada: widget.extract.urlDetectada,
+      source: widget.extract.source,
+      rawTextOcr: widget.extract.rawTextOcr,
+      error: widget.extract.error,
+      liquidacionDetallada: widget.extract.liquidacionDetallada,
+      auditoriaIa: widget.extract.auditoriaIa,
+    );
+
+    Navigator.pop(context, result);
   }
 }

@@ -1,0 +1,54 @@
+# Registro de Modificaciones (Temporal)
+
+Este archivo registra las modificaciones realizadas durante la sesión actual para facilitar el seguimiento y la preparación del commit.
+
+## Tareas Completadas:
+
+### 1. Ocultar JSON crudo en el verificador de recibos
+- **Archivo:** `lib/screens/verificador_recibo_screen.dart`
+- **Descripción:** Se eliminaron las llamadas a la función `_buildOcrTextSection()` para evitar la visualización del JSON crudo en la interfaz de usuario.
+
+### 2. Implementación de la identificación automática del CCT y selección manual
+
+#### a. Modificaciones en `lib/services/verificacion_recibo_service.dart`
+- **Descripción:** Se añadió lógica para la extracción del CCT (Convenio Colectivo de Trabajo) del texto escaneado.
+- **Cambios específicos:**
+    - Se añadió una expresión regular (`cct_aplicable`) a `ReceiptOCRPatterns` para detectar patrones de CCT.
+    - Se implementó el método auxiliar `extraerValorString` para una extracción de cadenas más robusta.
+    - Se modificó la función `parsearTextoOcr` para extraer los campos `cctAplicable`, `cuitEmpleador`, `nombreEmpleado`, `cuilEmpleado` y `periodo` del texto OCR.
+    - Se integró el uso de `OCRCCTService._extraerCodigoCCT` y `OCRCCTService._extraerNombreCCT` para procesar el `cctAplicable` y obtener el código y nombre del CCT.
+
+#### b. Modificaciones en `lib/models/recibo_escaneado.dart`
+- **Descripción:** Se extendió el modelo `ReciboEscaneado` para almacenar la información estructurada del CCT.
+- **Cambios específicos:**
+    - Se añadieron los campos `cctAplicable` (String?), `cctCodigo` (String?), `cctNombre` (String?), `cctMaster` (CCTMaster?) al modelo.
+    - Se añadió la importación de `package:syncra_arg/services/cct_cloud_service.dart`.
+
+## Tareas en Progreso:
+
+### 3. Asegurar la visibilidad de los títulos de las herramientas.
+- **Archivo:** `lib/screens/home_screen.dart`
+- **Descripción:** Se modificó el widget `Text` del título en la función `_buildModernCard` para asegurar que los títulos largos no se recorten.
+- **Cambios específicos:**
+    - Se añadió `maxLines: 2` y `overflow: TextOverflow.ellipsis` al widget `Text` del título.
+
+### 4. Mostrar el cartel de "Elevar formación técnica" con el número de WhatsApp correcto (2995484312).
+- **Archivo:** `lib/widgets/elevar_formacion_banner.dart` (nuevo archivo) y `lib/screens/home_screen.dart`
+- **Descripción:** Se creó un nuevo widget `ElevarFormacionBanner` para mostrar el mensaje de formación técnica con el número de WhatsApp. Este banner se integró en `home_screen.dart`.
+- **Cambios específicos:**
+    - Creación de `lib/widgets/elevar_formacion_banner.dart` con el diseño y la funcionalidad para abrir WhatsApp.
+    - Adición de la importación `import '../widgets/elevar_formacion_banner.dart';` en `lib/screens/home_screen.dart`.
+    - Inserción del widget `const ElevarFormacionBanner()` en `lib/screens/home_screen.dart` antes de `_buildMainButtons()`.
+
+### 5. Mover la funcionalidad de escaneo de recibos a la parte superior de las ventanas "CCT docentes", "sanidad" y "crear empresa", con una invitación clara para el contador.
+- **Archivo:** `lib/screens/sanidad_interface_screen.dart`
+- **Descripción:** Se añadió un widget `_buildScanReceiptInvitation()` en la parte superior de la pantalla para invitar al contador a escanear recibos y cargar datos automáticamente.
+- **Cambios específicos:**
+    - Se definió el método `_buildScanReceiptInvitation()` que crea un `Container` con un mensaje y un `FilledButton.icon` que llama a `_abrirEscanerRecibo()`.
+    - Se insertó la llamada a `_buildScanReceiptInvitation()` en el método `build` de `SanidadInterfaceScreen`, antes de `_buildBannerSincronizacion()`.
+- **Archivo:** `lib/screens/teacher_interface_screen.dart`
+- **Descripción:** Se añadió un widget `_buildScanReceiptInvitation()` en la parte superior de la pantalla para invitar al contador a escanear recibos y cargar datos automáticamente.
+- **Cambios específicos:**
+    - Se definió el método `_buildScanReceiptInvitation()` que crea un `Container` con un mensaje y un `FilledButton.icon` que llama a `_abrirEscanerRecibo()`.
+    - Se insertó la llamada a `_buildScanReceiptInvitation()` en el método `build` de `TeacherInterfaceScreen`, antes de `_buildBotonesPrincipales()`.
+    - Se añadió la función `_abrirEscanerRecibo()` para navegar a `VerificadorReciboScreen`.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:syncra_arg/models/cct_completo.dart';
-import 'package:syncra_arg/theme/app_colors.dart';
+import 'package:elevar_liquidacion/models/cct_completo.dart';
+import 'package:elevar_liquidacion/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CCTDetailDialog extends StatefulWidget {

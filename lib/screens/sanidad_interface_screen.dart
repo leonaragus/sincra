@@ -9,27 +9,28 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/image_bytes_reader.dart';
 import '../utils/file_saver.dart';
-import '../models/teacher_types.dart';
 import '../models/empresa.dart';
 import '../models/empleado.dart';
 import '../data/rnos_docentes_data.dart';
 import '../services/sanidad_omni_engine.dart';
 import '../services/sanidad_lsd_export.dart';
-import '../services/lsd_mapping_service.dart';
 import '../services/instituciones_service.dart';
 import '../services/costo_empleador_service.dart';
 import '../services/sanidad_paritarias_service.dart';
 import '../services/liquidacion_historial_service.dart';
 import '../services/contabilidad_service.dart';
 import '../services/contabilidad_config_service.dart';
-import '../services/excel_export_service.dart';
 import '../utils/validaciones_arca.dart';
 import '../utils/pdf_recibo.dart';
 import '../theme/app_colors.dart';
 import '../utils/app_help.dart';
+import '../models/teacher_types.dart';
+import '../services/excel_export_service.dart';
+import '../services/lsd_mapping_service.dart';
 import 'institucion_form_screen.dart';
 import 'lista_legajos_sanidad_screen.dart';
 import 'sanidad_receipt_scan_screen.dart';
+import '../services/sanidad_receipt_scan_service.dart';
 import '../utils/sanidad_stress_seed.dart';
 
 class SanidadInterfaceScreen extends StatefulWidget {
@@ -40,6 +41,51 @@ class SanidadInterfaceScreen extends StatefulWidget {
 }
 
 class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
+  Widget _buildScanReceiptInvitation() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: AppColors.accentBlue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '¡Facilitá tu trabajo, Contador!',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Escaneá el recibo de sueldo para cargar automáticamente los datos del empleado.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: FilledButton.icon(
+              onPressed: _abrirEscanerRecibo,
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Escanear Recibo'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.pastelMint,
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   // === CONTROLADORES BÁSICOS ===
   final _nombreController = TextEditingController();
   final _cuilController = TextEditingController();
@@ -132,9 +178,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   bool _calculando = false;
   bool _exportandoMasivo = false;
 
-  // === CONCEPTOS MANUALES ===
-  List<Map<String, dynamic>> _conceptosManuales = [];
-
   List<Map<String, dynamic>> _instituciones = [];
   String? _institucionSeleccionadaCuit;
   List<Map<String, dynamic>> _legajosSanidad = [];
@@ -205,7 +248,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade900.withValues(alpha: 0.3),
+                color: Colors.blue.shade900.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Column(
@@ -229,7 +272,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.green.shade900.withValues(alpha: 0.3),
+                color: Colors.green.shade900.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -449,7 +492,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.teal.withValues(alpha: 0.2),
+                            color: Colors.teal.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -483,7 +526,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                               final esPatagonica = SanidadParitariasService.jurisdiccionesPatagonicas.contains(p.jurisdiccion);
                               
                               return Card(
-                                color: esPatagonica ? Colors.cyan.withValues(alpha: 0.15) : AppColors.glassFill,
+                                color: esPatagonica ? Colors.cyan.withOpacity(0.15) : AppColors.glassFill,
                                 margin: const EdgeInsets.only(bottom: 8),
                                 child: ExpansionTile(
                                   leading: CircleAvatar(
@@ -994,28 +1037,28 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     String mensajeBanner;
 
     if (_maestroLoading) {
-      bgColor = Colors.blue.withValues(alpha: 0.1);
-      borderColor = Colors.blue.withValues(alpha: 0.3);
+      bgColor = Colors.blue.withOpacity(0.1);
+      borderColor = Colors.blue.withOpacity(0.3);
       icon = Icons.sync;
       mensajeBanner = 'Sincronizando paritarias Sanidad...';
     } else if (!hasInfo) {
-      bgColor = Colors.grey.withValues(alpha: 0.1);
-      borderColor = Colors.grey.withValues(alpha: 0.3);
+      bgColor = Colors.grey.withOpacity(0.1);
+      borderColor = Colors.grey.withOpacity(0.3);
       icon = Icons.help_outline;
       mensajeBanner = 'Estado de paritarias desconocido';
     } else if (success) {
-      bgColor = Colors.teal.withValues(alpha: 0.1);
-      borderColor = Colors.teal.withValues(alpha: 0.3);
+      bgColor = Colors.teal.withOpacity(0.1);
+      borderColor = Colors.teal.withOpacity(0.3);
       icon = Icons.check_circle_outline;
       mensajeBanner = 'Paritarias Sanidad actualizadas al $fechaStr';
     } else if (isOffline) {
-      bgColor = Colors.amber.withValues(alpha: 0.1);
-      borderColor = Colors.amber.withValues(alpha: 0.3);
+      bgColor = Colors.amber.withOpacity(0.1);
+      borderColor = Colors.amber.withOpacity(0.3);
       icon = Icons.cloud_off;
       mensajeBanner = 'Modo Offline: Última sync $fechaStr';
     } else {
-      bgColor = Colors.red.withValues(alpha: 0.1);
-      borderColor = Colors.red.withValues(alpha: 0.3);
+      bgColor = Colors.red.withOpacity(0.1);
+      borderColor = Colors.red.withOpacity(0.3);
       icon = Icons.sync_problem;
       mensajeBanner = 'Error al sincronizar paritarias';
     }
@@ -1076,143 +1119,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
 
-  // === CONCEPTOS MANUALES ===
-  Future<void> _agregarConceptoManual() async {
-    final descC = TextEditingController();
-    final montoC = TextEditingController(text: '0');
-    final codC = TextEditingController(text: '120000');
-    String tipo = 'haber_rem';
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx2, setD) => AlertDialog(
-          title: const Text('Agregar concepto manual'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(controller: descC, decoration: const InputDecoration(labelText: 'Nombre')),
-                const SizedBox(height: 8),
-                TextField(controller: montoC, decoration: const InputDecoration(labelText: 'Monto (\$)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-                const SizedBox(height: 8),
-                TextField(controller: codC, decoration: const InputDecoration(labelText: 'Código AFIP (6 dígitos)', hintText: '120000'), keyboardType: TextInputType.number, maxLength: 6),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: tipo,
-                  decoration: const InputDecoration(labelText: 'Tipo'),
-                  items: const [
-                    DropdownMenuItem(value: 'haber_rem', child: Text('Haber remunerativo')),
-                    DropdownMenuItem(value: 'haber_no_rem', child: Text('Haber no remunerativo')),
-                    DropdownMenuItem(value: 'descuento', child: Text('Deducción')),
-                  ],
-                  onChanged: (v) => setD(() => tipo = v ?? tipo),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Agregar')),
-          ],
-        ),
-      ),
-    );
-
-    if (ok != true || !mounted) return;
-    
-    final desc = descC.text.trim();
-    if (desc.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ingrese nombre')));
-      return;
-    }
-    
-    final m = double.tryParse(montoC.text.replaceAll(',', '.'));
-    if (m == null) return;
-    
-    final cod = codC.text.replaceAll(RegExp(r'[^\d]'), '').padLeft(6, '0');
-    final code = cod.length >= 6 ? cod.substring(0, 6) : cod.padLeft(6, '0');
-
-    setState(() {
-      _conceptosManuales.add({
-        'id': DateTime.now().millisecondsSinceEpoch,
-        'descripcion': desc,
-        'tipo': tipo,
-        'monto': m,
-        'codigoAfip': code,
-      });
-    });
-    
-    _recalcular();
-  }
-
-  void _quitarConceptoManual(int index) {
-    setState(() {
-      _conceptosManuales.removeAt(index);
-    });
-    _recalcular();
-  }
-
-  Widget _buildConceptosManuales() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Conceptos Manuales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                IconButton(
-                  onPressed: _agregarConceptoManual,
-                  icon: const Icon(Icons.add_circle, color: Colors.teal),
-                  tooltip: 'Agregar concepto',
-                ),
-              ],
-            ),
-            if (_conceptosManuales.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('No hay conceptos manuales agregados.', style: TextStyle(color: Colors.grey)),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _conceptosManuales.length,
-                itemBuilder: (context, index) {
-                  final c = _conceptosManuales[index];
-                  final tipo = c['tipo'] == 'descuento' ? 'Desc.' : (c['tipo'] == 'haber_no_rem' ? 'No Rem.' : 'Rem.');
-                  final color = c['tipo'] == 'descuento' ? Colors.red : (c['tipo'] == 'haber_no_rem' ? Colors.orange : Colors.green);
-                  
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(c['descripcion']),
-                    subtitle: Text('$tipo - AFIP: ${c['codigoAfip']}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '\$${(c['monto'] as double).toStringAsFixed(2)}',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: color),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                          onPressed: () => _quitarConceptoManual(index),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _recalcular() {
     if (_nombreController.text.trim().isEmpty || _cuilController.text.trim().isEmpty) {
       setState(() => _resultado = null);
@@ -1262,7 +1168,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             ? int.tryParse(_diasVacacionesController.text) : null,
         incluyePreaviso: _incluyePreaviso,
         incluyeIntegracionMes: _incluyeIntegracionMes,
-        conceptosPropios: _conceptosManuales,
       );
       final r = SanidadOmniEngine.liquidar(
         i,
@@ -1730,9 +1635,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                         Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                                color: Colors.teal.withValues(alpha: 0.05),
+                                color: Colors.teal.withOpacity(0.05),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.teal.withValues(alpha: 0.2)),
+                                border: Border.all(color: Colors.teal.withOpacity(0.2)),
                             ),
                             child: SelectableText(instructivo, style: TextStyle(fontFamily: 'monospace', fontSize: 11)),
                         ),
@@ -2034,37 +1939,28 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     
     if (resultado == null || !mounted) return;
     
-    // Resultado viene del OcrReviewScreen: Map con datos extraídos
-    if (resultado is Map<String, dynamic>) {
+    if (resultado is SanidadOcrExtractResult) {
+      final cab = resultado.cabecera;
       setState(() {
-        if (resultado['cuil'] != null) {
-          _cuilController.text = resultado['cuil'].toString();
+        if (cab?.empleadoCuil != null && cab!.empleadoCuil!.trim().isNotEmpty) {
+          _cuilController.text = cab.empleadoCuil!;
         }
-        if (resultado['nombre'] != null) {
-          _nombreController.text = resultado['nombre'].toString();
+        if (cab?.empleadoNombre != null && cab!.empleadoNombre!.trim().isNotEmpty) {
+          _nombreController.text = cab.empleadoNombre!;
         }
-        if (resultado['categoria'] != null) {
-          final catName = resultado['categoria'].toString();
-          _categoria = CategoriaSanidad.values.cast<CategoriaSanidad?>().firstWhere(
-            (e) => e?.name == catName,
-            orElse: () => CategoriaSanidad.profesional,
-          ) ?? CategoriaSanidad.profesional;
+        final categoriaStr = cab?.categoriaProfesional?.trim().toLowerCase() ?? '';
+        if (categoriaStr.isNotEmpty) {
+          CategoriaSanidad? cat;
+          final s = categoriaStr;
+          if (s.contains('profesional')) cat = CategoriaSanidad.profesional;
+          else if (s.contains('tecnico') || s.contains('técnico')) cat = CategoriaSanidad.tecnico;
+          else if (s.contains('servicios')) cat = CategoriaSanidad.servicios;
+          else if (s.contains('administrativo') || s.contains('administrativa')) cat = CategoriaSanidad.administrativo;
+          else if (s.contains('maestranza')) cat = CategoriaSanidad.maestranza;
+          if (cat != null) _categoria = cat;
         }
-        if (resultado['nivelTitulo'] != null) {
-          final nivelName = resultado['nivelTitulo'].toString();
-          _nivelTitulo = NivelTituloSanidad.values.cast<NivelTituloSanidad?>().firstWhere(
-            (e) => e?.name == nivelName,
-            orElse: () => NivelTituloSanidad.sinTitulo,
-          ) ?? NivelTituloSanidad.sinTitulo;
-        }
-        if (resultado['horasNocturnas'] != null) {
-          _horasNocturnasController.text = resultado['horasNocturnas'].toString();
-        }
-        // Note: sueldoBasico y antiguedadPct del OCR son informativos,
-        // el sistema los recalcula según la categoría y fecha de ingreso
       });
       _recalcular();
-      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Datos cargados desde recibo escaneado'),
@@ -2094,9 +1990,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.3),
+                  color: Colors.orange.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
                 ),
                 child: const Icon(Icons.bug_report, color: Colors.orange, size: 20),
               ),
@@ -2111,9 +2007,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.teal.withValues(alpha: 0.3),
+                  color: Colors.teal.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal.withValues(alpha: 0.5)),
+                  border: Border.all(color: Colors.teal.withOpacity(0.5)),
                 ),
                 child: const Icon(Icons.settings, color: Colors.tealAccent, size: 20),
               ),
@@ -2128,9 +2024,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                  color: AppColors.primary.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.5)),
                 ),
                 child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
               ),
@@ -2143,6 +2039,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          _buildScanReceiptInvitation(),
+          const SizedBox(height: 20),
           _buildBannerSincronizacion(),
           _buildInstitucionesSection(),
           if (_institucionSeleccionadaCuit != null) ...[
@@ -2150,8 +2048,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             _buildSelectorPeriodoYModo(),
             const SizedBox(height: 24),
             _buildDatosEmpleado(),
-            const SizedBox(height: 24),
-            _buildConceptosManuales(),
             const SizedBox(height: 24),
             _buildSimuladorNeto(),
             if (_resultado != null) ...[
@@ -2637,7 +2533,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                       padding: const EdgeInsets.only(left: 8),
                       child: Chip(
                         label: Text('\$${_resultado!.totalHorasExtras.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11)),
-                        backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                        backgroundColor: Colors.orange.withOpacity(0.2),
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                       ),
@@ -2692,7 +2588,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                       padding: const EdgeInsets.only(left: 8),
                       child: Chip(
                         label: Text('-\$${_resultado!.totalDescuentosAdicionales.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, color: Colors.red)),
-                        backgroundColor: Colors.red.withValues(alpha: 0.1),
+                        backgroundColor: Colors.red.withOpacity(0.1),
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                       ),
@@ -2886,7 +2782,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
 
   Widget _buildSimuladorNeto() {
     return Card(
-      color: AppColors.pastelBlue.withValues(alpha: 0.15),
+      color: AppColors.pastelBlue.withOpacity(0.15),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

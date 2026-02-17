@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:syncra_arg/services/sanidad_omni_engine.dart';
+import 'package:elevar_liquidacion/services/sanidad_omni_engine.dart';
 // import 'package:syncra_arg/models/empresa.dart'; // Removed unused import
 
 void main() {

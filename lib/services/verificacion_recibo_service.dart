@@ -1,4 +1,6 @@
-import 'package:syncra_arg/models/recibo_escaneado.dart';
+import 'package:elevar_liquidacion/models/recibo_escaneado.dart';
+import 'package:elevar_liquidacion/services/ocr_cct_service.dart';
+import 'package:elevar_liquidacion/services/cct_cloud_service.dart';
 
 // Representación simplificada de un CCT. Deberías usar tu modelo `Cct` real.
 class CctSimplificado {
@@ -170,6 +172,11 @@ class ReceiptOCRPatterns {
       caseSensitive: false,
       multiLine: true,
     ),
+    'cct_aplicable': RegExp(
+      r'(?:CCT|CONVENIO)\s*(?:Nº|N°|Nro\.)?\s*([\d]{2,4}\/\d{2,4})|CONVENIO\s*COLECTIVO\s*DE\s*TRABAJO\s*DE\s*([A-Z\s\.]+)',
+      caseSensitive: false,
+      multiLine: true,
+    ),
   };
   
   /// Valida si el texto contiene elementos de un recibo válido
@@ -289,6 +296,21 @@ class ReceiptOCRPatterns {
     
     return resultados;
   }
+
+  /// Extrae un valor de texto (String) de una línea usando regex.
+  static String? extraerValorString(String texto, RegExp regex) {
+    final match = regex.firstMatch(texto);
+    if (match != null && match.groupCount >= 1) {
+      // Retorna el primer grupo capturado que no sea nulo y no esté vacío
+      for (int i = 1; i <= match.groupCount; i++) {
+        final group = match.group(i);
+        if (group != null && group.isNotEmpty) {
+          return group.trim();
+        }
+      }
+    }
+    return null;
+  }
 }
 
 class VerificacionReciboService {
@@ -357,12 +379,39 @@ class VerificacionReciboService {
       sueldoNeto = conceptosEncontrados['sueldo_neto']!;
     }
     
+    // Extraer otros datos del recibo
+    final cuitEmpleador = ReceiptOCRPatterns.extraerValorString(textoCrudo, ReceiptOCRPatterns.patterns['cuit_empleado']!);
+    final nombreEmpleado = ReceiptOCRPatterns.extraerValorString(textoCrudo, ReceiptOCRPatterns.patterns['nombre_empleado']!);
+    final cuilEmpleado = ReceiptOCRPatterns.extraerValorString(textoCrudo, ReceiptOCRPatterns.patterns['cuit_empleado']!); // CUIL y CUIT suelen usar el mismo patrón
+    final periodo = ReceiptOCRPatterns.extraerValorString(textoCrudo, ReceiptOCRPatterns.patterns['periodo']!);
+    final cctAplicable = ReceiptOCRPatterns.extraerValorString(textoCrudo, ReceiptOCRPatterns.patterns['cct_aplicable']!);
+
+    String? cctCodigo;
+    String? cctNombre;
+    CCTMaster? cctMaster;
+
+    if (cctAplicable != null) {
+      cctCodigo = OCRCCTService.extraerCodigoCCT(cctAplicable);
+      cctNombre = OCRCCTService.extraerNombreCCT(cctAplicable);
+      if (cctCodigo != null && cctCodigo.isNotEmpty) {
+        cctMaster = await CCTCloudService.obtenerCCT(cctCodigo);
+      }
+    }
+
     return ReciboEscaneado(
       conceptos: conceptos,
       totalRemunerativo: totalRemunerativo,
       totalNoRemunerativo: totalNoRemunerativo,
       totalDeducciones: totalDeducciones,
       sueldoNeto: sueldoNeto,
+      cuitEmpleador: cuitEmpleador,
+      nombreEmpleado: nombreEmpleado,
+      cuilEmpleado: cuilEmpleado,
+      periodo: periodo,
+      cctAplicable: cctAplicable,
+      cctCodigo: cctCodigo,
+      cctNombre: cctNombre,
+      cctMaster: cctMaster,
     );
   }
   

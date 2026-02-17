@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:excel/excel.dart';
-import 'package:syncra_arg/models/liquidacion.dart';
+import 'package:elevar_liquidacion/models/liquidacion.dart';
 
 /// Servicio para importar y comparar liquidaciones desde Sistema Bejerman
 /// Permite validar los cálculos de Syncra contra los resultados históricos de Bejerman

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:syncra_arg/services/conceptos_explicaciones_service.dart';
-import 'package:syncra_arg/theme/app_colors.dart';
+import 'package:elevar_liquidacion/services/conceptos_explicaciones_service.dart';
+import 'package:elevar_liquidacion/theme/app_colors.dart';
 
 class TooltipUtils {
   static Widget buildConceptoWithTooltip(String concepto, double monto, Color color) {

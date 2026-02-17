@@ -1,28 +1,22 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 // import 'package:image_picker/image_picker.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
-import 'package:syncra_arg/services/ocr_service.dart';
-import 'package:syncra_arg/services/verificacion_recibo_service.dart';
-import 'teacher_receipt_scan_screen.dart';
-import 'package:syncra_arg/models/recibo_escaneado.dart';
-import 'package:syncra_arg/models/recibo_model.dart'; // Import nuevo modelo
-import 'package:syncra_arg/services/pdf_report_service.dart';
-import 'package:syncra_arg/services/hybrid_store.dart';
-import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
-import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
-// import 'package:syncra_arg/utils/app_help.dart';
-import 'package:syncra_arg/utils/conceptos_builder.dart';
-import 'package:syncra_arg/theme/app_colors.dart';
-// import 'package:url_launcher/url_launcher.dart';
-import 'package:syncra_arg/screens/biblioteca_cct_screen.dart';
-import 'package:syncra_arg/screens/home_screen.dart';
-import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
-import 'package:syncra_arg/screens/liquidacion_sac_docente_screen.dart';
-import 'package:syncra_arg/screens/liquidacion_vacaciones_docente_screen.dart';
-import 'package:syncra_arg/screens/liquidador_final_screen.dart';
-import 'package:syncra_arg/widgets/recibo_resultado_widget.dart';
-
+import 'package:elevar_liquidacion/services/ocr_service.dart';
+import 'package:elevar_liquidacion/services/verificacion_recibo_service.dart';
+import 'package:elevar_liquidacion/models/recibo_escaneado.dart';
+import 'package:elevar_liquidacion/models/recibo_model.dart'; // Import nuevo modelo
+import 'package:elevar_liquidacion/services/hybrid_store.dart';
+import 'package:elevar_liquidacion/screens/glosario_conceptos_screen.dart';
+import 'package:elevar_liquidacion/screens/conoce_tu_convenio_screen.dart';
+import 'package:elevar_liquidacion/utils/conceptos_builder.dart';
+import 'package:elevar_liquidacion/theme/app_colors.dart';
+import 'package:elevar_liquidacion/screens/biblioteca_cct_screen.dart';
+import 'package:elevar_liquidacion/screens/historial_liquidaciones_screen.dart';
+import 'package:elevar_liquidacion/screens/profile_screen.dart';
+import 'package:elevar_liquidacion/screens/home_screen.dart';
+import 'package:elevar_liquidacion/widgets/academy_promo_dialog.dart';
+import 'package:elevar_liquidacion/services/pdf_report_service.dart';
+import 'package:elevar_liquidacion/screens/teacher_receipt_scan_screen.dart';
 // import 'dart:io'; // Removed for web compatibility
 
 class VerificadorReciboScreen extends StatefulWidget {
@@ -83,8 +77,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
 
   Future<void> _cargarListaConvenios() async {
     try {
-      final conveniosJson = await HybridStore.getConveniosJson();
-      final List<dynamic> conveniosList = conveniosJson != null ? jsonDecode(conveniosJson) : [];
+      final docentes = await HybridStore.getMaestroParitarias();
+      final sanidad = await HybridStore.getMaestroParitariasSanidad();
       
       final List<Map<String, dynamic>> opciones = [];
       
@@ -95,177 +89,25 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
         'data': null
       });
 
-      // Procesar todos los convenios disponibles
-      for (var c in conveniosList) {
-        if (c is Map<String, dynamic>) {
-          // Intentamos obtener un nombre legible
-          String nombre = c['nombre'] ?? 'Convenio sin nombre';
-          String cct = c['cct'] ?? '';
-          if (cct.isNotEmpty) nombre = '$nombre ($cct)';
-          
-          opciones.add({
-            'id': c['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-            'nombre': nombre,
-            'data': c,
-            'cct': cct, // Guardamos cct para búsqueda
-            'tags': c['tags'] ?? [], // Guardamos tags si existen
-          });
-        }
+      // Procesar Docentes
+      for (var d in docentes) {
+        final juris = d['jurisdiccion'] ?? 'Desconocida';
+        opciones.add({
+          'id': 'docente_$juris',
+          'nombre': 'Docente - $juris',
+          'data': d
+        });
       }
 
-      // Si la lista está vacía o tiene pocos datos, agregamos fallbacks
-      // Pero para asegurar que estén TODOS, los agregamos siempre verificando duplicados
-       
-       // Lista de fallbacks hardcodeados
-       final List<Map<String, dynamic>> fallbacks = [
-         // Docentes
-         {
-            'id': 'docente_caba',
-            'nombre': 'Docente - CABA',
-            'data': {'jurisdiccion': 'CABA'},
-            'cct': 'Estatuto Docente',
-            'tags': ['docente', 'educacion', 'maestro', 'profesor', 'colegio', 'escuela']
-         },
-         {
-            'id': 'docente_pba',
-            'nombre': 'Docente - PBA',
-            'data': {'jurisdiccion': 'PBA'},
-            'cct': 'Estatuto Docente',
-            'tags': ['docente', 'educacion', 'maestro', 'profesor', 'colegio', 'escuela']
-         },
-         // Sanidad
-         {
-            'id': 'sanidad_general',
-            'nombre': 'Sanidad - General (CCT 122/75)',
-            'data': {'cct': '122/75'},
-            'cct': '122/75',
-            'tags': ['sanidad', 'salud', 'enfermeria', 'medico', 'clinica', 'sanatorio', 'hospital']
-         },
-         // Comercio
-         {
-           'id': 'comercio_general',
-           'nombre': 'Comercio - General (CCT 130/75)',
-           'data': {'cct': '130/75', 'nombre': 'Comercio'},
-           'cct': '130/75',
-           'tags': ['comercio', 'vendedor', 'cajero', 'administrativo', 'maestranza']
-         },
-         // UOCRA
-         {
-           'id': 'uocra_general',
-           'nombre': 'UOCRA - Construcción (CCT 76/75)',
-           'data': {'cct': '76/75', 'nombre': 'UOCRA'},
-           'cct': '76/75',
-           'tags': ['construccion', 'obra', 'albañil', 'oficial', 'ayudante']
-         },
-         // Gastronómicos
-         {
-           'id': 'uthgra_general',
-           'nombre': 'Gastronómicos - UTHGRA (CCT 389/04)',
-           'data': {'cct': '389/04', 'nombre': 'UTHGRA'},
-           'cct': '389/04',
-           'tags': ['gastronomia', 'mozo', 'cocinero', 'camarera', 'barman', 'hotel']
-         },
-         // UOM
-         {
-           'id': 'uom_general',
-           'nombre': 'Metalúrgicos - UOM (CCT 260/75)',
-           'data': {'cct': '260/75', 'nombre': 'UOM'},
-           'cct': '260/75',
-           'tags': ['metalurgica', 'operario', 'fabrica', 'metal']
-         },
-         // Camioneros
-         {
-           'id': 'camioneros_general',
-           'nombre': 'Camioneros (CCT 40/89)',
-           'data': {'cct': '40/89', 'nombre': 'Camioneros'},
-           'cct': '40/89',
-           'tags': ['camionero', 'chofer', 'transporte', 'logistica']
-         },
-         // Encargados de Edificio (SUTERH)
-         {
-           'id': 'suterh_general',
-           'nombre': 'Encargados de Edificio - SUTERH (CCT 589/10)',
-           'data': {'cct': '589/10', 'nombre': 'SUTERH'},
-           'cct': '589/10',
-           'tags': ['encargado', 'portero', 'edificio', 'consorcio']
-         },
-         // Petroleros Privados
-         {
-           'id': 'petroleros_privados',
-           'nombre': 'Petroleros Privados (CCT 644/12)',
-           'data': {'cct': '644/12', 'nombre': 'Petroleros Privados'},
-           'cct': '644/12',
-           'tags': ['petroleo', 'pozo', 'yacimiento', 'refineria', 'hidrocarburos']
-         },
-         // Petroleros Jerárquicos
-         {
-           'id': 'petroleros_jerarquicos',
-           'nombre': 'Petroleros Jerárquicos (CCT 643/12)',
-           'data': {'cct': '643/12', 'nombre': 'Petroleros Jerárquicos'},
-           'cct': '643/12',
-           'tags': ['petroleo', 'jerarquico', 'supervisor', 'jefe', 'encargado']
-         },
-         // Plásticos (UOYEP)
-         {
-           'id': 'plasticos_uoyep',
-           'nombre': 'Plásticos - UOYEP (CCT 797/22)',
-           'data': {'cct': '797/22', 'nombre': 'UOYEP'},
-           'cct': '797/22',
-           'tags': ['plastico', 'inyeccion', 'extruccion', 'reciclado']
-         },
-         // Alimentación
-         {
-           'id': 'alimentacion_stia',
-           'nombre': 'Alimentación - STIA (CCT 244/94)',
-           'data': {'cct': '244/94', 'nombre': 'Alimentación'},
-           'cct': '244/94',
-           'tags': ['alimentacion', 'comida', 'bebida', 'planta', 'produccion']
-         },
-         // Textiles (AOT)
-         {
-           'id': 'textiles_aot',
-           'nombre': 'Textiles - AOT (CCT 500/07)',
-           'data': {'cct': '500/07', 'nombre': 'AOT'},
-           'cct': '500/07',
-           'tags': ['textil', 'hilado', 'tejido', 'tela', 'confeccion']
-         },
-         // Mecánicos (SMATA)
-         {
-           'id': 'smata_mecanicos',
-           'nombre': 'Mecánicos - SMATA (CCT 27/88)',
-           'data': {'cct': '27/88', 'nombre': 'SMATA'},
-           'cct': '27/88',
-           'tags': ['mecanico', 'automotriz', 'concesionaria', 'taller', 'repuestos']
-         },
-         // Pasteleros
-         {
-           'id': 'pasteleros_general',
-           'nombre': 'Pasteleros (CCT 272/96)',
-           'data': {'cct': '272/96', 'nombre': 'Pasteleros'},
-           'cct': '272/96',
-           'tags': ['pastelero', 'confiteria', 'heladero', 'pizzero', 'alfajorero']
-         },
-         // Seguridad Privada (UPSRA)
-         {
-           'id': 'seguridad_upsra',
-           'nombre': 'Seguridad Privada - UPSRA (CCT 507/07)',
-           'data': {'cct': '507/07', 'nombre': 'UPSRA'},
-           'cct': '507/07',
-           'tags': ['vigilador', 'seguridad', 'custodia', 'guardia']
-         }
-       ];
-
-       for (var fb in fallbacks) {
-         // Verificar si ya existe un convenio con ese ID o nombre muy similar
-         bool existe = opciones.any((o) => 
-            o['id'] == fb['id'] || 
-            (o['cct'] == fb['cct'] && fb['cct'].toString().isNotEmpty)
-         );
-         
-         if (!existe) {
-           opciones.add(fb);
-         }
-       }
+      // Procesar Sanidad
+      for (var s in sanidad) {
+        final juris = s['jurisdiccion'] ?? 'Desconocida';
+        opciones.add({
+          'id': 'sanidad_$juris',
+          'nombre': 'Sanidad - $juris (CCT 122/75)',
+          'data': s
+        });
+      }
 
       if (mounted) {
         setState(() {
@@ -370,32 +212,12 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
       // Registrar uso de cuota - DESHABILITADO
       // await SubscriptionService.registerOcrScan();
 
-      // Preparar contexto del convenio seleccionado
-      String? contextoConvenio;
-      if (_convenioSeleccionadoId != null && _convenioSeleccionadoId != 'ninguno') {
-        final convenio = _listaConveniosDisponibles.firstWhere(
-          (c) => c['id'] == _convenioSeleccionadoId,
-          orElse: () => {'data': null}
-        );
-        
-        if (convenio['data'] != null) {
-          // Convertimos el mapa del convenio a una string legible para Claude
-          // Eliminamos campos innecesarios para ahorrar tokens
-          final dataMap = Map<String, dynamic>.from(convenio['data']);
-          dataMap.remove('updated_at');
-          dataMap.remove('id');
-          contextoConvenio = dataMap.toString();
-        }
-      }
 
       // setState(() => _rutaImagen = imagenFile.path);
 
       // 2. Procesar con OCR
       // Refactored to remove direct dependency on MLKit InputImage
-      final resultadoOcr = await _ocrService.procesarImagen(
-        imagenFile, 
-        contextoConvenio: contextoConvenio
-      );
+      final resultadoOcr = await _ocrService.procesarImagen(imagenFile);
       
       setState(() {
         _textoOcr = resultadoOcr.texto;
@@ -404,9 +226,6 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
       });
 
       if (_reciboModel != null) {
-        // Intentar detectar convenio automáticamente
-        _detectarConvenioAutomaticamente(_reciboModel!);
-
         // Si tenemos el modelo estructurado, ya tenemos todo lo necesario.
         // Asignamos valores dummy a _recibo y _resultado para activar la vista de resultados
         // pero usaremos _reciboModel para renderizar.
@@ -976,8 +795,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
           _buildStructuredResult(),
           const SizedBox(height: 20),
           _buildActionButtons(),
-          const SizedBox(height: 20),
-          _buildOcrTextSection(),
+
         ],
       );
     }
@@ -1295,18 +1113,15 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
         // Botones de acción
         _buildActionButtons(),
 
-        // Texto OCR - AHORA SIEMPRE VISIBLE
-        _buildOcrTextSection(),
+
       ],
     );
   }
 
   Widget _buildActionButtons() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
-        children: [
-          Row(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
@@ -1360,209 +1175,13 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOcrTextSection() {
-    return Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Theme.of(context).dividerColor, width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  '📄 Texto extraído del recibo (OCR)',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(12),
-                    bottomRight: Radius.circular(12),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.text_snippet, size: 16, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Texto detectado por OCR:',
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _textoOcr.isEmpty
-                          ? 'No se detectó texto o no se ha escaneado.'
-                          : _textoOcr,
-                      style: TextStyle(
-                        color: Theme.of(context).hintColor,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         );
   }
 
+  
+
   // Helper methods to satisfy compilation
   
-  void _detectarConvenioAutomaticamente(ReciboModel model) {
-    if (_listaConveniosDisponibles.isEmpty) return;
-
-    final cctRecibo = model.cabecera.cctAplicable.toUpperCase();
-    final categoriaRecibo = model.cabecera.categoriaProfesional.toUpperCase();
-    final empresaRecibo = model.cabecera.empresaNombre.toUpperCase();
-    
-    debugPrint('Detectando convenio para: CCT=$cctRecibo, Cat=$categoriaRecibo, Emp=$empresaRecibo');
-
-    // 1. Búsqueda exacta o parcial por CCT y Tags en la lista disponible
-          for (var convenio in _listaConveniosDisponibles) {
-            if (convenio['id'] == 'ninguno') continue;
-            
-            final cctConvenio = (convenio['cct'] ?? '').toString().toUpperCase();
-            final nombreConvenio = (convenio['nombre'] ?? '').toString().toUpperCase();
-            final tags = (convenio['tags'] as List<dynamic>?)?.map((e) => e.toString().toUpperCase()).toList() ?? [];
-            
-            // Coincidencia directa de número de CCT (ej "130/75")
-            if (cctConvenio.isNotEmpty && cctRecibo.contains(cctConvenio)) {
-              _aplicarConvenio(convenio['id'], 'Detectamos tu convenio por CCT ($cctConvenio).');
-              return;
-            }
-            
-            // Coincidencia por nombre (ej "Comercio")
-            // Solo si el nombre es significativo (>4 letras) para evitar falsos positivos
-            if (nombreConvenio.length > 4 && (cctRecibo.contains(nombreConvenio) || categoriaRecibo.contains(nombreConvenio))) {
-               _aplicarConvenio(convenio['id'], 'Detectamos tu convenio: $nombreConvenio.');
-               return;
-            }
-
-            // Coincidencia por Tags en Categoria o Empresa (Búsqueda heurística)
-            for (var tag in tags) {
-                if (tag.length < 3) continue; // Ignorar tags muy cortos
-                if (categoriaRecibo.contains(tag) || empresaRecibo.contains(tag) || cctRecibo.contains(tag)) {
-                    _aplicarConvenio(convenio['id'], 'Detectamos tu convenio por coincidencia con "$tag".');
-                    return;
-                }
-            }
-          }
-
-    // 2. Lógica específica (Legacy + Heurística Reforzada)
-    
-    // Docentes (Reforzado)
-    if (cctRecibo.contains('DOCENTE') || 
-        categoriaRecibo.contains('DOCENTE') || 
-        categoriaRecibo.contains('PROFESOR') || 
-        categoriaRecibo.contains('MAESTR') ||
-        categoriaRecibo.contains('PRECEPTOR') ||
-        empresaRecibo.contains('COLEGIO') ||
-        empresaRecibo.contains('INSTITUTO') ||
-        empresaRecibo.contains('ESCUELA') ||
-        empresaRecibo.contains('EDUCACION')) {
-      
-      final docente = _listaConveniosDisponibles.firstWhere(
-        (c) => c['id'].toString().startsWith('docente_') || c['nombre'].toString().toUpperCase().contains('DOCENTE'),
-        orElse: () => {},
-      );
-      
-      if (docente.isNotEmpty) {
-        _aplicarConvenio(docente['id'], '🎓 Detectamos que sos Docente. Se aplicó el convenio automáticamente.');
-        return;
-      }
-    }
-    
-    // Sanidad (Reforzado)
-    if (cctRecibo.contains('122/75') || cctRecibo.contains('SANIDAD') || 
-        categoriaRecibo.contains('ENFERMER') || categoriaRecibo.contains('MEDIC') || categoriaRecibo.contains('CAMILLER') ||
-        empresaRecibo.contains('CLINICA') || empresaRecibo.contains('SANATORIO') || empresaRecibo.contains('HOSPITAL') || empresaRecibo.contains('SALUD')) {
-        
-      final sanidad = _listaConveniosDisponibles.firstWhere(
-        (c) => c['id'].toString().startsWith('sanidad_') || c['nombre'].toString().toUpperCase().contains('SANIDAD'),
-        orElse: () => {},
-      );
-      
-      if (sanidad.isNotEmpty) {
-        _aplicarConvenio(sanidad['id'], '🏥 Detectamos convenio Sanidad. Se aplicó automáticamente.');
-        return;
-      }
-    }
-    
-    // Comercio (Reforzado)
-    if (cctRecibo.contains('130/75') || cctRecibo.contains('COMERCIO') || 
-        categoriaRecibo.contains('VENDEDOR') || categoriaRecibo.contains('ADMINISTRATIVO') || categoriaRecibo.contains('CAJERO') || 
-        categoriaRecibo.contains('MAESTRANZA') || categoriaRecibo.contains('AUXILIAR')) {
-        
-      final comercio = _listaConveniosDisponibles.firstWhere(
-        (c) => c['nombre'].toString().toUpperCase().contains('COMERCIO'),
-        orElse: () => {},
-      );
-      
-      if (comercio.isNotEmpty) {
-        _aplicarConvenio(comercio['id'], '🛒 Detectamos convenio Comercio. Se aplicó automáticamente.');
-        return;
-      }
-    }
-
-    // UOCRA (Construcción)
-    if (cctRecibo.contains('76/75') || cctRecibo.contains('UOCRA') || cctRecibo.contains('CONSTRUCCION') ||
-        categoriaRecibo.contains('ALBAÑIL') || categoriaRecibo.contains('OFICIAL') || categoriaRecibo.contains('AYUDANTE') ||
-        empresaRecibo.contains('CONSTRUCTORA')) {
-          
-       final uocra = _listaConveniosDisponibles.firstWhere(
-        (c) => c['nombre'].toString().toUpperCase().contains('UOCRA') || c['nombre'].toString().toUpperCase().contains('CONSTRUCCION'),
-        orElse: () => {},
-      );
-
-      if (uocra.isNotEmpty) {
-        _aplicarConvenio(uocra['id'], '🏗️ Detectamos convenio UOCRA. Se aplicó automáticamente.');
-        return;
-      }
-    }
-  }
-
-  void _aplicarConvenio(String id, String mensaje) {
-    if (_convenioSeleccionadoId == id) return;
-    
-    setState(() {
-      _convenioSeleccionadoId = id;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
   Widget _buildMenuHamburguesa() {
     return Drawer(
       backgroundColor: AppColors.background,
@@ -1649,48 +1268,41 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
                   
                   _buildSectionHeader('HERRAMIENTAS'),
                   _buildMenuItem(
+                    icon: Icons.history_rounded,
+                    label: 'Historial de Liquidaciones',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context, 
+                        MaterialPageRoute(
+                          builder: (context) => HistorialLiquidacionesScreen(
+                            empleadoCuil: _recibo?.cuilEmpleado ?? '00-00000000-0',
+                            empleadoNombre: _recibo?.nombreEmpleado ?? 'Usuario',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuItem(
                     icon: Icons.qr_code_scanner_rounded,
-                    label: 'Escanear QR',
+                    label: 'Escanear QR Docente',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherReceiptScanScreen()));
                     },
                   ),
+
+                  const Divider(height: 32, color: AppColors.glassBorder, indent: 20, endIndent: 20),
+
+                  _buildSectionHeader('CUENTA'),
                   _buildMenuItem(
-                    icon: Icons.calculate_outlined,
-                    label: 'Calculadora SAC Docente',
+                    icon: Icons.person_rounded,
+                    label: 'Mi Perfil',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LiquidacionSacDocenteScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
                     },
                   ),
-                  _buildMenuItem(
-                    icon: Icons.beach_access_outlined,
-                    label: 'Calculadora Vacaciones',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LiquidacionVacacionesDocenteScreen()));
-                    },
-                  ),
-                   _buildMenuItem(
-                    icon: Icons.gavel_outlined,
-                    label: 'Calculadora Final/Despido',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LiquidadorFinalScreen()));
-                    },
-                  ),
-                  
-                  if (_resultado != null) ...[
-                    _buildMenuItem(
-                      icon: Icons.check_circle_outline_rounded,
-                      label: 'Ver Resultados Verificación',
-                      onTap: () {
-                        Navigator.pop(context);
-                        // Ya estamos en la pantalla, solo cerramos el drawer
-                      },
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -1803,7 +1415,370 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   Widget _buildStructuredResult() {
     if (_reciboModel == null) return const SizedBox.shrink();
 
-    // Usamos el nuevo widget dedicado para mostrar los resultados
-    return ReciboResultadoWidget(recibo: _reciboModel!);
+    return Column(
+      children: [
+        // TabBar
+        Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).dividerColor),
+          ),
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: Theme.of(context).primaryColor,
+            labelColor: Theme.of(context).primaryColor,
+            unselectedLabelColor: Theme.of(context).hintColor,
+            tabs: const [
+              Tab(text: 'Datos'),
+              Tab(text: 'Liquidación'),
+              Tab(text: 'Auditoría IA'),
+            ],
+          ),
+        ),
+
+        // Contenido de las tabs
+        SizedBox(
+          height: 600, // Altura fija o usar Expanded si el padre lo permite
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildDatosGeneralesTab(),
+              _buildLiquidacionTab(),
+              _buildAuditoriaTab(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatosGeneralesTab() {
+    final cabecera = _reciboModel!.cabecera;
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('Empresa', cabecera.empresaNombre),
+            _buildInfoRow('CUIT Empresa', cabecera.empresaCuit),
+            const Divider(),
+            _buildInfoRow('Empleado', cabecera.empleadoNombre),
+            _buildInfoRow('CUIL Empleado', cabecera.empleadoCuil),
+            _buildInfoRow('Legajo', cabecera.legajo),
+            _buildInfoRow('Fecha Ingreso', cabecera.fechaIngreso),
+            _buildInfoRow('Antigüedad', cabecera.antiguedadReconocida),
+            const Divider(),
+            _buildInfoRow('Categoría', cabecera.categoriaProfesional),
+            _buildInfoRow('CCT', cabecera.cctAplicable),
+            _buildInfoRow('Período', cabecera.periodoAbonado),
+            _buildInfoRow('Lugar Pago', cabecera.lugarPago),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).hintColor,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isNotEmpty ? value : '-',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiquidacionTab() {
+    final liq = _reciboModel!.liquidacionDetallada;
+    final totales = _reciboModel!.totales;
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Haberes
+          if (liq.haberes.isNotEmpty)
+            _buildSectionCard('Haberes', liq.haberes.map((h) => 
+              _buildConceptoRow(h.codigo, h.descripcion, h.monto, Colors.green)
+            ).toList()),
+          
+          // Retenciones
+          if (liq.retenciones.isNotEmpty)
+            _buildSectionCard('Retenciones', liq.retenciones.map((r) => 
+              _buildConceptoRow(r.codigo, r.descripcion, -r.monto, Colors.red)
+            ).toList()),
+
+          // Otros
+          if (liq.otrosConceptos.isNotEmpty)
+            _buildSectionCard('Otros Conceptos', liq.otrosConceptos.map((o) => 
+              _buildConceptoRow('', o.descripcion, o.monto, Colors.blue)
+            ).toList()),
+
+          // Totales
+          Container(
+            margin: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Theme.of(context).primaryColor),
+            ),
+            child: Column(
+              children: [
+                _buildTotalRow('Total Bruto (Reportado)', totales.totalBruto),
+                _buildTotalRow('Total Retenciones (Reportado)', -totales.totalRetenciones, isNegative: true),
+                _buildTotalRow('No Remunerativo (Reportado)', totales.totalNoRemunerativo),
+                const Divider(),
+                _buildTotalRow('NETO A COBRAR (Reportado)', totales.netoACobrar, isBold: true, fontSize: 18),
+                
+                // Validación Matemática
+                _buildValidacionMatematica(liq, totales),
+
+                if (totales.netoEnLetras.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      totales.netoEnLetras,
+                      style: TextStyle(fontStyle: FontStyle.italic, color: Theme.of(context).hintColor),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValidacionMatematica(LiquidacionDetallada liq, Totales totales) {
+    // Calcular sumas de items individuales (para validación futura)
+    /*
+    double sumHaberesRem = 0;
+    double sumHaberesNoRem = 0;
+    
+    for (var h in liq.haberes) {
+      if (h.esRemunerativo) {
+        sumHaberesRem += h.monto;
+      } else {
+        sumHaberesNoRem += h.monto;
+      }
+    }
+
+    double sumRetenciones = liq.retenciones.fold(0, (sum, item) => sum + item.monto);
+    double sumOtros = liq.otrosConceptos.fold(0, (sum, item) => sum + item.monto);
+    */
+    
+    // Asumimos que "otros conceptos" suelen ser no remunerativos o ajustes netos, 
+    // pero para simplificar la validación básica:
+    // Neto Calculado = (Remunerativo + No Remunerativo + Otros) - Retenciones
+    
+    // Nota: El modelo JSON tiene "total_no_remunerativo" en totales, que debería coincidir con sumHaberesNoRem + sumOtros (aprox)
+    // Vamos a usar los totales reportados para la validación cruzada principal:
+    // Neto Teorico = Bruto + No Remunerativo - Retenciones
+    
+    final netoTeorico = totales.totalBruto + totales.totalNoRemunerativo - totales.totalRetenciones;
+    final diferencia = (totales.netoACobrar - netoTeorico).abs();
+    
+    if (diferencia < 1.0) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+             Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
+             SizedBox(width: 8),
+             Text("Cálculo matemático correcto", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                 Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                 SizedBox(width: 8),
+                 Text("Diferencia matemática detectada", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Neto calculado: \$${netoTeorico.toStringAsFixed(2)} (Dif: \$${diferencia.toStringAsFixed(2)})",
+              style: const TextStyle(color: Colors.orange, fontSize: 11),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildSectionCard(String title, List<Widget> children) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Divider(),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConceptoRow(String codigo, String descripcion, double monto, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          if (codigo.isNotEmpty)
+            SizedBox(width: 40, child: Text(codigo, style: const TextStyle(fontSize: 12))),
+          Expanded(child: Text(descripcion)),
+          Text(
+            '\$${monto.abs().toStringAsFixed(2)}',
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
+          Text(
+            '${isNegative ? "-" : ""}\$${amount.abs().toStringAsFixed(2)}',
+            style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditoriaTab() {
+    final audit = _reciboModel!.auditoriaIA;
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Confianza
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green),
+                const SizedBox(width: 12),
+                Text(
+                  'Confianza del análisis: ${(audit.puntuacionConfianzaOcr * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+              ],
+            ),
+          ),
+
+          // Análisis Legal
+          _buildSectionCard('Análisis Legal', [
+            Text(audit.analisisLegal.isNotEmpty ? audit.analisisLegal : 'Sin observaciones.'),
+          ]),
+
+          // Alertas
+          if (audit.alertasCriticas.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('Alertas Críticas', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                    ],
+                  ),
+                  const Divider(color: Colors.orange),
+                  ...audit.alertasCriticas.map((a) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                        Expanded(child: Text(a)),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
+
+          // Conceptos Complejos
+          if (audit.explicacionConceptosComplejos.isNotEmpty)
+            _buildSectionCard('Conceptos Complejos', [
+              Text(audit.explicacionConceptosComplejos),
+            ]),
+        ],
+      ),
+    );
   }
 }

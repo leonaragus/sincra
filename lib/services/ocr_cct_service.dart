@@ -119,6 +119,10 @@ class OCRCCTService {
     );
   }
   
+  /// Métodos públicos de extracción (wrappers) para uso externo
+  static String extraerCodigoCCT(String texto) => _extraerCodigoCCT(texto);
+  static String extraerNombreCCT(String texto) => _extraerNombreCCT(texto);
+  
   /// Extrae el código del CCT del texto
   static String _extraerCodigoCCT(String texto) {
     // Buscar patrones como "CCT 122/75", "CCT Nº 122/75", "Convenio 122/75"
