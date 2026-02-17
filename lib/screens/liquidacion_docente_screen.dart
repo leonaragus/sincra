@@ -3,6 +3,7 @@
 // Toda la lógica de cálculo (TeacherOmniEngine, exports, PDF, LSD, Pack ARCA) vive aquí.
 
 import 'package:flutter/material.dart';
+import 'package:syncra_arg/models/recibo_model.dart';
 import '../utils/image_bytes_reader.dart';
 import 'package:intl/intl.dart';
 import '../utils/file_saver.dart';
@@ -40,6 +41,7 @@ class LiquidacionDocenteScreen extends StatefulWidget {
   final bool soloHorasCatedra;
   /// Modo de liquidación: "mensual", "sac", "vacaciones", "final"
   final String modo;
+  final ReciboModel? prefillData;
 
   const LiquidacionDocenteScreen({
     super.key, 
@@ -47,6 +49,7 @@ class LiquidacionDocenteScreen extends StatefulWidget {
     this.razonSocial, 
     this.soloHorasCatedra = false,
     this.modo = "mensual",
+    this.prefillData,
   });
 
   @override
@@ -121,6 +124,11 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     } else {
       _cargarInstituciones();
     }
+    
+    if (widget.prefillData != null) {
+      _aplicarPrefill(widget.prefillData!);
+    }
+
     _sincronizarParitarias();
     _nombreController.addListener(_recalcular);
     _cuilController.addListener(_recalcular);
@@ -130,6 +138,43 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     _valorIndiceController.addListener(_recalcular);
     _sueldoBasicoOverrideController.addListener(_recalcular);
     _recalcular();
+  }
+
+  void _aplicarPrefill(ReciboModel data) {
+    if (data.cabecera.empleadoNombre.isNotEmpty) _nombreController.text = data.cabecera.empleadoNombre;
+    if (data.cabecera.empleadoCuil.isNotEmpty) _cuilController.text = data.cabecera.empleadoCuil;
+    if (data.cabecera.empresaCuit.isNotEmpty) _cuitEmpresaController.text = data.cabecera.empresaCuit;
+    if (data.cabecera.empresaNombre.isNotEmpty) _razonSocialController.text = data.cabecera.empresaNombre;
+    
+    // Intentar parsear fecha ingreso
+    if (data.cabecera.fechaIngreso.isNotEmpty) {
+      try {
+          // Asumiendo formato DD/MM/AAAA
+          final parts = data.cabecera.fechaIngreso.split('/');
+          if (parts.length == 3) {
+              setState(() {
+                _fechaIngreso = DateTime(
+                    int.parse(parts[2]),
+                    int.parse(parts[1]),
+                    int.parse(parts[0])
+                );
+              });
+          }
+      } catch (_) {}
+    }
+
+    // Intentar extraer mejor remuneración para SAC/Indemnización
+    double brutoRemunerativo = 0.0;
+    for (var h in data.liquidacionDetallada.haberes) {
+        if (h.esRemunerativo) brutoRemunerativo += h.monto;
+    }
+    
+    if (brutoRemunerativo > 0) {
+        _mejorRemuneracionController.text = brutoRemunerativo.toStringAsFixed(2);
+        _baseIndemnizatoriaController.text = brutoRemunerativo.toStringAsFixed(2);
+        // También sugerir como sueldo básico si es razonable
+        // _sueldoBasicoOverrideController.text = brutoRemunerativo.toStringAsFixed(2);
+    }
   }
 
   Future<void> _initConInstitucion() async {

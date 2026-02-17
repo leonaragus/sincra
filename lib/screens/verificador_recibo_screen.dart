@@ -6,6 +6,7 @@ import 'package:syncra_arg/services/verificacion_recibo_service.dart';
 import 'teacher_receipt_scan_screen.dart';
 import 'package:syncra_arg/models/recibo_escaneado.dart';
 import 'package:syncra_arg/models/recibo_model.dart'; // Import nuevo modelo
+import 'package:syncra_arg/services/pdf_report_service.dart';
 import 'package:syncra_arg/services/hybrid_store.dart';
 import 'package:syncra_arg/screens/glosario_conceptos_screen.dart';
 import 'package:syncra_arg/screens/conoce_tu_convenio_screen.dart';
@@ -18,7 +19,12 @@ import 'package:syncra_arg/screens/historial_liquidaciones_screen.dart';
 import 'package:syncra_arg/screens/profile_screen.dart';
 import 'package:syncra_arg/screens/home_screen.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
-import 'package:syncra_arg/services/pdf_report_service.dart';
+import 'package:syncra_arg/screens/liquidacion_sac_docente_screen.dart';
+import 'package:syncra_arg/screens/liquidacion_vacaciones_docente_screen.dart';
+import 'package:syncra_arg/screens/liquidador_final_screen.dart';
+import 'package:syncra_arg/widgets/recibo_resultado_widget.dart';
+import 'package:syncra_arg/screens/liquidacion_vacaciones_docente_screen.dart';
+
 // import 'dart:io'; // Removed for web compatibility
 
 class VerificadorReciboScreen extends StatefulWidget {
@@ -1144,8 +1150,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
 
   Widget _buildActionButtons() {
     return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        children: [
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
@@ -1199,7 +1207,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
               ),
             ],
           ),
-        );
+        ],
+      ),
+    );
   }
 
   Widget _buildOcrTextSection() {
@@ -1357,41 +1367,23 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
                   
                   _buildSectionHeader('HERRAMIENTAS'),
                   _buildMenuItem(
-                    icon: Icons.history_rounded,
-                    label: 'Historial de Liquidaciones',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context, 
-                        MaterialPageRoute(
-                          builder: (context) => HistorialLiquidacionesScreen(
-                            empleadoCuil: _recibo?.cuilEmpleado ?? '00-00000000-0',
-                            empleadoNombre: _recibo?.nombreEmpleado ?? 'Usuario',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
                     icon: Icons.qr_code_scanner_rounded,
-                    label: 'Escanear QR Docente',
+                    label: 'Escanear QR',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherReceiptScanScreen()));
                     },
                   ),
-
-                  const Divider(height: 32, color: AppColors.glassBorder, indent: 20, endIndent: 20),
-
-                  _buildSectionHeader('CUENTA'),
-                  _buildMenuItem(
-                    icon: Icons.person_rounded,
-                    label: 'Mi Perfil',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
-                    },
-                  ),
+                  if (_resultado != null) ...[
+                    _buildMenuItem(
+                      icon: Icons.check_circle_outline_rounded,
+                      label: 'Ver Resultados Verificación',
+                      onTap: () {
+                        Navigator.pop(context);
+                        // Ya estamos en la pantalla, solo cerramos el drawer
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1504,370 +1496,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   Widget _buildStructuredResult() {
     if (_reciboModel == null) return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        // TabBar
-        Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Theme.of(context).dividerColor),
-          ),
-          child: TabBar(
-            controller: _tabController,
-            indicatorColor: Theme.of(context).primaryColor,
-            labelColor: Theme.of(context).primaryColor,
-            unselectedLabelColor: Theme.of(context).hintColor,
-            tabs: const [
-              Tab(text: 'Datos'),
-              Tab(text: 'Liquidación'),
-              Tab(text: 'Auditoría IA'),
-            ],
-          ),
-        ),
-
-        // Contenido de las tabs
-        SizedBox(
-          height: 600, // Altura fija o usar Expanded si el padre lo permite
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildDatosGeneralesTab(),
-              _buildLiquidacionTab(),
-              _buildAuditoriaTab(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDatosGeneralesTab() {
-    final cabecera = _reciboModel!.cabecera;
-    return SingleChildScrollView(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoRow('Empresa', cabecera.empresaNombre),
-            _buildInfoRow('CUIT Empresa', cabecera.empresaCuit),
-            const Divider(),
-            _buildInfoRow('Empleado', cabecera.empleadoNombre),
-            _buildInfoRow('CUIL Empleado', cabecera.empleadoCuil),
-            _buildInfoRow('Legajo', cabecera.legajo),
-            _buildInfoRow('Fecha Ingreso', cabecera.fechaIngreso),
-            _buildInfoRow('Antigüedad', cabecera.antiguedadReconocida),
-            const Divider(),
-            _buildInfoRow('Categoría', cabecera.categoriaProfesional),
-            _buildInfoRow('CCT', cabecera.cctAplicable),
-            _buildInfoRow('Período', cabecera.periodoAbonado),
-            _buildInfoRow('Lugar Pago', cabecera.lugarPago),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).hintColor,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value.isNotEmpty ? value : '-',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLiquidacionTab() {
-    final liq = _reciboModel!.liquidacionDetallada;
-    final totales = _reciboModel!.totales;
-
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Haberes
-          if (liq.haberes.isNotEmpty)
-            _buildSectionCard('Haberes', liq.haberes.map((h) => 
-              _buildConceptoRow(h.codigo, h.descripcion, h.monto, Colors.green)
-            ).toList()),
-          
-          // Retenciones
-          if (liq.retenciones.isNotEmpty)
-            _buildSectionCard('Retenciones', liq.retenciones.map((r) => 
-              _buildConceptoRow(r.codigo, r.descripcion, -r.monto, Colors.red)
-            ).toList()),
-
-          // Otros
-          if (liq.otrosConceptos.isNotEmpty)
-            _buildSectionCard('Otros Conceptos', liq.otrosConceptos.map((o) => 
-              _buildConceptoRow('', o.descripcion, o.monto, Colors.blue)
-            ).toList()),
-
-          // Totales
-          Container(
-            margin: const EdgeInsets.only(top: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Theme.of(context).primaryColor),
-            ),
-            child: Column(
-              children: [
-                _buildTotalRow('Total Bruto (Reportado)', totales.totalBruto),
-                _buildTotalRow('Total Retenciones (Reportado)', -totales.totalRetenciones, isNegative: true),
-                _buildTotalRow('No Remunerativo (Reportado)', totales.totalNoRemunerativo),
-                const Divider(),
-                _buildTotalRow('NETO A COBRAR (Reportado)', totales.netoACobrar, isBold: true, fontSize: 18),
-                
-                // Validación Matemática
-                _buildValidacionMatematica(liq, totales),
-
-                if (totales.netoEnLetras.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      totales.netoEnLetras,
-                      style: TextStyle(fontStyle: FontStyle.italic, color: Theme.of(context).hintColor),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildValidacionMatematica(LiquidacionDetallada liq, Totales totales) {
-    // Calcular sumas de items individuales (para validación futura)
-    /*
-    double sumHaberesRem = 0;
-    double sumHaberesNoRem = 0;
-    
-    for (var h in liq.haberes) {
-      if (h.esRemunerativo) {
-        sumHaberesRem += h.monto;
-      } else {
-        sumHaberesNoRem += h.monto;
-      }
-    }
-
-    double sumRetenciones = liq.retenciones.fold(0, (sum, item) => sum + item.monto);
-    double sumOtros = liq.otrosConceptos.fold(0, (sum, item) => sum + item.monto);
-    */
-    
-    // Asumimos que "otros conceptos" suelen ser no remunerativos o ajustes netos, 
-    // pero para simplificar la validación básica:
-    // Neto Calculado = (Remunerativo + No Remunerativo + Otros) - Retenciones
-    
-    // Nota: El modelo JSON tiene "total_no_remunerativo" en totales, que debería coincidir con sumHaberesNoRem + sumOtros (aprox)
-    // Vamos a usar los totales reportados para la validación cruzada principal:
-    // Neto Teorico = Bruto + No Remunerativo - Retenciones
-    
-    final netoTeorico = totales.totalBruto + totales.totalNoRemunerativo - totales.totalRetenciones;
-    final diferencia = (totales.netoACobrar - netoTeorico).abs();
-    
-    if (diferencia < 1.0) {
-      return Container(
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-             Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
-             SizedBox(width: 8),
-             Text("Cálculo matemático correcto", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      );
-    } else {
-      return Container(
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                 Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
-                 SizedBox(width: 8),
-                 Text("Diferencia matemática detectada", style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Neto calculado: \$${netoTeorico.toStringAsFixed(2)} (Dif: \$${diferencia.toStringAsFixed(2)})",
-              style: const TextStyle(color: Colors.orange, fontSize: 11),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  Widget _buildSectionCard(String title, List<Widget> children) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const Divider(),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConceptoRow(String codigo, String descripcion, double monto, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          if (codigo.isNotEmpty)
-            SizedBox(width: 40, child: Text(codigo, style: const TextStyle(fontSize: 12))),
-          Expanded(child: Text(descripcion)),
-          Text(
-            '\$${monto.abs().toStringAsFixed(2)}',
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTotalRow(String label, double amount, {bool isNegative = false, bool isBold = false, double fontSize = 14}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
-          Text(
-            '${isNegative ? "-" : ""}\$${amount.abs().toStringAsFixed(2)}',
-            style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAuditoriaTab() {
-    final audit = _reciboModel!.auditoriaIA;
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Confianza
-          Container(
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.green),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green),
-                const SizedBox(width: 12),
-                Text(
-                  'Confianza del análisis: ${(audit.puntuacionConfianzaOcr * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
-                ),
-              ],
-            ),
-          ),
-
-          // Análisis Legal
-          _buildSectionCard('Análisis Legal', [
-            Text(audit.analisisLegal.isNotEmpty ? audit.analisisLegal : 'Sin observaciones.'),
-          ]),
-
-          // Alertas
-          if (audit.alertasCriticas.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.orange),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text('Alertas Críticas', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-                    ],
-                  ),
-                  const Divider(color: Colors.orange),
-                  ...audit.alertasCriticas.map((a) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('• ', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                        Expanded(child: Text(a)),
-                      ],
-                    ),
-                  )),
-                ],
-              ),
-            ),
-
-          // Conceptos Complejos
-          if (audit.explicacionConceptosComplejos.isNotEmpty)
-            _buildSectionCard('Conceptos Complejos', [
-              Text(audit.explicacionConceptosComplejos),
-            ]),
-        ],
-      ),
-    );
+    // Usamos el nuevo widget dedicado para mostrar los resultados
+    return ReciboResultadoWidget(recibo: _reciboModel!);
   }
 }

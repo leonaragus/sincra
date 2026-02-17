@@ -11,9 +11,15 @@ import '../services/teacher_omni_engine.dart' show TeacherOmniEngine, Liquidacio
 import '../services/vacaciones_service.dart';
 import '../services/lsd_engine.dart';
 import '../utils/docente_input_helper.dart';
+import '../models/recibo_model.dart';
 
 class LiquidacionVacacionesDocenteScreen extends StatefulWidget {
-  const LiquidacionVacacionesDocenteScreen({super.key});
+  final ReciboModel? prefillData;
+  
+  const LiquidacionVacacionesDocenteScreen({
+    super.key, 
+    this.prefillData
+  });
 
   @override
   State<LiquidacionVacacionesDocenteScreen> createState() => _LiquidacionVacacionesDocenteScreenState();
@@ -54,14 +60,64 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
 
   Future<void> _cargarInstituciones() async {
     final list = await InstitucionesService.getInstituciones();
-    if (mounted) setState(() => _instituciones = list);
+    if (mounted) {
+      setState(() => _instituciones = list);
+      _aplicarPrefill();
+    }
+  }
+
+  void _aplicarPrefill() {
+    if (widget.prefillData == null) return;
+    
+    final data = widget.prefillData!;
+    final cuitRecibo = data.cabecera.empresaCuit.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Buscar institución por CUIT
+    if (cuitRecibo.isNotEmpty) {
+      final inst = _instituciones.cast<Map<String, dynamic>?>().firstWhere(
+        (e) => (e?['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '') == cuitRecibo,
+        orElse: () => null,
+      );
+      
+      if (inst != null) {
+        final cuit = (inst['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
+        _onInstitucionChanged(cuit);
+      }
+    }
+
+    // Prefill periodo
+    if (data.cabecera.periodoAbonado.isNotEmpty) {
+      _periodoController.text = data.cabecera.periodoAbonado;
+    }
+  }
+
+  void _seleccionarLegajoPrefill(String cuilReciboRaw) {
+    if (_legajos.isEmpty) return;
+    
+    final cuilRecibo = cuilReciboRaw.replaceAll(RegExp(r'[^\d]'), '');
+    if (cuilRecibo.isEmpty) return;
+
+    final legajo = _legajos.cast<Map<String, dynamic>?>().firstWhere(
+      (l) => (l?['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '') == cuilRecibo,
+      orElse: () => null,
+    );
+
+    if (legajo != null) {
+      _onLegajoChanged(legajo);
+    }
   }
 
   Future<void> _cargarLegajos() async {
     final c = _cuitSeleccionado;
     if (c == null || c.isEmpty) return;
     final list = await InstitucionesService.getLegajosDocente(c);
-    if (mounted) setState(() => _legajos = list);
+    if (mounted) {
+      setState(() => _legajos = list);
+      // Intentar pre-seleccionar empleado si hay datos de prefill
+      if (widget.prefillData != null && _legajoSeleccionado == null) {
+        _seleccionarLegajoPrefill(widget.prefillData!.cabecera.empleadoCuil);
+      }
+    }
   }
 
   void _onInstitucionChanged(String? cuit) {

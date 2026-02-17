@@ -100,27 +100,33 @@ class ClaudeVisionService {
     // Usamos el primer endpoint por defecto mientras se implementa la lógica de reintento completa
     // final url = Uri.parse(endpoints.first);
 
-    String promptText = '''Eres un experto auditor de liquidación de sueldos en Argentina. Tu tarea es analizar la imagen del recibo de sueldo y extraer TODA la información en un formato JSON estricto.
+    String promptText = '''Eres un experto auditor de liquidación de sueldos en Argentina (Ley 20.744 y Convenios Colectivos). Tu tarea es analizar la imagen del recibo de sueldo y extraer TODA la información en un formato JSON estricto, realizando además una auditoría exhaustiva.
 
-Debes responder ÚNICAMENTE con el JSON válido, sin texto adicional antes ni después (ni markdown ```json ... ```).
+Debes responder ÚNICAMENTE con el JSON válido.
 
-IMPORTANTE: 
-1. Revisa que los totales coincidan con la suma de los items.
-2. Si un número es ilegible, usa 0.0 o string vacío según corresponda.
-3. El campo "es_remunerativo" en haberes debe ser booleano (true/false).
-4. El campo "codigo" puede ser vacío si no existe.
+INSTRUCCIONES DE EXTRACCIÓN Y CÁLCULO:
+1. Extrae todos los datos de cabecera con máxima precisión. Si la "antigüedad" no está explícita pero sí la "fecha de ingreso", calcúlala a la fecha del periodo liquidado.
+2. En "liquidacion_detallada", lista CADA concepto. Identifica si es remunerativo, no remunerativo o retención (descuento).
+3. Verifica matemáticamente: (Total Haberes Remunerativos + No Remunerativos) - Retenciones = Neto. Si no coincide, indícalo en "auditoria_ia".
+4. Si un número es ilegible, intenta deducirlo por el contexto (ej: el 11% de Jubilación suele ser exacto). Si no, usa 0.0.
+
+INSTRUCCIONES DE AUDITORÍA (CRÍTICO):
+- Analiza si los descuentos de ley (Jubilación 11%, Ley 19032 3%, Obra Social 3%) son correctos sobre el bruto remunerativo.
+- Detecta si hay conceptos no remunerativos que deberían ser remunerativos según la normativa general.
+- Busca "Presentismo", "Antigüedad" y otros adicionales comunes y verifica si sus porcentajes parecen razonables.
+- Genera un "analisis_legal" detallado y útil para el usuario, no genérico.
 ''';
 
     if (contextoConvenio != null && contextoConvenio.isNotEmpty) {
       promptText += '''
-5. COMPARACIÓN CON CONVENIO:
+5. COMPARACIÓN CON CONVENIO ESPECÍFICO:
    Aquí tienes los datos oficiales del convenio colectivo aplicable:
    $contextoConvenio
    
    Usa esta información para:
    - Verificar si el sueldo básico coincide con la escala salarial.
-   - Auditar si los porcentajes de antigüedad, presentismo y adicionales son correctos.
-   - En el campo "auditoria_ia", incluye análisis específico sobre discrepancias con este convenio.
+   - Auditar si los porcentajes de antigüedad, presentismo y adicionales son correctos según este CCT.
+   - En "auditoria_ia", sé muy específico sobre las discrepancias encontradas con estos valores.
 ''';
     }
 
@@ -173,17 +179,20 @@ Usa EXACTAMENTE esta estructura JSON:
      "neto_en_letras": "Un millón quinientos..." 
    }, 
    "auditoria_ia": { 
-     "analisis_legal": "Breve resumen del cumplimiento de normativas vigentes.", 
+     "analisis_legal": "Texto detallado (mínimo 3 oraciones) sobre el cumplimiento normativo y la corrección de los cálculos.", 
      "alertas_criticas": [ 
        "Lista de alertas si hay retenciones fuera de rango, faltan aportes, etc." 
      ], 
-     "explicacion_conceptos_complejos": "Explicación breve de códigos específicos hallados.", 
+     "explicacion_conceptos_complejos": "Explicación breve de códigos específicos hallados.",
+     "sugerencias_mejora": [
+       "Recomendaciones prácticas para el empleado."
+     ],
      "puntuacion_confianza_ocr": 0.98 
    } 
- }
+}
 
 Si algún campo no está presente o no es legible, usa null o una cadena vacía, pero mantén la estructura. Para los montos numéricos usa 0.0 si no se encuentra.
-El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento de leyes laborales argentinas para detectar inconsistencias reales en los montos (ej: Jubilación debe ser 11%, Obra Social 3%, Ley 19032 3%).''';
+''';
 
     String? lastError;
     
