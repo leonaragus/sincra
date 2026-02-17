@@ -132,6 +132,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   bool _calculando = false;
   bool _exportandoMasivo = false;
 
+  // === CONCEPTOS MANUALES ===
+  List<Map<String, dynamic>> _conceptosManuales = [];
+
   List<Map<String, dynamic>> _instituciones = [];
   String? _institucionSeleccionadaCuit;
   List<Map<String, dynamic>> _legajosSanidad = [];
@@ -1073,6 +1076,143 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
 
+  // === CONCEPTOS MANUALES ===
+  Future<void> _agregarConceptoManual() async {
+    final descC = TextEditingController();
+    final montoC = TextEditingController(text: '0');
+    final codC = TextEditingController(text: '120000');
+    String tipo = 'haber_rem';
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setD) => AlertDialog(
+          title: const Text('Agregar concepto manual'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(controller: descC, decoration: const InputDecoration(labelText: 'Nombre')),
+                const SizedBox(height: 8),
+                TextField(controller: montoC, decoration: const InputDecoration(labelText: 'Monto (\$)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                const SizedBox(height: 8),
+                TextField(controller: codC, decoration: const InputDecoration(labelText: 'Código AFIP (6 dígitos)', hintText: '120000'), keyboardType: TextInputType.number, maxLength: 6),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: tipo,
+                  decoration: const InputDecoration(labelText: 'Tipo'),
+                  items: const [
+                    DropdownMenuItem(value: 'haber_rem', child: Text('Haber remunerativo')),
+                    DropdownMenuItem(value: 'haber_no_rem', child: Text('Haber no remunerativo')),
+                    DropdownMenuItem(value: 'descuento', child: Text('Deducción')),
+                  ],
+                  onChanged: (v) => setD(() => tipo = v ?? tipo),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Agregar')),
+          ],
+        ),
+      ),
+    );
+
+    if (ok != true || !mounted) return;
+    
+    final desc = descC.text.trim();
+    if (desc.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ingrese nombre')));
+      return;
+    }
+    
+    final m = double.tryParse(montoC.text.replaceAll(',', '.'));
+    if (m == null) return;
+    
+    final cod = codC.text.replaceAll(RegExp(r'[^\d]'), '').padLeft(6, '0');
+    final code = cod.length >= 6 ? cod.substring(0, 6) : cod.padLeft(6, '0');
+
+    setState(() {
+      _conceptosManuales.add({
+        'id': DateTime.now().millisecondsSinceEpoch,
+        'descripcion': desc,
+        'tipo': tipo,
+        'monto': m,
+        'codigoAfip': code,
+      });
+    });
+    
+    _recalcular();
+  }
+
+  void _quitarConceptoManual(int index) {
+    setState(() {
+      _conceptosManuales.removeAt(index);
+    });
+    _recalcular();
+  }
+
+  Widget _buildConceptosManuales() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Conceptos Manuales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(
+                  onPressed: _agregarConceptoManual,
+                  icon: const Icon(Icons.add_circle, color: Colors.teal),
+                  tooltip: 'Agregar concepto',
+                ),
+              ],
+            ),
+            if (_conceptosManuales.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('No hay conceptos manuales agregados.', style: TextStyle(color: Colors.grey)),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _conceptosManuales.length,
+                itemBuilder: (context, index) {
+                  final c = _conceptosManuales[index];
+                  final tipo = c['tipo'] == 'descuento' ? 'Desc.' : (c['tipo'] == 'haber_no_rem' ? 'No Rem.' : 'Rem.');
+                  final color = c['tipo'] == 'descuento' ? Colors.red : (c['tipo'] == 'haber_no_rem' ? Colors.orange : Colors.green);
+                  
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(c['descripcion']),
+                    subtitle: Text('$tipo - AFIP: ${c['codigoAfip']}'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '\$${(c['monto'] as double).toStringAsFixed(2)}',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: color),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                          onPressed: () => _quitarConceptoManual(index),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _recalcular() {
     if (_nombreController.text.trim().isEmpty || _cuilController.text.trim().isEmpty) {
       setState(() => _resultado = null);
@@ -1122,6 +1262,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             ? int.tryParse(_diasVacacionesController.text) : null,
         incluyePreaviso: _incluyePreaviso,
         incluyeIntegracionMes: _incluyeIntegracionMes,
+        conceptosPropios: _conceptosManuales,
       );
       final r = SanidadOmniEngine.liquidar(
         i,
@@ -2009,6 +2150,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             _buildSelectorPeriodoYModo(),
             const SizedBox(height: 24),
             _buildDatosEmpleado(),
+            const SizedBox(height: 24),
+            _buildConceptosManuales(),
             const SizedBox(height: 24),
             _buildSimuladorNeto(),
             if (_resultado != null) ...[
