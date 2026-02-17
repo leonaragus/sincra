@@ -68,13 +68,22 @@ class ClaudeVisionService {
     // Lista de URLs a probar en orden (Estrategia Failover)
     final List<String> endpoints = [];
     
+    // URL base de Anthropic
+    const String anthropicUrl = 'https://api.anthropic.com/v1/messages';
+    
     if (kIsWeb) {
-      // 1. Proxy principal (corsproxy.io)
-      endpoints.add('https://corsproxy.io/?https://api.anthropic.com/v1/messages');
-      // 2. Proxy alternativo (codetabs) - Nota: Puede no soportar POST grandes o requerir configuración
-      endpoints.add('https://api.codetabs.com/v1/proxy?quest=https://api.anthropic.com/v1/messages');
-       // 3. Intento directo (último recurso, por si el usuario tiene extensiones o config permisiva)
-      endpoints.add('https://api.anthropic.com/v1/messages');
+      // 1. Proxy principal (thingproxy) - Más robusto con POST
+      endpoints.add('https://thingproxy.freeboard.io/fetch/$anthropicUrl');
+      
+      // 2. Proxy secundario (corsproxy.io) - Usamos URL codificada para evitar problemas
+      // Nota: A veces requiere codificación, a veces no. Probamos ambas si es necesario.
+      endpoints.add('https://corsproxy.io/?$anthropicUrl');
+      
+      // 3. Proxy de respaldo (codetabs)
+      endpoints.add('https://api.codetabs.com/v1/proxy?quest=$anthropicUrl');
+      
+       // 4. Intento directo (último recurso)
+      endpoints.add(anthropicUrl);
     } else {
       // En móvil/desktop no hay CORS, ir directo
       endpoints.add('https://api.anthropic.com/v1/messages');
@@ -231,13 +240,18 @@ El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento de leyes laborales arge
               errorMsg += ' - ${errBody['error']['message']}';
             }
           } catch (_) {
-             errorMsg += ' - ${response.body.substring(0, 100)}...';
+             errorMsg += ' - ${response.body.substring(0, response.body.length > 100 ? 100 : response.body.length)}...';
           }
           
           if (response.statusCode == 401) {
              errorMsg += " (Verifique su API Key)";
              // Si falla auth, no tiene sentido reintentar otros proxies
              throw Exception(errorMsg);
+          }
+
+          // Si es un error 405 Method Not Allowed, probablemente el proxy convirtió POST a GET
+          if (response.statusCode == 405) {
+             errorMsg += " (Proxy incompatible con POST)";
           }
           
           lastError = errorMsg;
