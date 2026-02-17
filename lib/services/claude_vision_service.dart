@@ -72,17 +72,25 @@ class ClaudeVisionService {
     const String anthropicUrl = 'https://api.anthropic.com/v1/messages';
     
     if (kIsWeb) {
-      // 1. Proxy principal (thingproxy) - Más robusto con POST
+      // 1. Supabase Edge Function (Opción recomendada y segura)
+      endpoints.add('${SupabaseConfig.url}/functions/v1/claude-proxy');
+
+      // 2. PROXY LOCAL (Respaldo para desarrollo)
+      endpoints.add('http://localhost:3000/v1/messages');
+
+      // 2. Vercel Serverless Function (Transparente si se usa Vercel)
+      endpoints.add('/api/claude');
+
+      // 3. Proxy de respaldo (thingproxy) - Suele ser el más confiable
       endpoints.add('https://thingproxy.freeboard.io/fetch/$anthropicUrl');
+
+      // 4. Proxy secundario (corsproxy.io) - Usamos URL codificada
+      endpoints.add('https://corsproxy.io/?https%3A%2F%2Fapi.anthropic.com%2Fv1%2Fmessages');
       
-      // 2. Proxy secundario (corsproxy.io) - Usamos URL codificada para evitar problemas
-      // Nota: A veces requiere codificación, a veces no. Probamos ambas si es necesario.
-      endpoints.add('https://corsproxy.io/?$anthropicUrl');
+      // 5. Proxy de respaldo (codetabs) - URL codificada
+      endpoints.add('https://api.codetabs.com/v1/proxy?quest=https%3A%2F%2Fapi.anthropic.com%2Fv1%2Fmessages');
       
-      // 3. Proxy de respaldo (codetabs)
-      endpoints.add('https://api.codetabs.com/v1/proxy?quest=$anthropicUrl');
-      
-       // 4. Intento directo (último recurso)
+      // 6. Intento directo (último recurso)
       endpoints.add(anthropicUrl);
     } else {
       // En móvil/desktop no hay CORS, ir directo

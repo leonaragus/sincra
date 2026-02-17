@@ -54,8 +54,16 @@ void main() async {
       }
     },
     {
-       "name": "ThingProxy (Backup)",
-       "url": "https://thingproxy.freeboard.io/fetch/https://api.anthropic.com/v1/messages"
+      "name": "ThingProxy (Backup)",
+      "url": "https://thingproxy.freeboard.io/fetch/https://api.anthropic.com/v1/messages"
+    },
+    {
+      "name": "CodeTabs (Encoded)",
+      "url": "https://api.codetabs.com/v1/proxy?quest=https%3A%2F%2Fapi.anthropic.com%2Fv1%2Fmessages"
+    },
+    {
+      "name": "CorsProxy.io (Encoded)",
+      "url": "https://corsproxy.io/?https%3A%2F%2Fapi.anthropic.com%2Fv1%2Fmessages"
     }
   ];
 
