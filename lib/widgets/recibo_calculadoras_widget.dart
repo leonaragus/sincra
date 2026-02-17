@@ -225,19 +225,21 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
   Widget _buildHeaderConvenio(BuildContext context) {
     final cct = widget.recibo.cabecera.cctAplicable;
     final tieneCCT = cct.isNotEmpty && cct.toLowerCase() != 'no especificado';
+    final theme = Theme.of(context);
+    final colorBase = tieneCCT ? Colors.blue : Colors.grey;
     
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: tieneCCT ? Colors.blue.shade50 : Colors.grey.shade50,
+        color: colorBase.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tieneCCT ? Colors.blue.shade200 : Colors.grey.shade300),
+        border: Border.all(color: colorBase.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Icon(
             tieneCCT ? Icons.verified : Icons.info_outline,
-            color: tieneCCT ? Colors.blue.shade700 : Colors.grey.shade600,
+            color: colorBase,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -248,7 +250,7 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
                   tieneCCT ? 'Convenio Detectado' : 'Sin Convenio Específico',
                   style: TextStyle(
                     fontSize: 12,
-                    color: tieneCCT ? Colors.blue.shade800 : Colors.grey.shade700,
+                    color: colorBase,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -256,7 +258,7 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
                   tieneCCT ? cct : 'Se aplicarán fórmulas generales de LCT (Ley de Contrato de Trabajo).',
                   style: TextStyle(
                     fontSize: 14,
-                    color: tieneCCT ? Colors.blue.shade900 : Colors.grey.shade800,
+                    color: theme.textTheme.bodyMedium?.color,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -330,9 +332,21 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
   Widget _buildSacContent() {
     return Column(
       children: [
-        _buildTextField('Mejor Remuneración del Semestre', _sacMejorRemuneracionController, icon: Icons.attach_money),
+        _buildTextField(
+          'Mejor Remuneración del Semestre', 
+          _sacMejorRemuneracionController, 
+          icon: Icons.attach_money,
+          tooltip: 'Es el sueldo bruto más alto que cobraste en los últimos 6 meses (Enero-Junio o Julio-Diciembre).',
+          helperText: 'El sueldo más alto del semestre',
+        ),
         const SizedBox(height: 12),
-        _buildTextField('Días Trabajados en Semestre', _sacDiasTrabajadosController, icon: Icons.calendar_today),
+        _buildTextField(
+          'Días Trabajados en Semestre', 
+          _sacDiasTrabajadosController, 
+          icon: Icons.calendar_today,
+          tooltip: 'Cantidad de días que fuiste empleado en este semestre. Si trabajaste todo el semestre, son 180 días.',
+          helperText: 'Días activos (máx 180)',
+        ),
       ],
     );
   }
@@ -340,13 +354,30 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
   Widget _buildVacacionesContent() {
     return Column(
       children: [
-        _buildTextField('Sueldo Bruto Mensual', _vacSueldoBrutoController, icon: Icons.attach_money),
+        _buildTextField(
+          'Sueldo Bruto Mensual', 
+          _vacSueldoBrutoController, 
+          icon: Icons.attach_money,
+          tooltip: 'Tu sueldo habitual sin descuentos. Se usa para calcular el valor del día de vacación.',
+          helperText: 'Tu sueldo habitual',
+        ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildTextField('Antigüedad (Años)', _vacAntiguedadAniosController, icon: Icons.history)),
+            Expanded(child: _buildTextField(
+              'Antigüedad (Años)', 
+              _vacAntiguedadAniosController, 
+              icon: Icons.history,
+              tooltip: 'Años completos trabajados en la empresa.',
+            )),
             const SizedBox(width: 12),
-            Expanded(child: _buildTextField('Días a Liquidar', _vacDiasCorrespondenController, icon: Icons.beach_access)),
+            Expanded(child: _buildTextField(
+              'Días a Liquidar', 
+              _vacDiasCorrespondenController, 
+              icon: Icons.beach_access,
+              tooltip: 'Días de vacaciones que te vas a tomar o que te deben pagar.',
+              helperText: 'Días a pagar',
+            )),
           ],
         ),
       ],
@@ -356,13 +387,24 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
   Widget _buildIndemnizacionContent() {
     return Column(
       children: [
-        _buildTextField('Mejor Remuneración Mensual', _indemMejorRemuneracionController, icon: Icons.attach_money),
+        _buildTextField(
+          'Mejor Remuneración Mensual', 
+          _indemMejorRemuneracionController, 
+          icon: Icons.attach_money,
+          tooltip: 'El sueldo mensual más alto del último año.',
+          helperText: 'Mejor sueldo del último año',
+        ),
         const SizedBox(height: 12),
-        _buildTextField('Antigüedad (Años)', _indemAntiguedadAniosController, icon: Icons.history),
+        _buildTextField(
+          'Antigüedad (Años)', 
+          _indemAntiguedadAniosController, 
+          icon: Icons.history,
+          tooltip: 'Tiempo total trabajado en años. Si tenés fracción mayor a 3 meses, contalo como un año más.',
+        ),
         const SizedBox(height: 12),
         SwitchListTile(
           title: const Text('Incluir Indemnización por Preaviso'),
-          subtitle: const Text('Si no te avisaron con anticipación'),
+          subtitle: const Text('Activalo si te despidieron sin avisarte con tiempo (1 o 2 meses antes).'),
           value: _indemPreaviso,
           onChanged: (val) => setState(() => _indemPreaviso = val),
           activeColor: Colors.redAccent,
@@ -371,16 +413,23 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {IconData? icon}) {
-    return TextField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: icon != null ? Icon(icon, size: 20, color: Colors.grey.shade600) : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        isDense: true,
+  Widget _buildTextField(String label, TextEditingController controller, {IconData? icon, String? tooltip, String? helperText}) {
+    return Tooltip(
+      message: tooltip ?? label,
+      triggerMode: TooltipTriggerMode.tap,
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helperText,
+          helperStyle: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+          prefixIcon: icon != null ? Icon(icon, size: 20) : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          isDense: true,
+          suffixIcon: tooltip != null ? const Icon(Icons.info_outline, size: 16, color: Colors.grey) : null,
+        ),
       ),
     );
   }
@@ -409,7 +458,7 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text(e.key, style: TextStyle(fontSize: 13, color: Colors.grey.shade700))),
+              Expanded(child: Text(e.key, style: const TextStyle(fontSize: 13))),
               Text('\$${e.value.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w500)),
             ],
           ),

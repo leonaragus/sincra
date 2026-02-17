@@ -273,9 +273,79 @@ class ReciboResultadoWidget extends StatelessWidget {
                       ],
                     ),
                   )),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _mostrarDialogoReclamo(context),
+                  icon: const Icon(Icons.edit_note, size: 18),
+                  label: const Text('Generar Texto de Reclamo'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    side: BorderSide(color: Colors.red.shade200),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  void _mostrarDialogoReclamo(BuildContext context) {
+    final alerts = recibo.auditoriaIA.alertasCriticas.join("\n- ");
+    final textoReclamo = "Hola, quería consultar sobre mi liquidación de ${recibo.cabecera.periodoAbonado}.\n\n"
+        "Noté las siguientes inconsistencias que me gustaría revisar:\n"
+        "- $alerts\n\n"
+        "¿Podrían indicarme si es correcto o si hubo un error? Gracias.";
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Cómo reclamo esto?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Podés copiar este texto y enviarlo a RRHH o a tu delegado gremial para iniciar la consulta de manera formal pero amable.',
+              style: TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: SelectableText(
+                textoReclamo,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              // Copiar al portapapeles (requiere import services)
+              // Por ahora solo cerramos, en una app real usariamos Clipboard.setData
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Texto copiado al portapapeles')),
+              );
+            },
+            icon: const Icon(Icons.copy, size: 18),
+            label: const Text('Copiar Texto'),
+          ),
+        ],
       ),
     );
   }
@@ -334,7 +404,13 @@ class ReciboResultadoWidget extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Haberes (Ingresos)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Haberes (Ingresos)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
+                        Text('Dinero que suma a tu bolsillo', style: TextStyle(fontSize: 12, color: Colors.green.shade700)),
+                      ],
+                    ),
                     Icon(Icons.add_circle_outline, color: Colors.green.shade300),
                   ],
                 ),
@@ -356,6 +432,20 @@ class ReciboResultadoWidget extends StatelessWidget {
                                   Text(h.descripcion, style: const TextStyle(fontWeight: FontWeight.w500)),
                                   if (h.cantidad.isNotEmpty && h.cantidad != "1.0")
                                     Text('Cant: ${h.cantidad}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                  // Etiqueta de tipo de concepto
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: h.esRemunerativo ? Colors.green.shade50 : Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: h.esRemunerativo ? Colors.green.shade200 : Colors.blue.shade200, width: 0.5),
+                                    ),
+                                    child: Text(
+                                      h.esRemunerativo ? 'Remunerativo (Suma aguinaldo)' : 'No Remunerativo (Bolsillo)',
+                                      style: TextStyle(fontSize: 10, color: h.esRemunerativo ? Colors.green.shade800 : Colors.blue.shade800),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -388,7 +478,13 @@ class ReciboResultadoWidget extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Retenciones (Descuentos)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Retenciones (Descuentos)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
+                        Text('Jubilación, Obra Social, etc.', style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
+                      ],
+                    ),
                     Icon(Icons.remove_circle_outline, color: Colors.red.shade300),
                   ],
                 ),

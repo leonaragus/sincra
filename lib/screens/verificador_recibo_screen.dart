@@ -15,15 +15,12 @@ import 'package:syncra_arg/utils/conceptos_builder.dart';
 import 'package:syncra_arg/theme/app_colors.dart';
 // import 'package:url_launcher/url_launcher.dart';
 import 'package:syncra_arg/screens/biblioteca_cct_screen.dart';
-import 'package:syncra_arg/screens/historial_liquidaciones_screen.dart';
-import 'package:syncra_arg/screens/profile_screen.dart';
 import 'package:syncra_arg/screens/home_screen.dart';
 import 'package:syncra_arg/widgets/academy_promo_dialog.dart';
 import 'package:syncra_arg/screens/liquidacion_sac_docente_screen.dart';
 import 'package:syncra_arg/screens/liquidacion_vacaciones_docente_screen.dart';
 import 'package:syncra_arg/screens/liquidador_final_screen.dart';
 import 'package:syncra_arg/widgets/recibo_resultado_widget.dart';
-import 'package:syncra_arg/screens/liquidacion_vacaciones_docente_screen.dart';
 
 // import 'dart:io'; // Removed for web compatibility
 
@@ -254,6 +251,9 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
       });
 
       if (_reciboModel != null) {
+        // Intentar detectar convenio automáticamente
+        _detectarConvenioAutomaticamente(_reciboModel!);
+
         // Si tenemos el modelo estructurado, ya tenemos todo lo necesario.
         // Asignamos valores dummy a _recibo y _resultado para activar la vista de resultados
         // pero usaremos _reciboModel para renderizar.
@@ -1281,6 +1281,72 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
 
   // Helper methods to satisfy compilation
   
+  void _detectarConvenioAutomaticamente(ReciboModel model) {
+    if (_listaConveniosDisponibles.isEmpty) return;
+
+    final cct = model.cabecera.cctAplicable.toUpperCase();
+    final categoria = model.cabecera.categoriaProfesional.toUpperCase();
+    final empresa = model.cabecera.empresaNombre.toUpperCase();
+    
+    // Lógica para detectar Docentes
+    // Se revisa CCT, Categoría o incluso nombre de empresa si contiene "COLEGIO", "INSTITUTO", etc.
+    if (cct.contains('DOCENTE') || 
+        categoria.contains('DOCENTE') || 
+        categoria.contains('PROFESOR') || 
+        categoria.contains('MAESTR') ||
+        empresa.contains('COLEGIO') ||
+        empresa.contains('INSTITUTO') ||
+        empresa.contains('ESCUELA')) {
+      
+      // Buscar si hay algún convenio docente en la lista
+      final docente = _listaConveniosDisponibles.firstWhere(
+        (c) => c['id'].toString().startsWith('docente_'),
+        orElse: () => {},
+      );
+      
+      if (docente.isNotEmpty) {
+        setState(() {
+          _convenioSeleccionadoId = docente['id'];
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎓 Detectamos que sos Docente. Se aplicó el convenio automáticamente.'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+    }
+    
+    // Lógica para detectar Sanidad
+    if (cct.contains('122/75') || cct.contains('SANIDAD') || 
+        categoria.contains('ENFERMER') || categoria.contains('MEDIC') ||
+        empresa.contains('CLINICA') || empresa.contains('SANATORIO') || empresa.contains('HOSPITAL')) {
+        
+      final sanidad = _listaConveniosDisponibles.firstWhere(
+        (c) => c['id'].toString().startsWith('sanidad_'),
+        orElse: () => {},
+      );
+      
+      if (sanidad.isNotEmpty) {
+        setState(() {
+          _convenioSeleccionadoId = sanidad['id'];
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🏥 Detectamos convenio Sanidad. Se aplicó automáticamente.'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+    }
+  }
+
   Widget _buildMenuHamburguesa() {
     return Drawer(
       backgroundColor: AppColors.background,
@@ -1374,6 +1440,31 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const TeacherReceiptScanScreen()));
                     },
                   ),
+                  _buildMenuItem(
+                    icon: Icons.calculate_outlined,
+                    label: 'Calculadora SAC Docente',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LiquidacionSacDocenteScreen()));
+                    },
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.beach_access_outlined,
+                    label: 'Calculadora Vacaciones',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LiquidacionVacacionesDocenteScreen()));
+                    },
+                  ),
+                   _buildMenuItem(
+                    icon: Icons.gavel_outlined,
+                    label: 'Calculadora Final/Despido',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LiquidadorFinalScreen()));
+                    },
+                  ),
+                  
                   if (_resultado != null) ...[
                     _buildMenuItem(
                       icon: Icons.check_circle_outline_rounded,
