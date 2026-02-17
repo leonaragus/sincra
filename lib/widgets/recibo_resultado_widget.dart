@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:syncra_arg/models/recibo_model.dart';
 import 'package:syncra_arg/theme/app_colors.dart';
 import 'package:syncra_arg/widgets/recibo_calculadoras_widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ReciboResultadoWidget extends StatelessWidget {
   final ReciboModel recibo;
@@ -121,6 +122,8 @@ class ReciboResultadoWidget extends StatelessWidget {
                       _buildAuditoriaCard(context),
                       const SizedBox(height: 16),
                       _buildSugerenciasCard(context),
+                      const SizedBox(height: 24),
+                      _buildAcademyBanner(context),
                     ],
                   ),
                 ),
@@ -130,6 +133,8 @@ class ReciboResultadoWidget extends StatelessWidget {
                   child: Column(
                     children: [
                       _buildDetalleLiquidacion(context),
+                      const SizedBox(height: 24),
+                      _buildAcademyBanner(context),
                     ],
                   ),
                 ),
@@ -141,12 +146,22 @@ class ReciboResultadoWidget extends StatelessWidget {
                       _buildTotalesCard(context),
                       const SizedBox(height: 16),
                       _buildCabeceraCard(context),
+                      const SizedBox(height: 24),
+                      _buildAcademyBanner(context),
                     ],
                   ),
                 ),
 
                 // 4. Herramientas (Calculadoras)
-                ReciboCalculadorasWidget(recibo: recibo),
+                SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      ReciboCalculadorasWidget(recibo: recibo),
+                      const SizedBox(height: 16),
+                      _buildAcademyBanner(context),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -535,9 +550,9 @@ class ReciboResultadoWidget extends StatelessWidget {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            _buildTotalRow('Total Haberes Remunerativos', recibo.totales.totalBruto),
-            _buildTotalRow('Total No Remunerativo', recibo.totales.totalNoRemunerativo),
-            _buildTotalRow('Total Descuentos', recibo.totales.totalRetenciones, isNegative: true),
+            _buildTotalRow(context, 'Total Haberes Remunerativos', recibo.totales.totalBruto),
+            _buildTotalRow(context, 'Total No Remunerativo', recibo.totales.totalNoRemunerativo),
+            _buildTotalRow(context, 'Total Descuentos', recibo.totales.totalRetenciones, isNegative: true),
             const Divider(height: 24, thickness: 1.5),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -580,17 +595,92 @@ class ReciboResultadoWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildTotalRow(String label, double value, {bool isNegative = false}) {
+  Widget _buildTotalRow(BuildContext context, String label, double value, {bool isNegative = false}) {
     if (value == 0) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade800, fontSize: 15)),
+          Text(label, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 15)),
           Text(
             '${isNegative ? '-' : ''}\$${value.toStringAsFixed(2)}',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isNegative ? Colors.red : Colors.black87),
+            style: TextStyle(
+              fontWeight: FontWeight.bold, 
+              fontSize: 16, 
+              color: isNegative ? Colors.red : Theme.of(context).textTheme.bodyLarge?.color
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcademyBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16, bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.indigo.shade900, Colors.indigo.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.indigo.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.school, color: Colors.white, size: 28),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Elevar Formación Técnica',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '¿Querés aprender a liquidar sueldos como un experto? Inscribite en nuestros cursos y dominá la normativa laboral.',
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final Uri url = Uri.parse('https://wa.me/5491112345678?text=Hola,%20me%20interesa%20saber%20m%C3%A1s%20sobre%20los%20cursos%20de%20liquidaci%C3%B3n%20de%20sueldos.');
+                if (!await launchUrl(url)) {
+                   if (context.mounted) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       const SnackBar(content: Text('No se pudo abrir WhatsApp')),
+                     );
+                   }
+                }
+              },
+              icon: const Icon(Icons.chat_bubble_outline, color: Colors.indigo),
+              label: const Text('Consultar por WhatsApp'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.indigo.shade900,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ],
       ),

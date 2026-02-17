@@ -293,7 +293,12 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
         ),
         title: Text(
           title,
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+          style: TextStyle(
+            fontWeight: FontWeight.bold, 
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.white 
+                : Colors.black87
+          ),
         ),
         childrenPadding: const EdgeInsets.all(16),
         children: [
@@ -419,16 +424,18 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
       triggerMode: TooltipTriggerMode.tap,
       child: TextField(
         controller: controller,
+        style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
           helperText: helperText,
-          helperStyle: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-          prefixIcon: icon != null ? Icon(icon, size: 20) : null,
+          helperStyle: TextStyle(color: Theme.of(context).hintColor, fontSize: 11),
+          prefixIcon: icon != null ? Icon(icon, size: 20, color: Theme.of(context).iconTheme.color) : null,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           isDense: true,
-          suffixIcon: tooltip != null ? const Icon(Icons.info_outline, size: 16, color: Colors.grey) : null,
+          suffixIcon: tooltip != null ? Icon(Icons.info_outline, size: 16, color: Theme.of(context).hintColor) : null,
         ),
       ),
     );
@@ -438,10 +445,20 @@ class _ReciboCalculadorasWidgetState extends State<ReciboCalculadorasWidget> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text(label, style: TextStyle(
+            fontWeight: FontWeight.bold, 
+            fontSize: 15,
+            color: Theme.of(context).textTheme.bodyLarge?.color
+        )),
         Text(
           '\$${value.toStringAsFixed(2)}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green),
+          style: TextStyle(
+            fontWeight: FontWeight.bold, 
+            fontSize: 18, 
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.greenAccent 
+                : Colors.green.shade800
+          ),
         ),
       ],
     );

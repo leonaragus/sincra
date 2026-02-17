@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 // import 'package:image_picker/image_picker.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
@@ -82,8 +83,8 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
 
   Future<void> _cargarListaConvenios() async {
     try {
-      final docentes = await HybridStore.getMaestroParitarias();
-      final sanidad = await HybridStore.getMaestroParitariasSanidad();
+      final conveniosJson = await HybridStore.getConveniosJson();
+      final List<dynamic> conveniosList = conveniosJson != null ? jsonDecode(conveniosJson) : [];
       
       final List<Map<String, dynamic>> opciones = [];
       
@@ -94,25 +95,177 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
         'data': null
       });
 
-      // Procesar Docentes
-      for (var d in docentes) {
-        final juris = d['jurisdiccion'] ?? 'Desconocida';
-        opciones.add({
-          'id': 'docente_$juris',
-          'nombre': 'Docente - $juris',
-          'data': d
-        });
+      // Procesar todos los convenios disponibles
+      for (var c in conveniosList) {
+        if (c is Map<String, dynamic>) {
+          // Intentamos obtener un nombre legible
+          String nombre = c['nombre'] ?? 'Convenio sin nombre';
+          String cct = c['cct'] ?? '';
+          if (cct.isNotEmpty) nombre = '$nombre ($cct)';
+          
+          opciones.add({
+            'id': c['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            'nombre': nombre,
+            'data': c,
+            'cct': cct, // Guardamos cct para búsqueda
+            'tags': c['tags'] ?? [], // Guardamos tags si existen
+          });
+        }
       }
 
-      // Procesar Sanidad
-      for (var s in sanidad) {
-        final juris = s['jurisdiccion'] ?? 'Desconocida';
-        opciones.add({
-          'id': 'sanidad_$juris',
-          'nombre': 'Sanidad - $juris (CCT 122/75)',
-          'data': s
-        });
-      }
+      // Si la lista está vacía o tiene pocos datos, agregamos fallbacks
+      // Pero para asegurar que estén TODOS, los agregamos siempre verificando duplicados
+       
+       // Lista de fallbacks hardcodeados
+       final List<Map<String, dynamic>> fallbacks = [
+         // Docentes
+         {
+            'id': 'docente_caba',
+            'nombre': 'Docente - CABA',
+            'data': {'jurisdiccion': 'CABA'},
+            'cct': 'Estatuto Docente',
+            'tags': ['docente', 'educacion', 'maestro', 'profesor', 'colegio', 'escuela']
+         },
+         {
+            'id': 'docente_pba',
+            'nombre': 'Docente - PBA',
+            'data': {'jurisdiccion': 'PBA'},
+            'cct': 'Estatuto Docente',
+            'tags': ['docente', 'educacion', 'maestro', 'profesor', 'colegio', 'escuela']
+         },
+         // Sanidad
+         {
+            'id': 'sanidad_general',
+            'nombre': 'Sanidad - General (CCT 122/75)',
+            'data': {'cct': '122/75'},
+            'cct': '122/75',
+            'tags': ['sanidad', 'salud', 'enfermeria', 'medico', 'clinica', 'sanatorio', 'hospital']
+         },
+         // Comercio
+         {
+           'id': 'comercio_general',
+           'nombre': 'Comercio - General (CCT 130/75)',
+           'data': {'cct': '130/75', 'nombre': 'Comercio'},
+           'cct': '130/75',
+           'tags': ['comercio', 'vendedor', 'cajero', 'administrativo', 'maestranza']
+         },
+         // UOCRA
+         {
+           'id': 'uocra_general',
+           'nombre': 'UOCRA - Construcción (CCT 76/75)',
+           'data': {'cct': '76/75', 'nombre': 'UOCRA'},
+           'cct': '76/75',
+           'tags': ['construccion', 'obra', 'albañil', 'oficial', 'ayudante']
+         },
+         // Gastronómicos
+         {
+           'id': 'uthgra_general',
+           'nombre': 'Gastronómicos - UTHGRA (CCT 389/04)',
+           'data': {'cct': '389/04', 'nombre': 'UTHGRA'},
+           'cct': '389/04',
+           'tags': ['gastronomia', 'mozo', 'cocinero', 'camarera', 'barman', 'hotel']
+         },
+         // UOM
+         {
+           'id': 'uom_general',
+           'nombre': 'Metalúrgicos - UOM (CCT 260/75)',
+           'data': {'cct': '260/75', 'nombre': 'UOM'},
+           'cct': '260/75',
+           'tags': ['metalurgica', 'operario', 'fabrica', 'metal']
+         },
+         // Camioneros
+         {
+           'id': 'camioneros_general',
+           'nombre': 'Camioneros (CCT 40/89)',
+           'data': {'cct': '40/89', 'nombre': 'Camioneros'},
+           'cct': '40/89',
+           'tags': ['camionero', 'chofer', 'transporte', 'logistica']
+         },
+         // Encargados de Edificio (SUTERH)
+         {
+           'id': 'suterh_general',
+           'nombre': 'Encargados de Edificio - SUTERH (CCT 589/10)',
+           'data': {'cct': '589/10', 'nombre': 'SUTERH'},
+           'cct': '589/10',
+           'tags': ['encargado', 'portero', 'edificio', 'consorcio']
+         },
+         // Petroleros Privados
+         {
+           'id': 'petroleros_privados',
+           'nombre': 'Petroleros Privados (CCT 644/12)',
+           'data': {'cct': '644/12', 'nombre': 'Petroleros Privados'},
+           'cct': '644/12',
+           'tags': ['petroleo', 'pozo', 'yacimiento', 'refineria', 'hidrocarburos']
+         },
+         // Petroleros Jerárquicos
+         {
+           'id': 'petroleros_jerarquicos',
+           'nombre': 'Petroleros Jerárquicos (CCT 643/12)',
+           'data': {'cct': '643/12', 'nombre': 'Petroleros Jerárquicos'},
+           'cct': '643/12',
+           'tags': ['petroleo', 'jerarquico', 'supervisor', 'jefe', 'encargado']
+         },
+         // Plásticos (UOYEP)
+         {
+           'id': 'plasticos_uoyep',
+           'nombre': 'Plásticos - UOYEP (CCT 797/22)',
+           'data': {'cct': '797/22', 'nombre': 'UOYEP'},
+           'cct': '797/22',
+           'tags': ['plastico', 'inyeccion', 'extruccion', 'reciclado']
+         },
+         // Alimentación
+         {
+           'id': 'alimentacion_stia',
+           'nombre': 'Alimentación - STIA (CCT 244/94)',
+           'data': {'cct': '244/94', 'nombre': 'Alimentación'},
+           'cct': '244/94',
+           'tags': ['alimentacion', 'comida', 'bebida', 'planta', 'produccion']
+         },
+         // Textiles (AOT)
+         {
+           'id': 'textiles_aot',
+           'nombre': 'Textiles - AOT (CCT 500/07)',
+           'data': {'cct': '500/07', 'nombre': 'AOT'},
+           'cct': '500/07',
+           'tags': ['textil', 'hilado', 'tejido', 'tela', 'confeccion']
+         },
+         // Mecánicos (SMATA)
+         {
+           'id': 'smata_mecanicos',
+           'nombre': 'Mecánicos - SMATA (CCT 27/88)',
+           'data': {'cct': '27/88', 'nombre': 'SMATA'},
+           'cct': '27/88',
+           'tags': ['mecanico', 'automotriz', 'concesionaria', 'taller', 'repuestos']
+         },
+         // Pasteleros
+         {
+           'id': 'pasteleros_general',
+           'nombre': 'Pasteleros (CCT 272/96)',
+           'data': {'cct': '272/96', 'nombre': 'Pasteleros'},
+           'cct': '272/96',
+           'tags': ['pastelero', 'confiteria', 'heladero', 'pizzero', 'alfajorero']
+         },
+         // Seguridad Privada (UPSRA)
+         {
+           'id': 'seguridad_upsra',
+           'nombre': 'Seguridad Privada - UPSRA (CCT 507/07)',
+           'data': {'cct': '507/07', 'nombre': 'UPSRA'},
+           'cct': '507/07',
+           'tags': ['vigilador', 'seguridad', 'custodia', 'guardia']
+         }
+       ];
+
+       for (var fb in fallbacks) {
+         // Verificar si ya existe un convenio con ese ID o nombre muy similar
+         bool existe = opciones.any((o) => 
+            o['id'] == fb['id'] || 
+            (o['cct'] == fb['cct'] && fb['cct'].toString().isNotEmpty)
+         );
+         
+         if (!existe) {
+           opciones.add(fb);
+         }
+       }
 
       if (mounted) {
         setState(() {
@@ -1284,67 +1437,130 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   void _detectarConvenioAutomaticamente(ReciboModel model) {
     if (_listaConveniosDisponibles.isEmpty) return;
 
-    final cct = model.cabecera.cctAplicable.toUpperCase();
-    final categoria = model.cabecera.categoriaProfesional.toUpperCase();
-    final empresa = model.cabecera.empresaNombre.toUpperCase();
+    final cctRecibo = model.cabecera.cctAplicable.toUpperCase();
+    final categoriaRecibo = model.cabecera.categoriaProfesional.toUpperCase();
+    final empresaRecibo = model.cabecera.empresaNombre.toUpperCase();
     
-    // Lógica para detectar Docentes
-    // Se revisa CCT, Categoría o incluso nombre de empresa si contiene "COLEGIO", "INSTITUTO", etc.
-    if (cct.contains('DOCENTE') || 
-        categoria.contains('DOCENTE') || 
-        categoria.contains('PROFESOR') || 
-        categoria.contains('MAESTR') ||
-        empresa.contains('COLEGIO') ||
-        empresa.contains('INSTITUTO') ||
-        empresa.contains('ESCUELA')) {
+    debugPrint('Detectando convenio para: CCT=$cctRecibo, Cat=$categoriaRecibo, Emp=$empresaRecibo');
+
+    // 1. Búsqueda exacta o parcial por CCT y Tags en la lista disponible
+          for (var convenio in _listaConveniosDisponibles) {
+            if (convenio['id'] == 'ninguno') continue;
+            
+            final cctConvenio = (convenio['cct'] ?? '').toString().toUpperCase();
+            final nombreConvenio = (convenio['nombre'] ?? '').toString().toUpperCase();
+            final tags = (convenio['tags'] as List<dynamic>?)?.map((e) => e.toString().toUpperCase()).toList() ?? [];
+            
+            // Coincidencia directa de número de CCT (ej "130/75")
+            if (cctConvenio.isNotEmpty && cctRecibo.contains(cctConvenio)) {
+              _aplicarConvenio(convenio['id'], 'Detectamos tu convenio por CCT ($cctConvenio).');
+              return;
+            }
+            
+            // Coincidencia por nombre (ej "Comercio")
+            // Solo si el nombre es significativo (>4 letras) para evitar falsos positivos
+            if (nombreConvenio.length > 4 && (cctRecibo.contains(nombreConvenio) || categoriaRecibo.contains(nombreConvenio))) {
+               _aplicarConvenio(convenio['id'], 'Detectamos tu convenio: $nombreConvenio.');
+               return;
+            }
+
+            // Coincidencia por Tags en Categoria o Empresa (Búsqueda heurística)
+            for (var tag in tags) {
+                if (tag.length < 3) continue; // Ignorar tags muy cortos
+                if (categoriaRecibo.contains(tag) || empresaRecibo.contains(tag) || cctRecibo.contains(tag)) {
+                    _aplicarConvenio(convenio['id'], 'Detectamos tu convenio por coincidencia con "$tag".');
+                    return;
+                }
+            }
+          }
+
+    // 2. Lógica específica (Legacy + Heurística Reforzada)
+    
+    // Docentes (Reforzado)
+    if (cctRecibo.contains('DOCENTE') || 
+        categoriaRecibo.contains('DOCENTE') || 
+        categoriaRecibo.contains('PROFESOR') || 
+        categoriaRecibo.contains('MAESTR') ||
+        categoriaRecibo.contains('PRECEPTOR') ||
+        empresaRecibo.contains('COLEGIO') ||
+        empresaRecibo.contains('INSTITUTO') ||
+        empresaRecibo.contains('ESCUELA') ||
+        empresaRecibo.contains('EDUCACION')) {
       
-      // Buscar si hay algún convenio docente en la lista
       final docente = _listaConveniosDisponibles.firstWhere(
-        (c) => c['id'].toString().startsWith('docente_'),
+        (c) => c['id'].toString().startsWith('docente_') || c['nombre'].toString().toUpperCase().contains('DOCENTE'),
         orElse: () => {},
       );
       
       if (docente.isNotEmpty) {
-        setState(() {
-          _convenioSeleccionadoId = docente['id'];
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🎓 Detectamos que sos Docente. Se aplicó el convenio automáticamente.'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        _aplicarConvenio(docente['id'], '🎓 Detectamos que sos Docente. Se aplicó el convenio automáticamente.');
         return;
       }
     }
     
-    // Lógica para detectar Sanidad
-    if (cct.contains('122/75') || cct.contains('SANIDAD') || 
-        categoria.contains('ENFERMER') || categoria.contains('MEDIC') ||
-        empresa.contains('CLINICA') || empresa.contains('SANATORIO') || empresa.contains('HOSPITAL')) {
+    // Sanidad (Reforzado)
+    if (cctRecibo.contains('122/75') || cctRecibo.contains('SANIDAD') || 
+        categoriaRecibo.contains('ENFERMER') || categoriaRecibo.contains('MEDIC') || categoriaRecibo.contains('CAMILLER') ||
+        empresaRecibo.contains('CLINICA') || empresaRecibo.contains('SANATORIO') || empresaRecibo.contains('HOSPITAL') || empresaRecibo.contains('SALUD')) {
         
       final sanidad = _listaConveniosDisponibles.firstWhere(
-        (c) => c['id'].toString().startsWith('sanidad_'),
+        (c) => c['id'].toString().startsWith('sanidad_') || c['nombre'].toString().toUpperCase().contains('SANIDAD'),
         orElse: () => {},
       );
       
       if (sanidad.isNotEmpty) {
-        setState(() {
-          _convenioSeleccionadoId = sanidad['id'];
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🏥 Detectamos convenio Sanidad. Se aplicó automáticamente.'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        _aplicarConvenio(sanidad['id'], '🏥 Detectamos convenio Sanidad. Se aplicó automáticamente.');
         return;
       }
     }
+    
+    // Comercio (Reforzado)
+    if (cctRecibo.contains('130/75') || cctRecibo.contains('COMERCIO') || 
+        categoriaRecibo.contains('VENDEDOR') || categoriaRecibo.contains('ADMINISTRATIVO') || categoriaRecibo.contains('CAJERO') || 
+        categoriaRecibo.contains('MAESTRANZA') || categoriaRecibo.contains('AUXILIAR')) {
+        
+      final comercio = _listaConveniosDisponibles.firstWhere(
+        (c) => c['nombre'].toString().toUpperCase().contains('COMERCIO'),
+        orElse: () => {},
+      );
+      
+      if (comercio.isNotEmpty) {
+        _aplicarConvenio(comercio['id'], '🛒 Detectamos convenio Comercio. Se aplicó automáticamente.');
+        return;
+      }
+    }
+
+    // UOCRA (Construcción)
+    if (cctRecibo.contains('76/75') || cctRecibo.contains('UOCRA') || cctRecibo.contains('CONSTRUCCION') ||
+        categoriaRecibo.contains('ALBAÑIL') || categoriaRecibo.contains('OFICIAL') || categoriaRecibo.contains('AYUDANTE') ||
+        empresaRecibo.contains('CONSTRUCTORA')) {
+          
+       final uocra = _listaConveniosDisponibles.firstWhere(
+        (c) => c['nombre'].toString().toUpperCase().contains('UOCRA') || c['nombre'].toString().toUpperCase().contains('CONSTRUCCION'),
+        orElse: () => {},
+      );
+
+      if (uocra.isNotEmpty) {
+        _aplicarConvenio(uocra['id'], '🏗️ Detectamos convenio UOCRA. Se aplicó automáticamente.');
+        return;
+      }
+    }
+  }
+
+  void _aplicarConvenio(String id, String mensaje) {
+    if (_convenioSeleccionadoId == id) return;
+    
+    setState(() {
+      _convenioSeleccionadoId = id;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Widget _buildMenuHamburguesa() {
