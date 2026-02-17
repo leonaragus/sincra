@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
-import '../config/api_keys.dart';
-import '../config/supabase_config.dart';
+import 'package:syncra_arg/config/api_keys.dart';
+import 'package:syncra_arg/config/supabase_config.dart';
 
 class ClaudeVisionService {
   static const String _kApiKeyPref = 'claude_api_key';
@@ -74,7 +74,7 @@ class ClaudeVisionService {
     
     if (kIsWeb) {
       // 1. Supabase Edge Function (Opción recomendada y segura)
-      endpoints.add('${SupabaseConfig.url}/functions/v1/claude-proxy');
+      endpoints.add('https://sstxhajsclwfktyvawmr.supabase.co/functions/v1/claude-proxy');
 
       // 2. PROXY LOCAL (Respaldo para desarrollo)
       endpoints.add('http://localhost:3000/v1/messages');
