@@ -36,16 +36,43 @@ class ClaudeVisionService {
       throw Exception('Claude API Key no configurada');
     }
 
-    final base64Image = base64Encode(bytes);
+    // Optimización de imagen: Redimensionar si es muy grande para evitar timeouts y errores 413
+    Uint8List imageBytes = bytes;
+    try {
+      // Solo procesar si la imagen es mayor a 1MB
+      if (bytes.lengthInBytes > 1024 * 1024) {
+        final img.Image? image = img.decodeImage(bytes);
+        if (image != null) {
+          // Redimensionar a un ancho máximo de 1024px manteniendo relación de aspecto
+          if (image.width > 1024) {
+            final img.Image resized = img.copyResize(image, width: 1024);
+            // Comprimir a JPEG con calidad 85
+            imageBytes = Uint8List.fromList(img.encodeJpg(resized, quality: 85));
+            debugPrint('Imagen redimensionada y comprimida: ${bytes.lengthInBytes} -> ${imageBytes.lengthInBytes} bytes');
+          } else {
+             // Si el ancho es aceptable pero el archivo es pesado, solo recomprimir
+             imageBytes = Uint8List.fromList(img.encodeJpg(image, quality: 85));
+             debugPrint('Imagen recomprimida: ${bytes.lengthInBytes} -> ${imageBytes.lengthInBytes} bytes');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error al procesar imagen: $e. Se usará la imagen original.');
+      // En caso de error, seguimos con la imagen original
+    }
+
+    final base64Image = base64Encode(imageBytes);
     const mediaType = "image/jpeg"; 
     
     // Lista de URLs a probar en orden (Estrategia Failover)
     final List<String> endpoints = [];
     
     if (kIsWeb) {
-      // 1. Proxy principal (rápido y estable)
+      // 1. Proxy principal (corsproxy.io)
       endpoints.add('https://corsproxy.io/?https://api.anthropic.com/v1/messages');
-      // 2. Intento directo (por si el navegador lo permite en el futuro o configuración cambia)
+      // 2. Proxy alternativo (codetabs) - Nota: Puede no soportar POST grandes o requerir configuración
+      endpoints.add('https://api.codetabs.com/v1/proxy?quest=https://api.anthropic.com/v1/messages');
+       // 3. Intento directo (último recurso, por si el usuario tiene extensiones o config permisiva)
       endpoints.add('https://api.anthropic.com/v1/messages');
     } else {
       // En móvil/desktop no hay CORS, ir directo
@@ -53,7 +80,7 @@ class ClaudeVisionService {
     }
     
     // Usamos el primer endpoint por defecto mientras se implementa la lógica de reintento completa
-    final url = Uri.parse(endpoints.first);
+    // final url = Uri.parse(endpoints.first);
 
     String promptText = '''Eres un experto auditor de liquidación de sueldos en Argentina. Tu tarea es analizar la imagen del recibo de sueldo y extraer TODA la información en un formato JSON estricto.
 
@@ -140,64 +167,90 @@ Usa EXACTAMENTE esta estructura JSON:
 Si algún campo no está presente o no es legible, usa null o una cadena vacía, pero mantén la estructura. Para los montos numéricos usa 0.0 si no se encuentra.
 El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento de leyes laborales argentinas para detectar inconsistencias reales en los montos (ej: Jubilación debe ser 11%, Obra Social 3%, Ley 19032 3%).''';
 
-    final body = jsonEncode({
-      "model": "claude-3-haiku-20240307",
-      "max_tokens": 4000,
-      "messages": [
-        {
-          "role": "user",
-          "content": [
+    String? lastError;
+    
+    // Bucle de intentos (Failover)
+    for (final endpoint in endpoints) {
+      debugPrint('Intentando conectar con Claude via: $endpoint');
+      final url = Uri.parse(endpoint);
+
+      try {
+        final body = jsonEncode({
+          "model": "claude-3-haiku-20240307",
+          "max_tokens": 4000,
+          "messages": [
             {
-              "type": "text",
-              "text": promptText
-            },
-            {
-              "type": "image",
-              "source": {
-                "type": "base64",
-                "media_type": mediaType,
-                "data": base64Image
-              }
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": promptText
+                },
+                {
+                  "type": "image",
+                  "source": {
+                    "type": "base64",
+                    "media_type": mediaType,
+                    "data": base64Image
+                  }
+                }
+              ]
             }
           ]
-        }
-        ]
-      });
+        });
 
-      final response = await http.post(
-        url,
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: body,
-      );
+        final response = await http.post(
+          url,
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: body,
+        );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
-        final content = data['content'][0]['text'];
-        return content;
-      } else {
-        // Mejor diagnóstico de errores
-        String errorMsg = 'Error Claude: ${response.statusCode}';
-        try {
-          // Intentar leer el cuerpo del error si es JSON
-          final errBody = jsonDecode(response.body);
-          if (errBody['error'] != null) {
-            errorMsg += ' - ${errBody['error']['message']}';
-          } else {
-             errorMsg += ' - ${response.body}';
+        if (response.statusCode == 200) {
+          final data = jsonDecode(utf8.decode(response.bodyBytes));
+          String content = data['content'][0]['text'];
+          
+          // Limpieza de Markdown si el modelo lo incluye
+          if (content.contains('```json')) {
+            content = content.replaceAll('```json', '').replaceAll('```', '');
+          } else if (content.contains('```')) {
+             content = content.replaceAll('```', '');
           }
-        } catch (_) {
-           errorMsg += ' - ${response.body}';
+          
+          return content.trim();
+        } else {
+          // Guardar error para diagnóstico
+          String errorMsg = 'Error ${response.statusCode}';
+          try {
+            final errBody = jsonDecode(response.body);
+            if (errBody['error'] != null) {
+              errorMsg += ' - ${errBody['error']['message']}';
+            }
+          } catch (_) {
+             errorMsg += ' - ${response.body.substring(0, 100)}...';
+          }
+          
+          if (response.statusCode == 401) {
+             errorMsg += " (Verifique su API Key)";
+             // Si falla auth, no tiene sentido reintentar otros proxies
+             throw Exception(errorMsg);
+          }
+          
+          lastError = errorMsg;
+          debugPrint('Fallo endpoint $endpoint: $errorMsg');
+          // Continuar al siguiente endpoint
         }
-        
-        if (response.statusCode == 401) {
-           errorMsg += " (Verifique su API Key)";
-        }
-        
-        throw Exception(errorMsg);
+      } catch (e) {
+        lastError = e.toString();
+        debugPrint('Excepción endpoint $endpoint: $e');
+        // Continuar al siguiente endpoint
       }
     }
+    
+    // Si llegamos aquí, fallaron todos
+    throw Exception('No se pudo conectar con Claude Vision. Último error: $lastError');
+  }
 }
