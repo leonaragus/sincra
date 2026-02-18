@@ -5,9 +5,11 @@
 // ========================================================================
 
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-// import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../utils/image_bytes_reader.dart';
+import 'claude_vision_service.dart';
 
 /// Origen de los datos extraídos
 enum OcrExtractSource { qrJson, qrUrl, ocr }
@@ -154,55 +156,92 @@ class TeacherReceiptScanService {
     return int.tryParse(v.toString());
   }
 
-  // --- OCR (on-device) ---
+  // --- OCR (Cloud with Claude) ---
 
-  /// Ejecuta OCR sobre [imagePath] (ruta a archivo). Procesamiento 100% local.
+  /// Ejecuta OCR sobre [imagePath] (ruta a archivo).
   Future<OcrExtractResult> runOcrFromPath(String imagePath) async {
     try {
-      /*
-      final inputImage = InputImage.fromFilePath(imagePath);
-      final RecognizedText recognized = await _recognizer.processImage(inputImage);
-      final String full = recognized.text;
-      return _applyRegex(full);
-      */
-      return const OcrExtractResult(
-        source: OcrExtractSource.ocr,
-        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
-      );
+      final bytes = await readImageBytes(imagePath);
+      if (bytes == null || bytes.isEmpty) {
+        return const OcrExtractResult(
+          source: OcrExtractSource.ocr,
+          error: 'No se pudo leer el archivo de imagen.',
+        );
+      }
+      return _analyzeWithClaude(bytes);
     } catch (e, st) {
       debugPrint('TeacherReceiptScanService.runOcr: $e\n$st');
       return const OcrExtractResult(
         source: OcrExtractSource.ocr,
-        error: 'No se pudo leer la imagen.',
+        error: 'Error al procesar la imagen.',
       );
     }
   }
 
-  /// OCR desde bytes. [bytes] en formato NV21/YUV (p. ej. cámara Android). Para archivos use [runOcrFromPath].
+  /// OCR desde bytes.
   Future<OcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
+    // width y height se ignoran
+    return _analyzeWithClaude(bytes);
+  }
+
+  Future<OcrExtractResult> _analyzeWithClaude(Uint8List bytes) async {
     try {
-      /*
-      final inputImage = InputImage.fromBytes(
-        bytes: bytes,
-        metadata: InputImageMetadata(
-          size: Size(width.toDouble(), height.toDouble()),
-          rotation: InputImageRotation.rotation0deg,
-          format: InputImageFormat.nv21,
-          bytesPerRow: width,
-        ),
+      const prompt = '''Analiza este recibo de sueldo Docente.
+Extrae los siguientes datos en formato JSON estricto:
+- "cuil": CUIL del docente.
+- "nombre": Nombre del docente.
+- "sueldoBasico": El sueldo básico (numérico).
+- "antiguedadPct": Porcentaje de antigüedad (ej: 50.0). Si está en años, usa "antiguedad" (años).
+- "puntos": Cantidad de puntos (si figura).
+- "valorIndice": Valor del índice (si figura).
+- "jurisdiccion": Jurisdicción (ej: PBA, CABA).
+- "url": Si hay una URL o código QR con link, extraelo.
+
+Responde SOLO con el JSON.
+Estructura:
+{
+  "cuil": "...",
+  "nombre": "...",
+  "sueldoBasico": 123.45,
+  "antiguedadPct": 50.0,
+  "antiguedad": 10,
+  "puntos": 0,
+  "valorIndice": 0.0,
+  "jurisdiccion": "PBA",
+  "url": "..."
+}
+''';
+
+      final jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes, customPrompt: prompt);
+      
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(jsonResponse);
+      } catch (e) {
+        final cleaned = jsonResponse.replaceAll(RegExp(r'```json|```'), '').trim();
+        data = jsonDecode(cleaned);
+      }
+      
+      final baseResult = _fromJson(data);
+      
+      return OcrExtractResult(
+        cuil: baseResult.cuil,
+        nombre: baseResult.nombre,
+        sueldoBasico: baseResult.sueldoBasico,
+        antiguedadPct: baseResult.antiguedadPct,
+        puntos: baseResult.puntos,
+        valorIndice: baseResult.valorIndice,
+        jurisdiccionRaw: baseResult.jurisdiccionRaw,
+        urlDetectada: baseResult.urlDetectada,
+        source: OcrExtractSource.ocr, // Force OCR source
+        rawTextOcr: jsonResponse,
       );
-      final RecognizedText recognized = await _recognizer.processImage(inputImage);
-      return _applyRegex(recognized.text);
-      */
-      return const OcrExtractResult(
+
+    } catch (e) {
+      debugPrint('Error en Claude Vision (Teacher): $e');
+      return OcrExtractResult(
         source: OcrExtractSource.ocr,
-        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
-      );
-    } catch (e, st) {
-      debugPrint('TeacherReceiptScanService.runOcrFromBytes: $e\n$st');
-      return const OcrExtractResult(
-        source: OcrExtractSource.ocr,
-        error: 'No se pudo leer la imagen.',
+        error: 'No se pudo interpretar el recibo: $e',
       );
     }
   }

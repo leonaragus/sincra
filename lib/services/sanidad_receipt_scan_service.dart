@@ -8,9 +8,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-// import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/sanidad_omni_engine.dart';
+import '../utils/image_bytes_reader.dart';
+import 'claude_vision_service.dart';
 
 /// Origen de los datos extraídos
 enum OcrExtractSourceSanidad { qrJson, qrUrl, ocr }
@@ -161,55 +162,100 @@ class SanidadReceiptScanService {
     return int.tryParse(v.toString());
   }
 
-  // --- OCR (on-device) ---
+  // --- OCR (Cloud with Claude) ---
 
-  /// Ejecuta OCR sobre [imagePath]. Procesamiento 100% local.
+  /// Ejecuta OCR sobre [imagePath].
   Future<SanidadOcrExtractResult> runOcrFromPath(String imagePath) async {
     try {
-      /*
-      final inputImage = InputImage.fromFilePath(imagePath);
-      final RecognizedText recognized = await _recognizer.processImage(inputImage);
-      final String full = recognized.text;
-      return _applyRegex(full);
-      */
-      return const SanidadOcrExtractResult(
-        source: OcrExtractSourceSanidad.ocr,
-        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
-      );
+      final bytes = await readImageBytes(imagePath);
+      if (bytes == null || bytes.isEmpty) {
+        return const SanidadOcrExtractResult(
+          source: OcrExtractSourceSanidad.ocr,
+          error: 'No se pudo leer el archivo de imagen.',
+        );
+      }
+      return _analyzeWithClaude(bytes);
     } catch (e, st) {
       debugPrint('SanidadReceiptScanService.runOcr: $e\n$st');
       return const SanidadOcrExtractResult(
         source: OcrExtractSourceSanidad.ocr,
-        error: 'No se pudo leer la imagen.',
+        error: 'Error al procesar la imagen.',
       );
     }
   }
 
-  /// OCR desde bytes (formato NV21/YUV para cámara Android)
+  /// OCR desde bytes
   Future<SanidadOcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
+    // width y height se ignoran porque usamos Claude Vision
+    return _analyzeWithClaude(bytes);
+  }
+
+  Future<SanidadOcrExtractResult> _analyzeWithClaude(Uint8List bytes) async {
     try {
-      /*
-      final inputImage = InputImage.fromBytes(
-        bytes: bytes,
-        metadata: InputImageMetadata(
-          size: Size(width.toDouble(), height.toDouble()),
-          rotation: InputImageRotation.rotation0deg,
-          format: InputImageFormat.nv21,
-          bytesPerRow: width,
-        ),
-      );
-      final RecognizedText recognized = await _recognizer.processImage(inputImage);
-      return _applyRegex(recognized.text);
-      */
-      return const SanidadOcrExtractResult(
+      const prompt = '''Analiza este recibo de sueldo de Sanidad (FATSA).
+Extrae los siguientes datos en formato JSON estricto:
+- "cuil": CUIL del empleado (con guiones o sin ellos).
+- "nombre": Nombre del empleado.
+- "sueldoBasico": El sueldo básico mensual (numérico).
+- "antiguedadPct": El porcentaje de antigüedad (ej: 2.0). Si solo figura en años, usa el campo "antiguedad" con la cantidad de años.
+- "categoria": La categoría profesional (ej: Enfermero, Administrativo, Mucama).
+- "horasNocturnas": Cantidad de horas nocturnas trabajadas (entero).
+- "jurisdiccion": Provincia o jurisdicción (ej: CABA, Buenos Aires).
+- "adicionalTitulo": Monto por título.
+- "tareaCriticaRiesgo": Monto por tarea crítica o riesgo.
+- "adicionalZonaPatagonica": Monto por zona patagónica.
+
+Responde SOLO con el JSON.
+Estructura:
+{
+  "cuil": "20-12345678-9",
+  "nombre": "Juan Perez",
+  "sueldoBasico": 123456.78,
+  "antiguedadPct": 2.0,
+  "antiguedad": 1,
+  "categoria": "Enfermero",
+  "horasNocturnas": 0,
+  "jurisdiccion": "CABA",
+  "adicionalTitulo": 0.0,
+  "tareaCriticaRiesgo": 0.0,
+  "adicionalZonaPatagonica": 0.0
+}
+''';
+
+      final jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes, customPrompt: prompt);
+      
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(jsonResponse);
+      } catch (e) {
+        final cleaned = jsonResponse.replaceAll(RegExp(r'```json|```'), '').trim();
+        data = jsonDecode(cleaned);
+      }
+      
+      // Reutilizamos _fromJson pero forzamos el source a OCR
+      final baseResult = _fromJson(data);
+      
+      return SanidadOcrExtractResult(
+        cuil: baseResult.cuil,
+        nombre: baseResult.nombre,
+        sueldoBasico: baseResult.sueldoBasico,
+        antiguedadPct: baseResult.antiguedadPct,
+        categoriaRaw: baseResult.categoriaRaw,
+        horasNocturnas: baseResult.horasNocturnas,
+        jurisdiccionRaw: baseResult.jurisdiccionRaw,
+        urlDetectada: baseResult.urlDetectada,
         source: OcrExtractSourceSanidad.ocr,
-        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
+        rawTextOcr: jsonResponse,
+        adicionalTitulo: baseResult.adicionalTitulo,
+        tareaCriticaRiesgo: baseResult.tareaCriticaRiesgo,
+        adicionalZonaPatagonica: baseResult.adicionalZonaPatagonica,
       );
-    } catch (e, st) {
-      debugPrint('SanidadReceiptScanService.runOcrFromBytes: $e\n$st');
-      return const SanidadOcrExtractResult(
+
+    } catch (e) {
+      debugPrint('Error en Claude Vision (Sanidad): $e');
+      return SanidadOcrExtractResult(
         source: OcrExtractSourceSanidad.ocr,
-        error: 'No se pudo leer la imagen.',
+        error: 'No se pudo interpretar el recibo: $e',
       );
     }
   }

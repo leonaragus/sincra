@@ -28,12 +28,18 @@ class ClaudeVisionService {
     return dotenv.env['ANTHROPIC_API_KEY'] ?? ApiKeys.anthropicApiKey;
   }
 
-  static Future<String> analyzeReceipt(Uint8List imageBytes, {String? contextoConvenio}) async {
+  static Future<String> analyzeReceipt(Uint8List imageBytes, {String? contextoConvenio, String? customPrompt}) async {
     final apiKey = await getApiKey();
     final base64Image = base64Encode(imageBytes);
 
-    // 1. Prompt Construction (Restaurado para asegurar compatibilidad con proxy)
-    String promptText = '''Eres un experto auditor de liquidación de sueldos en Argentina. Tu tarea es analizar la imagen del recibo de sueldo y extraer TODA la información en un formato JSON estricto.
+    // 1. Prompt Construction
+    String promptText;
+    
+    if (customPrompt != null && customPrompt.isNotEmpty) {
+      promptText = customPrompt;
+    } else {
+      // Default Receipt Prompt
+      promptText = '''Eres un experto auditor de liquidación de sueldos en Argentina. Tu tarea es analizar la imagen del recibo de sueldo y extraer TODA la información en un formato JSON estricto.
 
 Debes responder ÚNICAMENTE con el JSON válido, sin texto adicional antes ni después (ni markdown ```json ... ```).
 
@@ -44,8 +50,8 @@ IMPORTANTE:
 4. El campo "codigo" puede ser vacío si no existe.
 ''';
 
-    if (contextoConvenio != null && contextoConvenio.isNotEmpty) {
-      promptText += '''
+      if (contextoConvenio != null && contextoConvenio.isNotEmpty) {
+        promptText += '''
 5. COMPARACIÓN CON CONVENIO:
    Aquí tienes los datos oficiales del convenio colectivo aplicable:
    \$contextoConvenio
@@ -55,9 +61,9 @@ IMPORTANTE:
    - Auditar si los porcentajes de antigüedad, presentismo y adicionales son correctos.
    - En el campo "auditoria_ia", incluye análisis específico sobre discrepancias con este convenio.
 ''';
-    }
+      }
 
-    promptText += '''
+      promptText += '''
 Usa EXACTAMENTE esta estructura JSON:
 {
    "cabecera": {
@@ -118,6 +124,7 @@ Usa EXACTAMENTE esta estructura JSON:
 
 Si algún campo no está presente o no es legible, usa null o una cadena vacía, pero mantén la estructura. Para los montos numéricos usa 0.0 si no se encuentra.  
 El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento de leyes laborales argentinas para detectar inconsistencias reales en los montos (ej: Jubilación debe ser 11%, Obra Social 3%, Ley 19032 3%).''';
+    }
 
     // Lista de candidatos con estrategia (Simple vs Full Proxy)
     final candidates = [

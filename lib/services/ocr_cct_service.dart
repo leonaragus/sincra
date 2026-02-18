@@ -3,7 +3,10 @@
 // Escanea PDFs de convenios y extrae escalas salariales automáticamente
 // ========================================================================
 
-// import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import '../utils/image_bytes_reader.dart';
+import 'claude_vision_service.dart';
 
 class EscalaSalarialExtraida {
   final String categoria;
@@ -48,30 +51,70 @@ class OCRCCTService {
   /// Este servicio trabaja con imágenes (jpg/png) del PDF.
   static Future<ResultadoOCRCCT> procesarImagenCCT(String imagePath) async {
     try {
-      /*
-      final inputImage = InputImage.fromFilePath(imagePath);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
-      final textoCompleto = recognizedText.text;
-      */
-      const textoCompleto = "OCR deshabilitado en versión web.";
-      
-      // Extraer información del CCT
-      final codigoCCT = _extraerCodigoCCT(textoCompleto);
-      final nombreCCT = _extraerNombreCCT(textoCompleto);
-      
-      // Extraer escalas salariales
-      final escalas = _extraerEscalasSalariales(textoCompleto);
-      
+      final bytes = await readImageBytes(imagePath);
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('No se pudieron leer los bytes de la imagen: $imagePath');
+      }
+
+      const prompt = '''Analiza este documento de Convenio Colectivo de Trabajo (CCT) o Escala Salarial.
+Extrae la siguiente información en formato JSON estricto:
+- "codigoCCT": El código del convenio (ej: 130/75). Si no está explícito, trata de inferirlo o usa null.
+- "nombreCCT": El nombre del sindicato o convenio (ej: Empleados de Comercio).
+- "escalas": Una lista de objetos con:
+    - "categoria": Nombre de la categoría (ej: Maestranza A, Administrativo B).
+    - "basico": El sueldo básico (numérico). Si hay "no remunerativo" inclúyelo sumado o aclaralo en observaciones.
+    - "observaciones": Cualquier detalle relevante (ej: "A partir de Abril 2024").
+
+Responde SOLO con el JSON.
+Estructura:
+{
+  "codigoCCT": "...",
+  "nombreCCT": "...",
+  "escalas": [
+    { "categoria": "...", "basico": 12345.67, "observaciones": "..." }
+  ]
+}
+''';
+
+      final jsonResponse = await ClaudeVisionService.analyzeReceipt(
+        bytes, 
+        customPrompt: prompt
+      );
+
+      // Parsear respuesta
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(jsonResponse);
+      } catch (e) {
+        // Intento de limpieza si viene con markdown
+        final cleaned = jsonResponse.replaceAll(RegExp(r'```json|```'), '').trim();
+        data = jsonDecode(cleaned);
+      }
+
+      final codigoCCT = data['codigoCCT']?.toString() ?? '';
+      final nombreCCT = data['nombreCCT']?.toString() ?? '';
+      final escalasData = (data['escalas'] as List?) ?? [];
+
+      final escalas = escalasData.map((e) {
+        return EscalaSalarialExtraida(
+          categoria: e['categoria']?.toString() ?? 'Desconocida',
+          basico: double.tryParse(e['basico']?.toString() ?? '0') ?? 0.0,
+          observaciones: e['observaciones']?.toString(),
+          confianza: 90, // Claude suele ser preciso
+        );
+      }).toList();
+
       return ResultadoOCRCCT(
         codigoCCT: codigoCCT,
         nombreCCT: nombreCCT,
         escalas: escalas,
-        textoCompleto: textoCompleto,
+        textoCompleto: jsonResponse, // Guardamos el JSON raw como "texto completo" para debug
         totalEscalasDetectadas: escalas.length,
         exito: true,
       );
+
     } catch (e) {
-      print('Error procesando imagen CCT: $e');
+      debugPrint('Error procesando imagen CCT con Claude: $e');
       return ResultadoOCRCCT(
         codigoCCT: '',
         nombreCCT: '',
@@ -83,6 +126,8 @@ class OCRCCTService {
       );
     }
   }
+
+
   
   /// Procesa múltiples imágenes de un PDF (páginas)
   static Future<ResultadoOCRCCT> procesarPDFCompleto(List<String> imagePaths) async {
@@ -119,86 +164,6 @@ class OCRCCTService {
     );
   }
   
-  /// Extrae el código del CCT del texto
-  static String _extraerCodigoCCT(String texto) {
-    // Buscar patrones como "CCT 122/75", "CCT Nº 122/75", "Convenio 122/75"
-    final patrones = [
-      RegExp(r'CCT\s*N?[º°]?\s*(\d+/\d+)', caseSensitive: false),
-      RegExp(r'Convenio\s*N?[º°]?\s*(\d+/\d+)', caseSensitive: false),
-      RegExp(r'C\.C\.T\.\s*N?[º°]?\s*(\d+/\d+)', caseSensitive: false),
-    ];
-    
-    for (final patron in patrones) {
-      final match = patron.firstMatch(texto);
-      if (match != null && match.groupCount >= 1) {
-        return match.group(1)!;
-      }
-    }
-    
-    return '';
-  }
-  
-  /// Extrae el nombre del CCT del texto
-  static String _extraerNombreCCT(String texto) {
-    // Buscar líneas que contengan palabras clave
-    final lineas = texto.split('\n');
-    
-    for (final linea in lineas) {
-      if (linea.toLowerCase().contains('convenio colectivo') ||
-          linea.toLowerCase().contains('federacion') ||
-          linea.toLowerCase().contains('sindicato')) {
-        return linea.trim();
-      }
-    }
-    
-    return '';
-  }
-  
-  /// Extrae escalas salariales del texto
-  static List<EscalaSalarialExtraida> _extraerEscalasSalariales(String texto) {
-    final escalas = <EscalaSalarialExtraida>[];
-    final lineas = texto.split('\n');
-    
-    // Patrones comunes de escalas salariales:
-    // - "Maestro: $350.000"
-    // - "Categoría A: $ 280.000"
-    // - "Enfermero nivel 1 | $420.000"
-    
-    final patronCategoria = RegExp(
-      r'(Maestro|Profesor|Director|Enfermero|Técnico|Auxiliar|Categoría\s*[A-Z0-9]+|Nivel\s*\d+)[\s\:\|\-]+\$?\s*([\d\.\,]+)',
-      caseSensitive: false,
-    );
-    
-    for (final linea in lineas) {
-      final match = patronCategoria.firstMatch(linea);
-      
-      if (match != null && match.groupCount >= 2) {
-        final categoria = match.group(1)!.trim();
-        final basicoStr = match.group(2)!.trim();
-        
-        // Convertir el string a número
-        final basicoLimpio = basicoStr.replaceAll(RegExp(r'[^\d]'), '');
-        final basico = double.tryParse(basicoLimpio);
-        
-        if (basico != null && basico > 0) {
-          // Calcular confianza basado en qué tan clara es la extracción
-          int confianza = 70;
-          if (linea.contains('\$')) confianza += 10;
-          if (linea.contains('Básico') || linea.contains('Sueldo')) confianza += 10;
-          if (basicoStr.contains('.')) confianza += 10;
-          
-          escalas.add(EscalaSalarialExtraida(
-            categoria: categoria,
-            basico: basico,
-            observaciones: linea.trim(),
-            confianza: confianza > 100 ? 100 : confianza,
-          ));
-        }
-      }
-    }
-    
-    return escalas;
-  }
   
   /// Valida y limpia las escalas extraídas
   static List<EscalaSalarialExtraida> validarEscalas(
