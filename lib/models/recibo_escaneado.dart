@@ -1,5 +1,3 @@
-import 'package:elevar_liquidacion/services/cct_cloud_service.dart';
-
 class ReciboEscaneado {
   final List<ConceptoRecibo> conceptos;
   final double totalRemunerativo;
@@ -11,10 +9,6 @@ class ReciboEscaneado {
   final String? nombreEmpleado;
   final String? cuilEmpleado;
   final String? periodo;
-  final String? cctAplicable;
-  final String? cctCodigo;
-  final String? cctNombre;
-  final CCTMaster? cctMaster;
 
   ReciboEscaneado({
     this.conceptos = const [],
@@ -26,10 +20,6 @@ class ReciboEscaneado {
     this.nombreEmpleado,
     this.cuilEmpleado,
     this.periodo,
-    this.cctAplicable,
-    this.cctCodigo,
-    this.cctNombre,
-    this.cctMaster,
   });
 }
 

@@ -7,13 +7,10 @@ import '../theme/app_colors.dart';
 import '../utils/app_help.dart';
 import 'institucion_form_screen.dart';
 import 'lista_legajos_docente_screen.dart';
-import 'package:elevar_liquidacion/models/ocr_confirm_result.dart';
-import 'package:elevar_liquidacion/services/legajos_docente_service.dart';
-import 'teacher_receipt_scan_screen.dart';
+import 'liquidacion_docente_screen.dart';
 import 'opciones_liquidacion_docente_screen.dart';
 import 'profile_screen.dart';
 import 'contabilidad/configuracion_contable_screen.dart';
-import 'liquidacion_docente_screen.dart';
 
 class TeacherInterfaceScreen extends StatefulWidget {
   const TeacherInterfaceScreen({super.key});
@@ -26,135 +23,9 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
   List<Map<String, dynamic>> _instituciones = [];
   /// CUIT (solo dígitos) -> cantidad de empleados/legajos
   Map<String, int> _empleadosPorInstitucion = {};
-  String? _cuitSeleccionadoParaLegajo;
   
   /// Controlador para el menú hamburguesa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  void _abrirEscanerRecibo() async {
-    if (_instituciones.isEmpty) {
-      _showInfoDialog('No hay instituciones', 'Primero debe crear una institución para poder escanear recibos.');
-      return;
-    }
-
-    String? cuitParaGuardar;
-    if (_instituciones.length == 1) {
-      cuitParaGuardar = (_instituciones.first['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
-    } else {
-      cuitParaGuardar = await showDialog<String>(
-        context: context,
-        builder: (c) => AlertDialog(
-          backgroundColor: AppColors.backgroundLight,
-          title: const Text('Seleccione institución', style: TextStyle(color: AppColors.textPrimary)),
-          content: DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Institución'),
-            value: _cuitSeleccionadoParaLegajo,
-            items: _instituciones.map((e) {
-              final cuit = (e['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
-              return DropdownMenuItem(
-                value: cuit,
-                child: Text(e['razonSocial'] ?? cuit),
-              );
-            }).toList(),
-            onChanged: (v) {
-              if (v != null) {
-                setState(() => _cuitSeleccionadoParaLegajo = v);
-              }
-            },
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
-            FilledButton(
-              onPressed: _cuitSeleccionadoParaLegajo != null ? () => Navigator.pop(c, _cuitSeleccionadoParaLegajo) : null,
-              child: const Text('Seleccionar'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (cuitParaGuardar == null) return;
-
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TeacherReceiptScanScreen(),
-      ),
-    );
-
-    if (result != null && mounted) {
-      if (result is OcrConfirmResult) {
-        try {
-          await LegajosDocenteService.saveLegajoFromOcr(cuitParaGuardar, result);
-          if (!mounted) return;
-          _showSuccessDialog('Legajo Guardado', 'El legajo del empleado ha sido guardado exitosamente.');
-          await _cargarInstituciones(); // Refresh institutions to reflect new legajo
-        } catch (e) {
-          if (!mounted) return;
-          _showErrorDialog('Error al Guardar', 'Ocurrió un error al intentar guardar el legajo: $e');
-        }
-      } else {
-        _showInfoDialog('Escaneo Cancelado', 'El escaneo del recibo fue cancelado o no se obtuvieron datos válidos.');
-      }
-    }
-  }
-
-  void _showInfoDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.info_outline, color: Colors.blue),
-            const SizedBox(width: 8),
-            Expanded(child: Text(title)),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cerrar')),
-        ],
-      ),
-    );
-  }
-
-  void _showSuccessDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.green),
-            const SizedBox(width: 8),
-            Expanded(child: Text(title)),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cerrar')),
-        ],
-      ),
-    );
-  }
-
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red),
-            const SizedBox(width: 8),
-            Expanded(child: Text(title)),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cerrar')),
-        ],
-      ),
-    );
-  }
 
   @override
   void initState() {
@@ -191,52 +62,6 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Institución eliminada')));
   }
 
-  Widget _buildScanReceiptInvitation() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: AppColors.accentBlue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '¡Facilitá tu trabajo, Contador!',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Escaneá el recibo de sueldo para cargar automáticamente los datos del empleado.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: FilledButton.icon(
-              onPressed: _abrirEscanerRecibo,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Escanear Recibo'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.pastelMint,
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -269,8 +94,6 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildScanReceiptInvitation(),
-          const SizedBox(height: 20),
           _buildBotonesPrincipales(),
         ],
       ),
@@ -367,9 +190,9 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.pastelBlue.withOpacity(0.2),
+        color: AppColors.pastelBlue.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.pastelBlue.withOpacity(0.5), width: 1),
+        border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.5), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

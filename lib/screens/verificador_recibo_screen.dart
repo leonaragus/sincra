@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 // import 'package:image_picker/image_picker.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
-import 'package:elevar_liquidacion/services/ocr_service.dart';
-import 'package:elevar_liquidacion/services/verificacion_recibo_service.dart';
-import 'package:elevar_liquidacion/models/recibo_escaneado.dart';
-import 'package:elevar_liquidacion/models/recibo_model.dart'; // Import nuevo modelo
-import 'package:elevar_liquidacion/services/hybrid_store.dart';
-import 'package:elevar_liquidacion/screens/glosario_conceptos_screen.dart';
-import 'package:elevar_liquidacion/screens/conoce_tu_convenio_screen.dart';
-import 'package:elevar_liquidacion/utils/conceptos_builder.dart';
-import 'package:elevar_liquidacion/theme/app_colors.dart';
-import 'package:elevar_liquidacion/screens/biblioteca_cct_screen.dart';
-import 'package:elevar_liquidacion/screens/historial_liquidaciones_screen.dart';
-import 'package:elevar_liquidacion/screens/profile_screen.dart';
-import 'package:elevar_liquidacion/screens/home_screen.dart';
-import 'package:elevar_liquidacion/widgets/academy_promo_dialog.dart';
-import 'package:elevar_liquidacion/services/pdf_report_service.dart';
-import 'package:elevar_liquidacion/screens/teacher_receipt_scan_screen.dart';
+import '../services/ocr_service.dart';
+import '../services/verificacion_recibo_service.dart';
+import 'teacher_receipt_scan_screen.dart';
+import '../models/recibo_escaneado.dart';
+import '../models/recibo_model.dart'; // Import nuevo modelo
+import '../services/hybrid_store.dart';
+import 'glosario_conceptos_screen.dart';
+import 'conoce_tu_convenio_screen.dart';
+// import '../utils/app_help.dart';
+import '../utils/conceptos_builder.dart';
+import '../theme/app_colors.dart';
+// import 'package:url_launcher/url_launcher.dart';
+import 'biblioteca_cct_screen.dart';
+import 'historial_liquidaciones_screen.dart';
+import 'profile_screen.dart';
+import 'home_screen.dart';
+import '../widgets/academy_promo_dialog.dart';
+import '../widgets/academy_ad_banner.dart';
+import '../services/pdf_report_service.dart';
 // import 'dart:io'; // Removed for web compatibility
 
 class VerificadorReciboScreen extends StatefulWidget {
@@ -212,12 +215,32 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
       // Registrar uso de cuota - DESHABILITADO
       // await SubscriptionService.registerOcrScan();
 
+      // Preparar contexto del convenio seleccionado
+      String? contextoConvenio;
+      if (_convenioSeleccionadoId != null && _convenioSeleccionadoId != 'ninguno') {
+        final convenio = _listaConveniosDisponibles.firstWhere(
+          (c) => c['id'] == _convenioSeleccionadoId,
+          orElse: () => {'data': null}
+        );
+        
+        if (convenio['data'] != null) {
+          // Convertimos el mapa del convenio a una string legible para Claude
+          // Eliminamos campos innecesarios para ahorrar tokens
+          final dataMap = Map<String, dynamic>.from(convenio['data']);
+          dataMap.remove('updated_at');
+          dataMap.remove('id');
+          contextoConvenio = dataMap.toString();
+        }
+      }
 
       // setState(() => _rutaImagen = imagenFile.path);
 
       // 2. Procesar con OCR
       // Refactored to remove direct dependency on MLKit InputImage
-      final resultadoOcr = await _ocrService.procesarImagen(imagenFile);
+      final resultadoOcr = await _ocrService.procesarImagen(
+        imagenFile, 
+        contextoConvenio: contextoConvenio
+      );
       
       setState(() {
         _textoOcr = resultadoOcr.texto;
@@ -673,8 +696,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
             ),
           ),
           
-          // SECCION EDUCATIVA
-          _buildEducationSection(),
+          // SECCION EDUCATIVA - REMOVED
         ],
       ),
     );
@@ -701,92 +723,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
     );
   }
 
-  // --- NUEVA SECCIÓN EDUCATIVA EN EL HOME DEL VERIFICADOR ---
-  Widget _buildEducationSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              'Aprende sobre tu sueldo',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GlosarioConceptosScreen()),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.secondary.withOpacity(0.9), AppColors.secondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.secondary.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.school, color: Colors.white, size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Glosario Interactivo',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          '¿Qué es el Básico? ¿Por qué me descuentan jubilación?',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildResultadoWidget() {
     if (_reciboModel != null) {
@@ -795,7 +732,10 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
           _buildStructuredResult(),
           const SizedBox(height: 20),
           _buildActionButtons(),
-
+          const SizedBox(height: 20),
+          _buildOcrTextSection(),
+          const SizedBox(height: 20),
+          const AcademyAdBanner(),
         ],
       );
     }
@@ -1113,7 +1053,11 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
         // Botones de acción
         _buildActionButtons(),
 
+        // Texto OCR - AHORA SIEMPRE VISIBLE
+        _buildOcrTextSection(),
 
+        const SizedBox(height: 20),
+        const AcademyAdBanner(),
       ],
     );
   }
@@ -1178,7 +1122,72 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
         );
   }
 
-  
+  Widget _buildOcrTextSection() {
+    return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).dividerColor, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '📄 Texto extraído del recibo (OCR)',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.text_snippet, size: 16, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Texto detectado por OCR:',
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _textoOcr.isEmpty
+                          ? 'No se detectó texto o no se ha escaneado.'
+                          : _textoOcr,
+                      style: TextStyle(
+                        color: Theme.of(context).hintColor,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+  }
 
   // Helper methods to satisfy compilation
   

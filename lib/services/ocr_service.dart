@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart'; // REMOVED - NO TESSERACT
 import 'claude_vision_service.dart';
-import 'subscription_service.dart';
 import '../models/recibo_model.dart';
 
 class OcrService {
@@ -24,45 +23,89 @@ class OcrService {
     return await _imagePicker.pickImage(source: ImageSource.gallery);
   }
 
-  Future<OcrResult> procesarImagen(XFile imageFile) async {
+  // Changed signature to use XFile instead of InputImage
+  Future<OcrResult> procesarImagen(XFile imageFile, {String? contextoConvenio}) async {
     try {
-      ReciboModel? model;
-      String textoCrudo = "";
-
-      final bytes = await imageFile.readAsBytes();
-      final Map<String, dynamic> data = await ClaudeVisionService.analyzeReceipt(bytes);
-      textoCrudo = jsonEncode(data);
+      // 1. Intentar con Claude Vision si hay API Key configurada
+      // SIEMPRE intentar usar Claude primero, especialmente en Web
+      final apiKey = await ClaudeVisionService.getApiKey();
+      print("Claude API Key present: ${apiKey != null && apiKey.isNotEmpty}");
       
-      if (data.isNotEmpty) {
+      if (apiKey != null && apiKey.isNotEmpty) {
+        ReciboModel? model;
+        String text = "";
+        
         try {
-          model = ReciboModel.fromJson(data);
+          final bytes = await imageFile.readAsBytes();
+          text = await ClaudeVisionService.analyzeReceipt(bytes, contextoConvenio: contextoConvenio);
+          
+          if (text.isNotEmpty) {
+            // Intentar parsear el JSON estructurado
+            try {
+              final jsonMap = jsonDecode(text);
+              model = ReciboModel.fromJson(jsonMap);
+            } catch (e) {
+              print("Error parseando JSON de Claude: $e");
+            }
+
+            return OcrResult(
+              texto: text,
+              exito: true,
+              confianza: 0.95, // Alta confianza para Claude
+              textoCrudo: text,
+              reciboModel: model,
+            );
+          }
         } catch (e) {
-          print("Error parseando JSON de Claude: $e");
+          print("Claude Vision falló: $e");
+          // Si estamos en web y falla Claude, reportamos el error directamente
+          // NO usamos Tesseract como fallback
+          if (kIsWeb) {
+             return OcrResult(
+              texto: "Error al procesar con Claude Vision: $e. Verifique su conexión y API Key.",
+              exito: false,
+              confianza: 0.0,
+              textoCrudo: "Error: $e",
+              esParcial: true
+            );
+          }
         }
+      } else {
+         if (kIsWeb) {
+             return OcrResult(
+              texto: "No se encontró API Key de Claude configurada. El sistema requiere una API Key válida para funcionar.",
+              exito: false,
+              confianza: 0.0,
+              textoCrudo: "Falta API Key",
+              esParcial: true
+            );
+          }
+      }
 
-        // Registrar uso de OCR (freemium/quota)
-        SubscriptionService.registerOcrScan();
-
+      if (kIsWeb) {
+        // En Web, si llegamos aquí es porque no había API Key o falló algo antes y no se retornó
+        // Ya no usamos Tesseract.
         return OcrResult(
-          texto: "OCR estructurado (Claude Vision)",
-          exito: true,
-          confianza: 0.95,
-          textoCrudo: textoCrudo,
-          reciboModel: model,
+          texto: "Error crítico: No se pudo procesar la imagen con Claude Vision.",
+          exito: false,
+          confianza: 0.0,
+          textoCrudo: "",
+          esParcial: true
+        );
+      } else {
+        // USAR ML KIT PARA MÓVIL (si se rehabilitara)
+        return OcrResult(
+          texto: "OCR Móvil deshabilitado en versión web.",
+          exito: false,
+          confianza: 0.0,
+          textoCrudo: "",
+          esParcial: true
         );
       }
-      
-      return OcrResult(
-        texto: "No se obtuvo información estructurada del OCR.",
-        exito: false,
-        confianza: 0.0,
-        textoCrudo: textoCrudo,
-        esParcial: true,
-      );
     } catch (e) {
       print("Error en procesamiento OCR: $e");
       return OcrResult(
-        texto: "Error en el procesamiento OCR: $e",
+        texto: "Error general en el procesamiento: $e",
         exito: false,
         confianza: 0.0,
         textoCrudo: "Error: $e",

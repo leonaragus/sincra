@@ -16,27 +16,11 @@ class SanidadOcrReviewScreen extends StatefulWidget {
 }
 
 class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
-  // Cabecera
-  late TextEditingController _empresaNombreCtr;
-  late TextEditingController _empresaCuitCtr;
-  late TextEditingController _empleadoNombreCtr;
-  late TextEditingController _empleadoCuilCtr;
-  late TextEditingController _legajoCtr;
-  late TextEditingController _fechaIngresoCtr;
-  late TextEditingController _antiguedadReconocidaCtr;
-  late TextEditingController _cctAplicableCtr;
-  late TextEditingController _periodoAbonadoCtr;
-  late TextEditingController _lugarPagoCtr;
-
-  // Totales
-  late TextEditingController _totalBrutoCtr;
-  late TextEditingController _totalRetencionesCtr;
-  late TextEditingController _totalNoRemunerativoCtr;
-  late TextEditingController _netoACobrarCtr;
-  late TextEditingController _netoEnLetrasCtr;
-
-  // Specific concepts not directly in Cabecera/Totales, but were in old model
-  late TextEditingController _horasNocturnasCtr; // Keeping this for now
+  late TextEditingController _cuilCtr;
+  late TextEditingController _nombreCtr;
+  late TextEditingController _sueldoBasicoCtr;
+  late TextEditingController _antiguedadPctCtr;
+  late TextEditingController _horasNocturnasCtr;
 
   CategoriaSanidad _categoria = CategoriaSanidad.profesional;
   NivelTituloSanidad _nivelTitulo = NivelTituloSanidad.sinTitulo;
@@ -44,41 +28,21 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
   @override
   void initState() {
     super.initState();
-    // Cabecera
-    _empresaNombreCtr = TextEditingController(text: widget.extract.cabecera?.empresaNombre ?? '');
-    _empresaCuitCtr = TextEditingController(text: widget.extract.cabecera?.empresaCuit ?? '');
-    _empleadoNombreCtr = TextEditingController(text: widget.extract.cabecera?.empleadoNombre ?? '');
-    _empleadoCuilCtr = TextEditingController(text: widget.extract.cabecera?.empleadoCuil ?? '');
-    _legajoCtr = TextEditingController(text: widget.extract.cabecera?.legajo ?? '');
-    _fechaIngresoCtr = TextEditingController(text: widget.extract.cabecera?.fechaIngreso ?? '');
-    _antiguedadReconocidaCtr = TextEditingController(text: widget.extract.cabecera?.antiguedadReconocida ?? '');
-    _cctAplicableCtr = TextEditingController(text: widget.extract.cabecera?.cctAplicable ?? '');
-    _periodoAbonadoCtr = TextEditingController(text: widget.extract.cabecera?.periodoAbonado ?? '');
-    _lugarPagoCtr = TextEditingController(text: widget.extract.cabecera?.lugarPago ?? '');
-
-    // Totales
-    _totalBrutoCtr = TextEditingController(
-      text: widget.extract.totales?.totalBruto != null ? _fmtNum(widget.extract.totales!.totalBruto!) : '',
+    _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
+    _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
+    _sueldoBasicoCtr = TextEditingController(
+      text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
     );
-    _totalRetencionesCtr = TextEditingController(
-      text: widget.extract.totales?.totalRetenciones != null ? _fmtNum(widget.extract.totales!.totalRetenciones!) : '',
+    _antiguedadPctCtr = TextEditingController(
+      text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
     );
-    _totalNoRemunerativoCtr = TextEditingController(
-      text: widget.extract.totales?.totalNoRemunerativo != null ? _fmtNum(widget.extract.totales!.totalNoRemunerativo!) : '',
-    );
-    _netoACobrarCtr = TextEditingController(
-      text: widget.extract.totales?.netoACobrar != null ? _fmtNum(widget.extract.totales!.netoACobrar!) : '',
-    );
-    _netoEnLetrasCtr = TextEditingController(text: widget.extract.totales?.netoEnLetras ?? '');
-
-    // Specific concepts
     _horasNocturnasCtr = TextEditingController(
-      text: '', // No direct mapping in new model, will need to be handled if it's a specific concept.
+      text: widget.extract.horasNocturnas?.toString() ?? '0',
     );
 
     // Intentar parsear categoría del OCR
-    if (widget.extract.cabecera?.categoriaProfesional != null) {
-      final cat = _parseCategoria(widget.extract.cabecera!.categoriaProfesional!);
+    if (widget.extract.categoriaRaw != null) {
+      final cat = _parseCategoria(widget.extract.categoriaRaw!);
       if (cat != null) _categoria = cat;
     }
   }
@@ -107,37 +71,20 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
 
   @override
   void dispose() {
-    // Cabecera
-    _empresaNombreCtr.dispose();
-    _empresaCuitCtr.dispose();
-    _empleadoNombreCtr.dispose();
-    _empleadoCuilCtr.dispose();
-    _legajoCtr.dispose();
-    _fechaIngresoCtr.dispose();
-    _antiguedadReconocidaCtr.dispose();
-    _cctAplicableCtr.dispose();
-    _periodoAbonadoCtr.dispose();
-    _lugarPagoCtr.dispose();
-
-    // Totales
-    _totalBrutoCtr.dispose();
-    _totalRetencionesCtr.dispose();
-    _totalNoRemunerativoCtr.dispose();
-    _netoACobrarCtr.dispose();
-    _netoEnLetrasCtr.dispose();
-
-    // Specific concepts
+    _cuilCtr.dispose();
+    _nombreCtr.dispose();
+    _sueldoBasicoCtr.dispose();
+    _antiguedadPctCtr.dispose();
     _horasNocturnasCtr.dispose();
-
     super.dispose();
   }
 
   /// True si el OCR no detectó al menos un dato principal
   bool get _hasMissingOcrFields {
     final e = widget.extract;
-    return (e.cabecera?.empleadoCuil == null || e.cabecera!.empleadoCuil!.trim().isEmpty) ||
-        (e.cabecera?.empleadoNombre == null || e.cabecera!.empleadoNombre!.trim().isEmpty) ||
-        (e.totales?.netoACobrar == null);
+    return (e.cuil == null || e.cuil!.trim().isEmpty) ||
+        (e.sueldoBasico == null) ||
+        (e.antiguedadPct == null);
   }
 
   Widget _buildCard({
@@ -252,60 +199,32 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
 
   void _confirmar() {
     // Validaciones básicas
-    final empleadoCuil = _empleadoCuilCtr.text.trim();
-    if (empleadoCuil.isEmpty) {
+    final cuil = _cuilCtr.text.trim();
+    if (cuil.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('CUIL del empleado es obligatorio')),
+        const SnackBar(content: Text('CUIL es obligatorio')),
       );
       return;
     }
 
-    final empleadoNombre = _empleadoNombreCtr.text.trim();
-    if (empleadoNombre.isEmpty) {
+    final nombre = _nombreCtr.text.trim();
+    if (nombre.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nombre del empleado es obligatorio')),
-      );
-      return;
-    }
-
-    final netoACobrar = _parseNumFromField(_netoACobrarCtr.text);
-    if (netoACobrar == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Neto a Cobrar es obligatorio y debe ser un número válido')),
+        const SnackBar(content: Text('Nombre es obligatorio')),
       );
       return;
     }
 
     // Crear resultado para devolver a la pantalla de sanidad
-    final result = SanidadOcrExtractResult(
-      cabecera: Cabecera(
-        empresaNombre: _empresaNombreCtr.text.trim(),
-        empresaCuit: _empresaCuitCtr.text.trim(),
-        empleadoNombre: empleadoNombre,
-        empleadoCuil: empleadoCuil,
-        legajo: _legajoCtr.text.trim(),
-        fechaIngreso: _fechaIngresoCtr.text.trim(),
-        antiguedadReconocida: _antiguedadReconocidaCtr.text.trim(),
-        cctAplicable: _cctAplicableCtr.text.trim(),
-        periodoAbonado: _periodoAbonadoCtr.text.trim(),
-        lugarPago: _lugarPagoCtr.text.trim(),
-        categoriaProfesional: _categoria.name, // Usar la categoría seleccionada
-      ),
-      totales: Totales(
-        totalBruto: _parseNumFromField(_totalBrutoCtr.text),
-        totalRetenciones: _parseNumFromField(_totalRetencionesCtr.text),
-        totalNoRemunerativo: _parseNumFromField(_totalNoRemunerativoCtr.text),
-        netoACobrar: netoACobrar,
-        netoEnLetras: _netoEnLetrasCtr.text.trim(),
-      ),
-      // Mantener otros campos si son relevantes o pasarlos como null si no se editan aquí
-      urlDetectada: widget.extract.urlDetectada,
-      source: widget.extract.source,
-      rawTextOcr: widget.extract.rawTextOcr,
-      error: widget.extract.error,
-      liquidacionDetallada: widget.extract.liquidacionDetallada, // No se edita aquí
-      auditoriaIa: widget.extract.auditoriaIa, // No se edita aquí
-    );
+    final result = {
+      'cuil': cuil,
+      'nombre': nombre,
+      'sueldoBasico': _parseNumFromField(_sueldoBasicoCtr.text),
+      'antiguedadPct': _parseNumFromField(_antiguedadPctCtr.text),
+      'categoria': _categoria.name,
+      'nivelTitulo': _nivelTitulo.name,
+      'horasNocturnas': _parseIntFromField(_horasNocturnasCtr.text) ?? 0,
+    };
 
     Navigator.pop(context, result);
   }
@@ -383,106 +302,36 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
-                    'DATOS DE CABECERA',
+                    'DATOS EXTRAÍDOS',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.pastelMint),
                   ),
                 ),
                 _buildCard(
-                  label: 'Empresa Nombre',
-                  valorDetectado: widget.extract.cabecera?.empresaNombre ?? '',
-                  ctr: _empresaNombreCtr,
-                ),
-                _buildCard(
-                  label: 'Empresa CUIT',
-                  valorDetectado: widget.extract.cabecera?.empresaCuit ?? '',
-                  ctr: _empresaCuitCtr,
+                  label: 'CUIL',
+                  valorDetectado: widget.extract.cuil ?? '',
+                  ctr: _cuilCtr,
                   hint: 'Formato: 20-12345678-9',
                 ),
                 _buildCard(
-                  label: 'Empleado Nombre',
-                  valorDetectado: widget.extract.cabecera?.empleadoNombre ?? '',
-                  ctr: _empleadoNombreCtr,
+                  label: 'Nombre',
+                  valorDetectado: widget.extract.nombre ?? '',
+                  ctr: _nombreCtr,
                 ),
                 _buildCard(
-                  label: 'Empleado CUIL',
-                  valorDetectado: widget.extract.cabecera?.empleadoCuil ?? '',
-                  ctr: _empleadoCuilCtr,
-                  hint: 'Formato: 20-12345678-9',
-                ),
-                _buildCard(
-                  label: 'Legajo',
-                  valorDetectado: widget.extract.cabecera?.legajo ?? '',
-                  ctr: _legajoCtr,
-                ),
-                _buildCard(
-                  label: 'Fecha Ingreso',
-                  valorDetectado: widget.extract.cabecera?.fechaIngreso ?? '',
-                  ctr: _fechaIngresoCtr,
-                  hint: 'Formato: DD/MM/AAAA',
-                ),
-                _buildCard(
-                  label: 'Antigüedad Reconocida',
-                  valorDetectado: widget.extract.cabecera?.antiguedadReconocida ?? '',
-                  ctr: _antiguedadReconocidaCtr,
-                  hint: 'Ej: 10 años',
-                ),
-                _buildCard(
-                  label: 'CCT Aplicable',
-                  valorDetectado: widget.extract.cabecera?.cctAplicable ?? '',
-                  ctr: _cctAplicableCtr,
-                ),
-                _buildCard(
-                  label: 'Periodo Abonado',
-                  valorDetectado: widget.extract.cabecera?.periodoAbonado ?? '',
-                  ctr: _periodoAbonadoCtr,
-                  hint: 'Ej: 01/2023',
-                ),
-                _buildCard(
-                  label: 'Lugar de Pago',
-                  valorDetectado: widget.extract.cabecera?.lugarPago ?? '',
-                  ctr: _lugarPagoCtr,
-                ),
-                const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'TOTALES',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.pastelMint),
-                  ),
-                ),
-                _buildCard(
-                  label: 'Total Bruto',
-                  valorDetectado: widget.extract.totales?.totalBruto != null ? '\$${_fmtNum(widget.extract.totales!.totalBruto!)}' : '',
-                  ctr: _totalBrutoCtr,
+                  label: 'Sueldo Básico',
+                  valorDetectado: widget.extract.sueldoBasico != null ? '\$${_fmtNum(widget.extract.sueldoBasico!)}' : '',
+                  ctr: _sueldoBasicoCtr,
                   isNumero: true,
                 ),
                 _buildCard(
-                  label: 'Total Retenciones',
-                  valorDetectado: widget.extract.totales?.totalRetenciones != null ? '\$${_fmtNum(widget.extract.totales!.totalRetenciones!)}' : '',
-                  ctr: _totalRetencionesCtr,
+                  label: 'Antigüedad %',
+                  valorDetectado: widget.extract.antiguedadPct != null ? '${widget.extract.antiguedadPct!.toInt()}%' : '',
+                  ctr: _antiguedadPctCtr,
                   isNumero: true,
                 ),
-                _buildCard(
-                  label: 'Total No Remunerativo',
-                  valorDetectado: widget.extract.totales?.totalNoRemunerativo != null ? '\$${_fmtNum(widget.extract.totales!.totalNoRemunerativo!)}' : '',
-                  ctr: _totalNoRemunerativoCtr,
-                  isNumero: true,
-                ),
-                _buildCard(
-                  label: 'Neto a Cobrar',
-                  valorDetectado: widget.extract.totales?.netoACobrar != null ? '\$${_fmtNum(widget.extract.totales!.netoACobrar!)}' : '',
-                  ctr: _netoACobrarCtr,
-                  isNumero: true,
-                ),
-                _buildCard(
-                  label: 'Neto en Letras',
-                  valorDetectado: widget.extract.totales?.netoEnLetras ?? '',
-                  ctr: _netoEnLetrasCtr,
-                ),
-                // Specific concepts - keeping for now, but might need re-evaluation
                 _buildCard(
                   label: 'Horas Nocturnas',
-                  valorDetectado: '', // No direct mapping in new model, will need to be handled if it's a specific concept.
+                  valorDetectado: widget.extract.horasNocturnas?.toString() ?? '',
                   ctr: _horasNocturnasCtr,
                   isNumero: true,
                 ),
@@ -496,7 +345,7 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
                 ),
                 _buildDropdownCard(
                   label: 'Categoría',
-                  valorDetectado: widget.extract.cabecera?.categoriaProfesional ?? '',
+                  valorDetectado: widget.extract.categoriaRaw ?? '',
                   currentValue: _categoria.name,
                   items: CategoriaSanidad.values.map((c) {
                     final nombre = c == CategoriaSanidad.profesional ? 'Profesional'

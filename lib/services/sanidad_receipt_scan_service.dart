@@ -6,11 +6,8 @@
 // ========================================================================
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
-import 'package:elevar_liquidacion/services/claude_vision_service.dart';
 import 'package:flutter/foundation.dart';
-import 'subscription_service.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/sanidad_omni_engine.dart';
@@ -18,214 +15,40 @@ import '../services/sanidad_omni_engine.dart';
 /// Origen de los datos extraídos
 enum OcrExtractSourceSanidad { qrJson, qrUrl, ocr }
 
-/// New data models for Claude Vision output
-class Haber {
-  final String? codigo;
-  final String? descripcion;
-  final String? cantidad;
-  final double? monto;
-  final bool? esRemunerativo;
-
-  const Haber({
-    this.codigo,
-    this.descripcion,
-    this.cantidad,
-    this.monto,
-    this.esRemunerativo,
-  });
-
-  factory Haber.fromJson(Map<String, dynamic> json) {
-    return Haber(
-      codigo: json['codigo'] as String?,
-      descripcion: json['descripcion'] as String?,
-      cantidad: json['cantidad'] as String?,
-      monto: (json['monto'] as num?)?.toDouble(),
-      esRemunerativo: json['es_remunerativo'] as bool?,
-    );
-  }
-}
-
-class Retencion {
-  final String? codigo;
-  final String? descripcion;
-  final String? porcentaje;
-  final double? monto;
-
-  const Retencion({
-    this.codigo,
-    this.descripcion,
-    this.porcentaje,
-    this.monto,
-  });
-
-  factory Retencion.fromJson(Map<String, dynamic> json) {
-    return Retencion(
-      codigo: json['codigo'] as String?,
-      descripcion: json['descripcion'] as String?,
-      porcentaje: json['porcentaje'] as String?,
-      monto: (json['monto'] as num?)?.toDouble(),
-    );
-  }
-}
-
-class OtroConcepto {
-  final String? descripcion;
-  final double? monto;
-
-  const OtroConcepto({
-    this.descripcion,
-    this.monto,
-  });
-
-  factory OtroConcepto.fromJson(Map<String, dynamic> json) {
-    return OtroConcepto(
-      descripcion: json['descripcion'] as String?,
-      monto: (json['monto'] as num?)?.toDouble(),
-    );
-  }
-}
-
-class LiquidacionDetallada {
-  final List<Haber>? haberes;
-  final List<Retencion>? retenciones;
-  final List<OtroConcepto>? otrosConceptos;
-
-  const LiquidacionDetallada({
-    this.haberes,
-    this.retenciones,
-    this.otrosConceptos,
-  });
-
-  factory LiquidacionDetallada.fromJson(Map<String, dynamic> json) {
-    return LiquidacionDetallada(
-      haberes: (json['haberes'] as List<dynamic>?)
-          ?.map((e) => Haber.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      retenciones: (json['retenciones'] as List<dynamic>?)
-          ?.map((e) => Retencion.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      otrosConceptos: (json['otros_conceptos'] as List<dynamic>?)
-          ?.map((e) => OtroConcepto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-}
-
-class Cabecera {
-  final String? empresaNombre;
-  final String? empresaCuit;
-  final String? empleadoNombre;
-  final String? empleadoCuil;
-  final String? legajo;
-  final String? fechaIngreso;
-  final String? antiguedadReconocida;
-  final String? categoriaProfesional;
-  final String? cctAplicable;
-  final String? periodoAbonado;
-  final String? lugarPago;
-
-  const Cabecera({
-    this.empresaNombre,
-    this.empresaCuit,
-    this.empleadoNombre,
-    this.empleadoCuil,
-    this.legajo,
-    this.fechaIngreso,
-    this.antiguedadReconocida,
-    this.categoriaProfesional,
-    this.cctAplicable,
-    this.periodoAbonado,
-    this.lugarPago,
-  });
-
-  factory Cabecera.fromJson(Map<String, dynamic> json) {
-    return Cabecera(
-      empresaNombre: json['empresa_nombre'] as String?,
-      empresaCuit: json['empresa_cuit'] as String?,
-      empleadoNombre: json['empleado_nombre'] as String?,
-      empleadoCuil: json['empleado_cuil'] as String?,
-      legajo: json['legajo'] as String?,
-      fechaIngreso: json['fecha_ingreso'] as String?,
-      antiguedadReconocida: json['antiguedad_reconocida'] as String?,
-      categoriaProfesional: json['categoria_profesional'] as String?,
-      cctAplicable: json['cct_aplicable'] as String?,
-      periodoAbonado: json['periodo_abonado'] as String?,
-      lugarPago: json['lugar_pago'] as String?,
-    );
-  }
-}
-
-class Totales {
-  final double? totalBruto;
-  final double? totalRetenciones;
-  final double? totalNoRemunerativo;
-  final double? netoACobrar;
-  final String? netoEnLetras;
-
-  const Totales({
-    this.totalBruto,
-    this.totalRetenciones,
-    this.totalNoRemunerativo,
-    this.netoACobrar,
-    this.netoEnLetras,
-  });
-
-  factory Totales.fromJson(Map<String, dynamic> json) {
-    return Totales(
-      totalBruto: (json['total_bruto'] as num?)?.toDouble(),
-      totalRetenciones: (json['total_retenciones'] as num?)?.toDouble(),
-      totalNoRemunerativo: (json['total_no_remunerativo'] as num?)?.toDouble(),
-      netoACobrar: (json['neto_a_cobrar'] as num?)?.toDouble(),
-      netoEnLetras: json['neto_en_letras'] as String?,
-    );
-  }
-}
-
-class AuditoriaIa {
-  final String? analisisLegal;
-  final List<String>? alertasCriticas;
-  final String? explicacionConceptosComplejos;
-  final double? puntuacionConfianzaOcr;
-
-  const AuditoriaIa({
-    this.analisisLegal,
-    this.alertasCriticas,
-    this.explicacionConceptosComplejos,
-    this.puntuacionConfianzaOcr,
-  });
-
-  factory AuditoriaIa.fromJson(Map<String, dynamic> json) {
-    return AuditoriaIa(
-      analisisLegal: json['analisis_legal'] as String?,
-      alertasCriticas: (json['alertas_criticas'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      explicacionConceptosComplejos: json['explicacion_conceptos_complejos'] as String?,
-      puntuacionConfianzaOcr: (json['puntuacion_confianza_ocr'] as num?)?.toDouble(),
-    );
-  }
-}
-
 /// Resultado de la extracción (QR o OCR) para revisión en Sanidad
 class SanidadOcrExtractResult {
-  final Cabecera? cabecera;
-  final LiquidacionDetallada? liquidacionDetallada;
-  final Totales? totales;
-  final AuditoriaIa? auditoriaIa;
+  final String? cuil;
+  final String? nombre;
+  final double? sueldoBasico;
+  final double? antiguedadPct;
+  final String? categoriaRaw; // "Profesional", "Técnico", etc.
+  final int? horasNocturnas;
+  final String? jurisdiccionRaw;
   final String? urlDetectada;
   final OcrExtractSourceSanidad source;
   final String? rawTextOcr;
   final String? error;
+  
+  // Adicionales detectados
+  final double? adicionalTitulo;
+  final double? tareaCriticaRiesgo;
+  final double? adicionalZonaPatagonica;
 
   const SanidadOcrExtractResult({
-    this.cabecera,
-    this.liquidacionDetallada,
-    this.totales,
-    this.auditoriaIa,
+    this.cuil,
+    this.nombre,
+    this.sueldoBasico,
+    this.antiguedadPct,
+    this.categoriaRaw,
+    this.horasNocturnas,
+    this.jurisdiccionRaw,
     this.urlDetectada,
     required this.source,
     this.rawTextOcr,
     this.error,
+    this.adicionalTitulo,
+    this.tareaCriticaRiesgo,
+    this.adicionalZonaPatagonica,
   });
 
   bool get hasError => error != null && error!.isNotEmpty;
@@ -288,15 +111,31 @@ class SanidadReceiptScanService {
   }
 
   SanidadOcrExtractResult _fromJson(Map<String, dynamic> m) {
+    String? c;
+    double? vb, va, titulo, critica, zona;
+    int? hn;
+    
+    if (m['cuil'] != null) c = m['cuil'].toString().trim();
+    vb = _toNumAmount(m['sueldoBasico']);
+    va = _toNumAmount(m['antiguedadPct']) ?? _toNumAmount(m['antiguedad']);
+    if (m['horasNocturnas'] != null) hn = _toInt(m['horasNocturnas']);
+    titulo = _toNumAmount(m['adicionalTitulo']);
+    critica = _toNumAmount(m['tareaCriticaRiesgo']);
+    zona = _toNumAmount(m['adicionalZonaPatagonica']);
+
     return SanidadOcrExtractResult(
-      cabecera: m['cabecera'] != null ? Cabecera.fromJson(m['cabecera'] as Map<String, dynamic>) : null,
-      liquidacionDetallada: m['liquidacion_detallada'] != null ? LiquidacionDetallada.fromJson(m['liquidacion_detallada'] as Map<String, dynamic>) : null,
-      totales: m['totales'] != null ? Totales.fromJson(m['totales'] as Map<String, dynamic>) : null,
-      auditoriaIa: m['auditoria_ia'] != null ? AuditoriaIa.fromJson(m['auditoria_ia'] as Map<String, dynamic>) : null,
-      urlDetectada: m['url_detectada']?.toString().trim().isNotEmpty == true ? m['url_detectada'].toString().trim() : null,
-      source: OcrExtractSourceSanidad.qrJson, // Assuming QR JSON also provides this structure
-      rawTextOcr: m['raw_text_ocr']?.toString(),
-      error: m['error']?.toString(),
+      cuil: c,
+      nombre: m['nombre']?.toString().trim(),
+      sueldoBasico: vb,
+      antiguedadPct: va,
+      categoriaRaw: m['categoria']?.toString().trim(),
+      horasNocturnas: hn,
+      jurisdiccionRaw: m['jurisdiccion']?.toString().trim(),
+      source: OcrExtractSourceSanidad.qrJson,
+      urlDetectada: m['url']?.toString().trim().isNotEmpty == true ? m['url'].toString().trim() : null,
+      adicionalTitulo: titulo,
+      tareaCriticaRiesgo: critica,
+      adicionalZonaPatagonica: zona,
     );
   }
 
@@ -327,15 +166,21 @@ class SanidadReceiptScanService {
   /// Ejecuta OCR sobre [imagePath]. Procesamiento 100% local.
   Future<SanidadOcrExtractResult> runOcrFromPath(String imagePath) async {
     try {
-      final bytes = await File(imagePath).readAsBytes();
-      final Map<String, dynamic> jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes);
-      SubscriptionService.registerOcrScan();
-      return _fromJson(jsonResponse);
-    } catch (e, st) {
-      debugPrint('SanidadReceiptScanService.runOcrFromPath: $e\n$st');
-      return SanidadOcrExtractResult(
+      /*
+      final inputImage = InputImage.fromFilePath(imagePath);
+      final RecognizedText recognized = await _recognizer.processImage(inputImage);
+      final String full = recognized.text;
+      return _applyRegex(full);
+      */
+      return const SanidadOcrExtractResult(
         source: OcrExtractSourceSanidad.ocr,
-        error: 'Error al procesar la imagen con Claude Vision: $e',
+        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
+      );
+    } catch (e, st) {
+      debugPrint('SanidadReceiptScanService.runOcr: $e\n$st');
+      return const SanidadOcrExtractResult(
+        source: OcrExtractSourceSanidad.ocr,
+        error: 'No se pudo leer la imagen.',
       );
     }
   }
@@ -343,14 +188,28 @@ class SanidadReceiptScanService {
   /// OCR desde bytes (formato NV21/YUV para cámara Android)
   Future<SanidadOcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
     try {
-      final Map<String, dynamic> jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes);
-      SubscriptionService.registerOcrScan();
-      return _fromJson(jsonResponse);
+      /*
+      final inputImage = InputImage.fromBytes(
+        bytes: bytes,
+        metadata: InputImageMetadata(
+          size: Size(width.toDouble(), height.toDouble()),
+          rotation: InputImageRotation.rotation0deg,
+          format: InputImageFormat.nv21,
+          bytesPerRow: width,
+        ),
+      );
+      final RecognizedText recognized = await _recognizer.processImage(inputImage);
+      return _applyRegex(recognized.text);
+      */
+      return const SanidadOcrExtractResult(
+        source: OcrExtractSourceSanidad.ocr,
+        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
+      );
     } catch (e, st) {
       debugPrint('SanidadReceiptScanService.runOcrFromBytes: $e\n$st');
-      return SanidadOcrExtractResult(
+      return const SanidadOcrExtractResult(
         source: OcrExtractSourceSanidad.ocr,
-        error: 'Error al procesar la imagen con Claude Vision: $e',
+        error: 'No se pudo leer la imagen.',
       );
     }
   }

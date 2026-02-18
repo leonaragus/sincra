@@ -4,7 +4,7 @@
 // Todas las constantes tipadas. Valores editables desde UI.
 // ========================================================================
 
-import 'package:elevar_liquidacion/models/teacher_types.dart';
+import 'teacher_types.dart';
 
 // ---------------------------------------------------------------------------
 // 1. TABLA MAESTRA DE ANTIGÜEDAD (Escalafón Docente 2026)

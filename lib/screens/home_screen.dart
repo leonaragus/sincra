@@ -8,8 +8,11 @@ import '../services/hybrid_store.dart';
 import 'convenios_screen.dart';
 import '../models/empresa.dart';
 import '../services/api_service.dart';
-import '../services/paritarias_service.dart';
 import '../theme/app_colors.dart';
+import 'empleado_screen.dart';
+import 'lista_empleados_screen.dart';
+import 'liquidador_final_screen.dart';
+import 'parametros_legales_screen.dart';
 import 'teacher_interface_screen.dart';
 import 'sanidad_interface_screen.dart';
 import '../utils/logo_avatar.dart';
@@ -24,17 +27,12 @@ import 'gestion_ausencias_screen.dart';
 import 'gestion_prestamos_screen.dart';
 import 'biblioteca_cct_screen.dart';
 import 'dashboard_riesgos_screen.dart';
-import 'liquidador_final_screen.dart';
-import 'parametros_legales_screen.dart';
-import 'empleado_screen.dart';
-import 'lista_empleados_screen.dart';
 
 import 'verificador_recibo_screen.dart';
 import 'validador_lsd_screen.dart';
 
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
-import '../widgets/elevar_formacion_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,7 +54,6 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<void> _syncAndMaybeShowSnackBar() async {
     await ApiService.syncOrLoadLocal();
-    await ParitariasService.sincronizarParitarias(); // Sincronizar paritarias
     await _maybeShowUpdateSnackBar();
   }
 
@@ -363,33 +360,6 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatusContainer(String message, bool success) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: success ? AppColors.glassFill : Colors.red.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: success ? AppColors.glassBorder : Colors.red.withOpacity(0.5), width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(success ? Icons.update : Icons.error_outline, color: success ? AppColors.textPrimary : Colors.red, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                color: success ? AppColors.textPrimary : Colors.red,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -427,52 +397,41 @@ class HomeScreenState extends State<HomeScreen> {
                               future: _initialSync,
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState != ConnectionState.done) return const SizedBox.shrink();
+                                final status = ApiService.lastSyncStatus;
+                                final dataUpdateDate = status.dataUpdateDate;
                                 
-                                final apiStatus = ApiService.lastSyncStatus;
-                                final apiDataUpdateDate = apiStatus.dataUpdateDate;
-                                
-                                final paritariasStatus = ParitariasService.lastSyncStatus;
-                                final paritariasDataUpdateDate = paritariasStatus.dataUpdateDate;
+                                if (!status.success || dataUpdateDate == null) return const SizedBox.shrink();
 
-                                List<Widget> statusWidgets = [];
-
-                                if (apiStatus.success && apiDataUpdateDate != null) {
-                                  final dateText = "${apiDataUpdateDate.day.toString().padLeft(2, '0')}/${apiDataUpdateDate.month.toString().padLeft(2, '0')}/${apiDataUpdateDate.year}";
-                                  statusWidgets.add(
-                                    _buildStatusContainer('Convenios actualizados al $dateText', apiStatus.success),
-                                  );
-                                } else if (!apiStatus.success && apiStatus.lastSyncDate != null) {
-                                  statusWidgets.add(
-                                    _buildStatusContainer('Error al sincronizar convenios. Último intento: ${apiStatus.lastSyncDateFormatted}', apiStatus.success),
-                                  );
-                                }
-
-                                if (paritariasStatus.success && paritariasDataUpdateDate != null) {
-                                  final dateText = "${paritariasDataUpdateDate.day.toString().padLeft(2, '0')}/${paritariasDataUpdateDate.month.toString().padLeft(2, '0')}/${paritariasDataUpdateDate.year}";
-                                  statusWidgets.add(
-                                    _buildStatusContainer('Paritarias actualizadas al $dateText', paritariasStatus.success),
-                                  );
-                                } else if (!paritariasStatus.success && paritariasStatus.lastSyncDate != null) {
-                                  statusWidgets.add(
-                                    _buildStatusContainer('Error al sincronizar paritarias. Último intento: ${paritariasStatus.lastSyncDateFormatted}', paritariasStatus.success),
-                                  );
-                                } else if (!paritariasStatus.success && paritariasDataUpdateDate == null) {
-                                  statusWidgets.add(
-                                    _buildStatusContainer('Paritarias no sincronizadas. Intente de nuevo.', paritariasStatus.success),
-                                  );
-                                }
-
-                                if (statusWidgets.isEmpty) return const SizedBox.shrink();
-
-                                return Column(
-                                  children: statusWidgets.map((widget) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8.0),
-                                    child: widget,
-                                  )).toList(),
+                                final dateText = "${dataUpdateDate.day.toString().padLeft(2, '0')}/${dataUpdateDate.month.toString().padLeft(2, '0')}/${dataUpdateDate.year}";
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.glassFill,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: AppColors.glassBorder, width: 1),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.update, color: AppColors.textPrimary, size: 18),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            'Convenios actualizados al $dateText',
+                                            style: const TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 );
                               },
                             ),
-                            const ElevarFormacionBanner(), // Add the banner here
                             _buildMainButtons(),
                             if (_empresas.isNotEmpty) ...[
                               const SizedBox(height: 16),
@@ -853,7 +812,7 @@ class HomeScreenState extends State<HomeScreen> {
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),

@@ -5,237 +5,39 @@
 // ========================================================================
 
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:elevar_liquidacion/services/claude_vision_service.dart';
 import 'package:flutter/foundation.dart';
-import 'subscription_service.dart';
 // import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'; // Removed for web compatibility
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Origen de los datos extraídos
 enum OcrExtractSource { qrJson, qrUrl, ocr }
 
-/// New data models for Claude Vision output
-class Haber {
-  final String? codigo;
-  final String? descripcion;
-  final String? cantidad;
-  final double? monto;
-  final bool? esRemunerativo;
-
-  const Haber({
-    this.codigo,
-    this.descripcion,
-    this.cantidad,
-    this.monto,
-    this.esRemunerativo,
-  });
-
-  factory Haber.fromJson(Map<String, dynamic> json) {
-    return Haber(
-      codigo: json['codigo'] as String?,
-      descripcion: json['descripcion'] as String?,
-      cantidad: json['cantidad'] as String?,
-      monto: (json['monto'] as num?)?.toDouble(),
-      esRemunerativo: json['es_remunerativo'] as bool?,
-    );
-  }
-}
-
-class Retencion {
-  final String? codigo;
-  final String? descripcion;
-  final String? porcentaje;
-  final double? monto;
-
-  const Retencion({
-    this.codigo,
-    this.descripcion,
-    this.porcentaje,
-    this.monto,
-  });
-
-  factory Retencion.fromJson(Map<String, dynamic> json) {
-    return Retencion(
-      codigo: json['codigo'] as String?,
-      descripcion: json['descripcion'] as String?,
-      porcentaje: json['porcentaje'] as String?,
-      monto: (json['monto'] as num?)?.toDouble(),
-    );
-  }
-}
-
-class OtroConcepto {
-  final String? descripcion;
-  final double? monto;
-
-  const OtroConcepto({
-    this.descripcion,
-    this.monto,
-  });
-
-  factory OtroConcepto.fromJson(Map<String, dynamic> json) {
-    return OtroConcepto(
-      descripcion: json['descripcion'] as String?,
-      monto: (json['monto'] as num?)?.toDouble(),
-    );
-  }
-}
-
-class LiquidacionDetallada {
-  final List<Haber>? haberes;
-  final List<Retencion>? retenciones;
-  final List<OtroConcepto>? otrosConceptos;
-
-  const LiquidacionDetallada({
-    this.haberes,
-    this.retenciones,
-    this.otrosConceptos,
-  });
-
-  factory LiquidacionDetallada.fromJson(Map<String, dynamic> json) {
-    return LiquidacionDetallada(
-      haberes: (json['haberes'] as List<dynamic>?)
-          ?.map((e) => Haber.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      retenciones: (json['retenciones'] as List<dynamic>?)
-          ?.map((e) => Retencion.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      otrosConceptos: (json['otros_conceptos'] as List<dynamic>?)
-          ?.map((e) => OtroConcepto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-}
-
-class Cabecera {
-  final String? empresaNombre;
-  final String? empresaCuit;
-  final String? empleadoNombre;
-  final String? empleadoCuil;
-  final String? legajo;
-  final String? fechaIngreso;
-  final String? antiguedadReconocida;
-  final String? categoriaProfesional;
-  final String? cctAplicable;
-  final String? periodoAbonado;
-  final String? lugarPago;
-
-  const Cabecera({
-    this.empresaNombre,
-    this.empresaCuit,
-    this.empleadoNombre,
-    this.empleadoCuil,
-    this.legajo,
-    this.fechaIngreso,
-    this.antiguedadReconocida,
-    this.categoriaProfesional,
-    this.cctAplicable,
-    this.periodoAbonado,
-    this.lugarPago,
-  });
-
-  factory Cabecera.fromJson(Map<String, dynamic> json) {
-    return Cabecera(
-      empresaNombre: json['empresa_nombre'] as String?,
-      empresaCuit: json['empresa_cuit'] as String?,
-      empleadoNombre: json['empleado_nombre'] as String?,
-      empleadoCuil: json['empleado_cuil'] as String?,
-      legajo: json['legajo'] as String?,
-      fechaIngreso: json['fecha_ingreso'] as String?,
-      antiguedadReconocida: json['antiguedad_reconocida'] as String?,
-      categoriaProfesional: json['categoria_profesional'] as String?,
-      cctAplicable: json['cct_aplicable'] as String?,
-      periodoAbonado: json['periodo_abonado'] as String?,
-      lugarPago: json['lugar_pago'] as String?,
-    );
-  }
-}
-
-class Totales {
-  final double? totalBruto;
-  final double? totalRetenciones;
-  final double? totalNoRemunerativo;
-  final double? netoACobrar;
-  final String? netoEnLetras;
-
-  const Totales({
-    this.totalBruto,
-    this.totalRetenciones,
-    this.totalNoRemunerativo,
-    this.netoACobrar,
-    this.netoEnLetras,
-  });
-
-  factory Totales.fromJson(Map<String, dynamic> json) {
-    return Totales(
-      totalBruto: (json['total_bruto'] as num?)?.toDouble(),
-      totalRetenciones: (json['total_retenciones'] as num?)?.toDouble(),
-      totalNoRemunerativo: (json['total_no_remunerativo'] as num?)?.toDouble(),
-      netoACobrar: (json['neto_a_cobrar'] as num?)?.toDouble(),
-      netoEnLetras: json['neto_en_letras'] as String?,
-    );
-  }
-}
-
-class AuditoriaIa {
-  final String? analisisLegal;
-  final List<String>? alertasCriticas;
-  final String? explicacionConceptosComplejos;
-  final double? puntuacionConfianzaOcr;
-
-  const AuditoriaIa({
-    this.analisisLegal,
-    this.alertasCriticas,
-    this.explicacionConceptosComplejos,
-    this.puntuacionConfianzaOcr,
-  });
-
-  factory AuditoriaIa.fromJson(Map<String, dynamic> json) {
-    return AuditoriaIa(
-      analisisLegal: json['analisis_legal'] as String?,
-      alertasCriticas: (json['alertas_criticas'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
-      explicacionConceptosComplejos: json['explicacion_conceptos_complejos'] as String?,
-      puntuacionConfianzaOcr: (json['puntuacion_confianza_ocr'] as num?)?.toDouble(),
-    );
-  }
-}
-
 /// Resultado de la extracción (QR o OCR) para OcrReviewScreen
 class OcrExtractResult {
-  final Cabecera? cabecera;
-  final LiquidacionDetallada? liquidacionDetallada;
-  final Totales? totales;
-  final AuditoriaIa? auditoriaIa;
+  final String? cuil;
+  final String? nombre;
+  final double? sueldoBasico;
+  final double? antiguedadPct;
+  final int? puntos;
+  final double? valorIndice;
+  final String? jurisdiccionRaw;
   final String? urlDetectada;
   final OcrExtractSource source;
   final String? rawTextOcr;
   final String? error;
-  final int? puntos;
-  final double? valorIndice;
-  final double? antiguedadPct;
-  final double? sueldoBasico;
-  final String? codigoRnos;
-  final String? jurisdiccionRaw;
 
   const OcrExtractResult({
-    this.cabecera,
-    this.liquidacionDetallada,
-    this.totales,
-    this.auditoriaIa,
+    this.cuil,
+    this.nombre,
+    this.sueldoBasico,
+    this.antiguedadPct,
+    this.puntos,
+    this.valorIndice,
+    this.jurisdiccionRaw,
     this.urlDetectada,
     required this.source,
     this.rawTextOcr,
     this.error,
-    this.puntos,
-    this.valorIndice,
-    this.antiguedadPct,
-    this.sueldoBasico,
-    this.codigoRnos,
-    this.jurisdiccionRaw,
   });
 
   bool get hasError => error != null && error!.isNotEmpty;
@@ -307,39 +109,71 @@ class TeacherReceiptScanService {
   }
 
   OcrExtractResult _fromJson(Map<String, dynamic> m) {
+    String? j;
+    double? vb, va, vi;
+    int? p;
+
+    if (m['cuil'] != null) j = m['cuil'].toString().trim();
+    vb = _toNumAmount(m['sueldoBasico']);
+    vi = _toNumAmount(m['valorIndice']);
+    if (m['puntos'] != null) p = _toInt(m['puntos']);
+    va = _toNumAmount(m['antiguedadPct']) ?? _toNumAmount(m['antiguedad']);
+
     return OcrExtractResult(
-      cabecera: m['cabecera'] != null ? Cabecera.fromJson(m['cabecera'] as Map<String, dynamic>) : null,
-      liquidacionDetallada: m['liquidacion_detallada'] != null ? LiquidacionDetallada.fromJson(m['liquidacion_detallada'] as Map<String, dynamic>) : null,
-      totales: m['totales'] != null ? Totales.fromJson(m['totales'] as Map<String, dynamic>) : null,
-      auditoriaIa: m['auditoria_ia'] != null ? AuditoriaIa.fromJson(m['auditoria_ia'] as Map<String, dynamic>) : null,
+      cuil: j,
+      nombre: m['nombre']?.toString().trim(),
+      sueldoBasico: vb,
+      antiguedadPct: va,
+      puntos: p,
+      valorIndice: vi,
+      jurisdiccionRaw: m['jurisdiccion']?.toString().trim(),
       source: OcrExtractSource.qrJson,
       urlDetectada: m['url']?.toString().trim().isNotEmpty == true ? m['url'].toString().trim() : null,
-      puntos: (m['puntos'] as num?)?.toInt(),
-      valorIndice: (m['valor_indice'] as num?)?.toDouble() ?? (m['valorIndice'] as num?)?.toDouble(),
-      antiguedadPct: (m['antiguedad_pct'] as num?)?.toDouble() ?? (m['antiguedadPct'] as num?)?.toDouble(),
-      sueldoBasico: (m['sueldo_basico'] as num?)?.toDouble() ?? (m['sueldoBasico'] as num?)?.toDouble(),
-      codigoRnos: m['codigo_rnos'] as String?,
-      jurisdiccionRaw: m['jurisdiccion_raw'] as String?,
     );
   }
 
+  /// Convierte valor de JSON a double: num directo, o cleanAmount si es String (argentino 1.234,56).
+  double? _toNumAmount(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    final s = v.toString().trim();
+    if (s.isEmpty) return null;
+    return cleanAmount(s) ?? _toDouble(v);
+  }
 
+  double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    final s = v.toString().replaceAll(',', '.');
+    return double.tryParse(s);
+  }
+
+  int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    return int.tryParse(v.toString());
+  }
 
   // --- OCR (on-device) ---
 
   /// Ejecuta OCR sobre [imagePath] (ruta a archivo). Procesamiento 100% local.
   Future<OcrExtractResult> runOcrFromPath(String imagePath) async {
     try {
-      final bytes = await File(imagePath).readAsBytes();
-      final Map<String, dynamic> jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes);
-      SubscriptionService.registerOcrScan();
-      return _fromJson(jsonResponse); // Assuming Claude Vision returns a structure similar to what _fromJson expects
-      // We might need to adjust _fromJson or create a new parsing method for Claude's output
-    } catch (e, st) {
-      debugPrint('TeacherReceiptScanService.runOcrFromPath: $e\n$st');
-      return OcrExtractResult(
+      /*
+      final inputImage = InputImage.fromFilePath(imagePath);
+      final RecognizedText recognized = await _recognizer.processImage(inputImage);
+      final String full = recognized.text;
+      return _applyRegex(full);
+      */
+      return const OcrExtractResult(
         source: OcrExtractSource.ocr,
-        error: 'Error al procesar la imagen con Claude Vision: $e',
+        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
+      );
+    } catch (e, st) {
+      debugPrint('TeacherReceiptScanService.runOcr: $e\n$st');
+      return const OcrExtractResult(
+        source: OcrExtractSource.ocr,
+        error: 'No se pudo leer la imagen.',
       );
     }
   }
@@ -347,14 +181,28 @@ class TeacherReceiptScanService {
   /// OCR desde bytes. [bytes] en formato NV21/YUV (p. ej. cámara Android). Para archivos use [runOcrFromPath].
   Future<OcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
     try {
-      final Map<String, dynamic> jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes);
-      SubscriptionService.registerOcrScan();
-      return _fromJson(jsonResponse);
+      /*
+      final inputImage = InputImage.fromBytes(
+        bytes: bytes,
+        metadata: InputImageMetadata(
+          size: Size(width.toDouble(), height.toDouble()),
+          rotation: InputImageRotation.rotation0deg,
+          format: InputImageFormat.nv21,
+          bytesPerRow: width,
+        ),
+      );
+      final RecognizedText recognized = await _recognizer.processImage(inputImage);
+      return _applyRegex(recognized.text);
+      */
+      return const OcrExtractResult(
+        source: OcrExtractSource.ocr,
+        error: 'OCR local deshabilitado para compatibilidad web. Use la versión móvil.',
+      );
     } catch (e, st) {
       debugPrint('TeacherReceiptScanService.runOcrFromBytes: $e\n$st');
-      return OcrExtractResult(
+      return const OcrExtractResult(
         source: OcrExtractSource.ocr,
-        error: 'Error al procesar la imagen con Claude Vision: $e',
+        error: 'No se pudo leer la imagen.',
       );
     }
   }

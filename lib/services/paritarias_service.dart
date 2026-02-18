@@ -4,33 +4,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
 import 'hybrid_store.dart';
 
-/// Estado del último intento de sincronización de paritarias.
-class ParitariasSyncStatus {
-  final bool success;
-  final DateTime? lastSyncDate;
-  final DateTime? dataUpdateDate;
-
-  const ParitariasSyncStatus({
-    required this.success,
-    this.lastSyncDate,
-    this.dataUpdateDate,
-  });
-
-  /// Formato DD/MM/YYYY para el SnackBar.
-  String get dataUpdateDateFormatted {
-    if (dataUpdateDate == null) return '';
-    final d = dataUpdateDate!;
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-  }
-
-  /// Formato DD/MM/YYYY del último intento de sincronización.
-  String get lastSyncDateFormatted {
-    if (lastSyncDate == null) return '';
-    final d = lastSyncDate!;
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-  }
-}
-
 class Paritaria {
   final String jurisdiccion;
   final String nombreMostrar;
@@ -79,14 +52,8 @@ class ParitariasService {
   static const String _cacheKey = 'maestro_paritarias_cache';
   static const String _lastSyncKey = 'ultima_sincronizacion_paritarias';
 
-  static ParitariasSyncStatus _lastSyncStatus = const ParitariasSyncStatus(success: false);
-
-  static ParitariasSyncStatus get lastSyncStatus => _lastSyncStatus;
-
   /// Sincroniza las paritarias desde Supabase y las guarda en local
   static Future<Map<String, dynamic>> sincronizarParitarias() async {
-    _lastSyncStatus = const ParitariasSyncStatus(success: false); // Reset status at start
-
     final connectivity = await Connectivity().checkConnectivity();
     final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
 
@@ -95,11 +62,6 @@ class ParitariasService {
     DateTime? ultimaFecha = lastSyncStr != null ? DateTime.tryParse(lastSyncStr) : null;
 
     if (!isOnline) {
-      _lastSyncStatus = ParitariasSyncStatus(
-        success: false,
-        lastSyncDate: ultimaFecha, // Last recorded sync date
-        dataUpdateDate: _lastSyncStatus.dataUpdateDate, // Keep previous if any
-      );
       return {
         'success': false,
         'fecha': ultimaFecha,
@@ -122,20 +84,6 @@ class ParitariasService {
         // También actualizar el HybridStore para que el motor lo use
         await HybridStore.saveMaestroParitarias(list.cast<Map<String, dynamic>>());
 
-        // Determine the latest data update date from the fetched list
-        DateTime? latestDataUpdate;
-        // Assuming 'updated_at' in the map is a string that can be parsed to DateTime.
-        latestDataUpdate = list
-            .map((item) => DateTime.tryParse(item['updated_at'] ?? ''))
-            .whereType<DateTime>()
-            .fold<DateTime?>(null, (prev, current) => prev == null || current.isAfter(prev) ? current : prev);
-
-        _lastSyncStatus = ParitariasSyncStatus(
-          success: true,
-          lastSyncDate: ahora,
-          dataUpdateDate: latestDataUpdate,
-        );
-
         return {
           'success': true,
           'fecha': ahora,
@@ -143,26 +91,13 @@ class ParitariasService {
           'data': list,
         };
       }
-      // If list is empty, it falls through to the final return, which is 'success: false, modo: error'.
-      // This matches the original behavior.
     } catch (e) {
       print('Error sincronizando paritarias Flutter: $e');
-      _lastSyncStatus = ParitariasSyncStatus(
-        success: false,
-        lastSyncDate: DateTime.now(), // Sync attempt happened now, but failed
-        dataUpdateDate: _lastSyncStatus.dataUpdateDate, // Keep previous data update date if sync fails
-      );
     }
 
-    // This return is for error case (from catch) or if list was empty (from try).
-    _lastSyncStatus = ParitariasSyncStatus(
-      success: false,
-      lastSyncDate: DateTime.now(), // Sync attempt happened now, but failed
-      dataUpdateDate: _lastSyncStatus.dataUpdateDate, // Keep previous data update date if sync fails
-    );
     return {
       'success': false,
-      'fecha': ultimaFecha, // This should be the last successful sync date, not now.
+      'fecha': ultimaFecha,
       'modo': 'error',
       'data': await _getCachedData(),
     };

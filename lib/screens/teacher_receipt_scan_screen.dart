@@ -10,7 +10,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/teacher_receipt_scan_service.dart';
 import '../theme/app_colors.dart';
-import '../models/ocr_confirm_result.dart';
 import 'ocr_review_screen.dart';
 
 class TeacherReceiptScanScreen extends StatefulWidget {
@@ -38,13 +37,7 @@ class _TeacherReceiptScanScreenState extends State<TeacherReceiptScanScreen> {
       context,
       MaterialPageRoute(builder: (ctx) => OcrReviewScreen(extract: result)),
     ).then((value) {
-      if (value != null && mounted) {
-        if (value is OcrConfirmResult) {
-          Navigator.pop(context, value);
-        } else {
-          Navigator.pop(context, value);
-        }
-      }
+      if (value != null && mounted) Navigator.pop(context, value);
     });
   }
 
@@ -254,7 +247,7 @@ class _QrScannerPageState extends State<_QrScannerPage> {
     _processing = true;
     final parsed = _svc.tryParseQr(raw);
     if (parsed != null) {
-      if (parsed.source == OcrExtractSource.qrUrl && ((parsed.cabecera?.empleadoCuil ?? '').isEmpty) && parsed.sueldoBasico == null) {
+      if (parsed.source == OcrExtractSource.qrUrl && parsed.cuil == null && parsed.sueldoBasico == null) {
         if (!mounted) return;
         showDialog(
           context: context,

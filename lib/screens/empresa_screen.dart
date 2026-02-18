@@ -1,4 +1,3 @@
-import 'package:elevar_liquidacion/screens/verificador_recibo_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,15 +51,6 @@ class EmpresaScreenState extends State<EmpresaScreen> {
   String? _formatoReciboId;
   List<CCTCompleto> _conveniosDisponibles = [];
   bool _inicializando = true; // Flag para evitar que el listener se ejecute durante initState
-
-  void _abrirEscanerRecibo() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const VerificadorReciboScreen(),
-      ),
-    );
-  }
 
   @override
   void initState() {
@@ -256,8 +246,6 @@ class EmpresaScreenState extends State<EmpresaScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-            _buildScanReceiptInvitation(),
-            const SizedBox(height: 20),
                     TextField(
                       autofocus: true,
                       style: const TextStyle(color: AppColors.textPrimary),
@@ -461,52 +449,6 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     }
   }
 
-  Widget _buildScanReceiptInvitation() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: AppColors.accentBlue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '¡Facilitá tu trabajo, Contador!',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Escaneá el recibo de sueldo para cargar automáticamente los datos del empleado.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: FilledButton.icon(
-              onPressed: _abrirEscanerRecibo,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Escanear Recibo'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.pastelMint,
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _razonSocialController.dispose();
@@ -566,8 +508,6 @@ class EmpresaScreenState extends State<EmpresaScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            _buildScanReceiptInvitation(),
-            const SizedBox(height: 20),
             _buildSeccion(
               'Información Básica',
               Icons.business_center,

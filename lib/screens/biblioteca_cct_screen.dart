@@ -6,12 +6,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/cct_cloud_service.dart';
-import '../services/educational_concepts_service.dart';
 import '../theme/app_colors.dart';
-import 'glosario_conceptos_screen.dart';
 
 class BibliotecaCCTScreen extends StatefulWidget {
   const BibliotecaCCTScreen({super.key});
@@ -89,7 +86,7 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _buildBannerSincronizacion(),
-          _buildAcademyBanner(context),
+          // _buildAcademyBanner(context),
           const SizedBox(height: 16),
           _buildInstruccionesRobot(),
           const SizedBox(height: 16),
@@ -102,118 +99,8 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
     );
   }
 
-  Widget _buildAcademyBanner(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.secondary, AppColors.secondary.withValues(alpha: 0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: AppColors.glassBorder.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.school, color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Elevar Formación Técnica',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    Text(
-                      'Academia de Liquidadores',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Convertite en un experto en liquidación de sueldos con nuestros cursos prácticos y actualizados.',
-            style: TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              // Botón WhatsApp
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final phone = EducationalConceptsService.contactoAcademia;
-                    final url = Uri.parse('https://wa.me/$phone?text=Hola! Me gustaría recibir información sobre los cursos de liquidación de sueldos.');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: const Text('WhatsApp'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF25D366),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Botón Glosario
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (c) => const GlosarioConceptosScreen()));
-                  },
-                  icon: const Icon(Icons.book, size: 18),
-                  label: const Text('Glosario'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildAcademyBanner removed
+
   
   /// Banner de sincronización (misma metodología que Docentes y Sanidad)
   Widget _buildBannerSincronizacion() {

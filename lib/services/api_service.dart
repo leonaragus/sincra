@@ -29,13 +29,6 @@ class SyncStatus {
     final d = dataUpdateDate!;
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
-
-  /// Formato DD/MM/YYYY del último intento de sincronización.
-  String get lastSyncDateFormatted {
-    if (lastSyncDate == null) return '';
-    final d = lastSyncDate!;
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-  }
 }
 
 /// Servicio de sincronización de convenios desde URL externa.

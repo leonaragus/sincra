@@ -3,7 +3,6 @@
 // Módulo Independiente - No hereda lógica de convenios previos
 // ========================================================================
 
-
 /// Enum para las 24 jurisdicciones (23 provincias + CABA)
 enum Jurisdiccion {
   buenosAires,      // Provincia de Buenos Aires

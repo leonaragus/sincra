@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:elevar_liquidacion/services/api_service.dart';
-import 'package:elevar_liquidacion/theme/app_colors.dart';
-import 'package:elevar_liquidacion/models/cct_completo.dart';
-import 'package:elevar_liquidacion/models/convenio_model.dart';
-import 'package:elevar_liquidacion/data/cct_argentina_completo.dart';
-import 'package:elevar_liquidacion/widgets/cct_detail_dialog.dart';
+import '../services/api_service.dart';
+import '../theme/app_colors.dart';
+import '../models/cct_completo.dart';
+import '../models/convenio_model.dart';
+import '../data/cct_argentina_completo.dart';
+import '../widgets/cct_detail_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'verificador_recibo_screen.dart';
 
 class ConoceTuConvenioScreen extends StatefulWidget {
   final String? convenioId;
@@ -27,57 +26,6 @@ class _ConoceTuConvenioScreenState extends State<ConoceTuConvenioScreen> {
   String? _categoriaSeleccionada;
   bool _isLoading = true;
   final List<CCTCompleto> _todosConvenios = [];
-
-  Widget _buildScanReceiptInvitation() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: AppColors.accentBlue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Verificá tu recibo según tu convenio',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Escaneá el recibo de sueldo y compará con las reglas del convenio.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: FilledButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const VerificadorReciboScreen()),
-                );
-              },
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Escanear Recibo'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.pastelMint,
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   void initState() {
@@ -540,8 +488,6 @@ class _ConoceTuConvenioScreenState extends State<ConoceTuConvenioScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildScanReceiptInvitation(),
-                  const SizedBox(height: 16),
                   // Indicador de estado de sincronización
                   _buildSyncStatusIndicator(),
                   const SizedBox(height: 16),

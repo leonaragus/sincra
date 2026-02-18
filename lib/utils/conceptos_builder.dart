@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:elevar_liquidacion/models/recibo_escaneado.dart';
-import 'package:elevar_liquidacion/services/conceptos_explicaciones_service.dart';
-import 'package:elevar_liquidacion/theme/app_colors.dart';
+import 'package:syncra_arg/models/recibo_escaneado.dart';
+import 'package:syncra_arg/services/conceptos_explicaciones_service.dart';
+import 'package:syncra_arg/theme/app_colors.dart';
 
 class ConceptosBuilder {
   static Widget buildResumenConceptos(ReciboEscaneado? recibo, BuildContext context) {
