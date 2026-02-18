@@ -218,6 +218,13 @@ class HomeScreenState extends State<HomeScreen> {
         onTap: () => _navegarAEmpresa(null),
       ),
       _buildModernCard(
+        title: 'Validador LSD ARCA',
+        subtitle: 'Validador previo de archivos LSD 2026',
+        icon: Icons.fact_check,
+        iconColor: AppColors.accentBlue,
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ValidadorLSDScreen())),
+      ),
+      _buildModernCard(
         title: 'Verificador de Recibo',
         subtitle: 'Escaneá y verificá tu liquidación',
         icon: Icons.document_scanner_outlined,
@@ -274,13 +281,6 @@ class HomeScreenState extends State<HomeScreen> {
         icon: Icons.dashboard,
         iconColor: const Color(0xFF9333EA),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardGerencialScreen())),
-      ),
-      _buildModernCard(
-        title: 'Validador LSD ARCA',
-        subtitle: 'Validador previo de archivos LSD 2026',
-        icon: Icons.fact_check,
-        iconColor: AppColors.accentBlue,
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ValidadorLSDScreen())),
       ),
       _buildModernCard(
         title: 'Conceptos Recurrentes',

@@ -138,7 +138,8 @@ class ApiService {
   }
 
   static Future<List<ConvenioModel>> _fetchFromRemote() async {
-    final response = await http.get(Uri.parse(_effectiveUrl)).timeout(
+    final urlWithTimestamp = '$_effectiveUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+    final response = await http.get(Uri.parse(urlWithTimestamp)).timeout(
       const Duration(seconds: 15),
       onTimeout: () => throw Exception('Timeout'),
     );
