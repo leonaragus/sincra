@@ -15,6 +15,8 @@ import '../data/rnos_docentes_data.dart';
 import 'dart:ui';
 import '../utils/app_help.dart';
 import '../utils/image_preview.dart';
+import 'empresa_receipt_scan_screen.dart';
+import '../services/empresa_receipt_scan_service.dart';
 
 class EmpresaScreen extends StatefulWidget {
   final String? razonSocial;
@@ -459,6 +461,38 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     super.dispose();
   }
 
+  Future<void> _escanearRecibo() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (ctx) => const EmpresaReceiptScanScreen()),
+    );
+    
+    if (result is EmpresaExtractResult && mounted) {
+      setState(() {
+        if (result.razonSocial != null && result.razonSocial!.isNotEmpty) {
+          _razonSocialController.text = result.razonSocial!;
+        }
+        if (result.cuit != null && result.cuit!.isNotEmpty) {
+          // Limpiar formato previo
+          final rawCuit = result.cuit!.replaceAll(RegExp(r'[^\d]'), '');
+          _cuitController.text = rawCuit; 
+          // El listener _formatearCUIT se encargará del formato
+        }
+        if (result.domicilio != null && result.domicilio!.isNotEmpty) {
+          _domicilioController.text = result.domicilio!;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Datos de empresa autocompletados desde el recibo'),
+          backgroundColor: Colors.green.withOpacity(0.8),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -491,6 +525,20 @@ class EmpresaScreenState extends State<EmpresaScreen> {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
+                color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.3)),
+              ),
+              child: const Icon(Icons.document_scanner, color: AppColors.pastelBlue, size: 20),
+            ),
+            tooltip: 'Escanear Recibo',
+            onPressed: _escanearRecibo,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
@@ -512,6 +560,8 @@ class EmpresaScreenState extends State<EmpresaScreen> {
               'Información Básica',
               Icons.business_center,
               [
+                _buildOcrButton(),
+                const SizedBox(height: 24),
                 _buildTextField(
                   controller: _razonSocialController,
                   label: 'Razón Social',
@@ -845,6 +895,72 @@ class EmpresaScreenState extends State<EmpresaScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOcrButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.glassFill,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _escanearRecibo,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.pastelBlue.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.document_scanner,
+                    color: AppColors.pastelBlue,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Autocompletar con Recibo',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Escanear un recibo anterior para extraer datos',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: AppColors.textMuted,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

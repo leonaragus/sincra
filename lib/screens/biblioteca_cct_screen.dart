@@ -7,10 +7,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart'; // Added
 import '../services/cct_cloud_service.dart';
-import '../services/ocr_cct_service.dart'; // Added
 import '../theme/app_colors.dart';
+import 'cct_scan_screen.dart';
 
 class BibliotecaCCTScreen extends StatefulWidget {
   const BibliotecaCCTScreen({super.key});
@@ -76,120 +75,26 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
 
   // === CCT SCANNER (Nuevo) ===
   Future<void> _escanearCCT() async {
-    // 1. Elegir fuente (Cámara/Galería)
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: AppColors.backgroundLight,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-             const Text('Escanear Escala Salarial', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-             const SizedBox(height: 16),
-             ListTile(
-               leading: const Icon(Icons.camera_alt, color: AppColors.pastelOrange),
-               title: const Text('Cámara', style: TextStyle(color: AppColors.textPrimary)),
-               onTap: () => Navigator.pop(ctx, ImageSource.camera),
-             ),
-             ListTile(
-               leading: const Icon(Icons.photo_library, color: AppColors.pastelBlue),
-               title: const Text('Galería', style: TextStyle(color: AppColors.textPrimary)),
-               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-             ),
-          ],
-        ),
-      ),
+    // Navegar a la pantalla de escaneo dedicada (estilo Docentes)
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CctScanScreen()),
     );
 
-    if (source == null) return;
-
-    // 2. Obtener imagen
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: source, imageQuality: 85);
-    
-    if (image == null) return;
-
-    // 3. Procesar con OCRCCTService (Robusto)
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Procesando imagen con IA...'), duration: Duration(seconds: 2)),
-    );
-
-    try {
-      final resultado = await OCRCCTService.procesarImagenCCT(image.path);
-      
-      if (!mounted) return;
-
-      if (!resultado.exito) {
-        // Truncar error
-        String errorMsg = resultado.error ?? 'Error desconocido';
-        if (errorMsg.length > 200) errorMsg = '${errorMsg.substring(0, 200)}...';
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $errorMsg'), backgroundColor: Colors.red),
-        );
-        return;
-      }
-
-      // 4. Mostrar resultados (Review simple)
-      _mostrarResultadosCCT(resultado);
-
-    } catch (e) {
-      if (!mounted) return;
+    if (result == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error inesperado: $e'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('CCT escaneado y procesado correctamente'),
+          backgroundColor: Colors.green,
+        ),
       );
+      // Aquí se podría recargar la lista si el escaneo guardó algo en la nube/BD
+      _cargarCCTs(); 
     }
   }
 
-  void _mostrarResultadosCCT(ResultadoOCRCCT resultado) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        title: const Text('Escala Detectada', style: TextStyle(color: AppColors.textPrimary)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('CCT: ${resultado.nombreCCT.isNotEmpty ? resultado.nombreCCT : "No detectado"}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                Text('Código: ${resultado.codigoCCT.isNotEmpty ? resultado.codigoCCT : "-"}', style: const TextStyle(color: AppColors.textSecondary)),
-                const Divider(),
-                if (resultado.escalas.isEmpty)
-                  const Text('No se detectaron escalas salariales.', style: TextStyle(color: AppColors.textMuted)),
-                ...resultado.escalas.map((e) => ListTile(
-                  title: Text(e.categoria, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-                  subtitle: Text(e.observaciones ?? '', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                  trailing: Text(
-                    e.basico != null ? '\$${NumberFormat("#,##0.00", "es_AR").format(e.basico)}' : '-',
-                    style: const TextStyle(color: AppColors.pastelMint, fontWeight: FontWeight.bold),
-                  ),
-                )),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
-          FilledButton(
-            onPressed: () {
-              // Aquí se podría guardar en la BD o Cloud
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Datos listos para sincronizar (Simulado)'), backgroundColor: Colors.green),
-              );
-            }, 
-            child: const Text('Confirmar')
-          ),
-        ],
-      ),
-    );
-  }
+  // El método _mostrarResultadosCCT ya no es necesario aquí porque se maneja en CctOcrReviewScreen
+
   
   @override
   Widget build(BuildContext context) {

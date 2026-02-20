@@ -4,7 +4,9 @@
 // ========================================================================
 
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:cross_file/cross_file.dart';
 import '../utils/image_bytes_reader.dart';
 import 'claude_vision_service.dart';
 
@@ -45,17 +47,21 @@ class ResultadoOCRCCT {
 class OCRCCTService {
   // static final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   
-  /// Procesa un PDF de CCT y extrae escalas salariales
-  /// 
-  /// Nota: Para PDFs, primero se deben convertir a imágenes.
-  /// Este servicio trabaja con imágenes (jpg/png) del PDF.
-  static Future<ResultadoOCRCCT> procesarImagenCCT(String imagePath) async {
+  /// Procesa una imagen XFile (Web/Mobile)
+  static Future<ResultadoOCRCCT> procesarImagenXFile(XFile file) async {
     try {
-      final bytes = await readImageBytes(imagePath);
-      if (bytes == null || bytes.isEmpty) {
-        throw Exception('No se pudieron leer los bytes de la imagen: $imagePath');
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        throw Exception('No se pudieron leer los bytes de la imagen.');
       }
+      return _procesarBytes(bytes);
+    } catch (e) {
+      throw e;
+    }
+  }
 
+  /// Procesa bytes de imagen para extraer escalas salariales
+  static Future<ResultadoOCRCCT> _procesarBytes(Uint8List bytes) async {
       const prompt = '''Analiza este documento de Convenio Colectivo de Trabajo (CCT) o Escala Salarial.
 Extrae la siguiente información en formato JSON estricto:
 - "codigoCCT": El código del convenio (ej: 130/75). Si no está explícito, trata de inferirlo o usa null.
@@ -111,18 +117,22 @@ Estructura:
         totalEscalasDetectadas: (data['escalas'] as List? ?? []).length,
         exito: true,
       );
+  }
 
+  /// Procesa un PDF de CCT y extrae escalas salariales
+  /// 
+  /// Nota: Para PDFs, primero se deben convertir a imágenes.
+  /// Este servicio trabaja con imágenes (jpg/png) del PDF.
+  static Future<ResultadoOCRCCT> procesarImagenCCT(String imagePath) async {
+    try {
+      final bytes = await readImageBytes(imagePath);
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('No se pudieron leer los bytes de la imagen: $imagePath');
+      }
+      return _procesarBytes(bytes);
     } catch (e) {
-      debugPrint('Error en OCRCCTService: $e');
-      return ResultadoOCRCCT(
-        codigoCCT: '',
-        nombreCCT: '',
-        escalas: [],
-        textoCompleto: '',
-        totalEscalasDetectadas: 0,
-        exito: false,
-        error: e.toString(),
-      );
+      // Re-lanzar para ser capturado por el wrapper
+      throw e;
     }
   }
 

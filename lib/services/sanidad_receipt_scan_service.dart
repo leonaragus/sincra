@@ -9,9 +9,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/sanidad_omni_engine.dart';
 import '../utils/image_bytes_reader.dart';
-import 'claude_vision_service.dart';
+import 'ocr_service.dart';
+import '../models/recibo_model.dart';
 
 /// Origen de los datos extraídos
 enum OcrExtractSourceSanidad { qrJson, qrUrl, ocr }
@@ -34,6 +36,9 @@ class SanidadOcrExtractResult {
   final double? adicionalTitulo;
   final double? tareaCriticaRiesgo;
   final double? adicionalZonaPatagonica;
+  
+  // Lista de items completa para referencia (como en Docentes)
+  final List<Map<String, dynamic>>? items;
 
   const SanidadOcrExtractResult({
     this.cuil,
@@ -50,6 +55,7 @@ class SanidadOcrExtractResult {
     this.adicionalTitulo,
     this.tareaCriticaRiesgo,
     this.adicionalZonaPatagonica,
+    this.items,
   });
 
   bool get hasError => error != null && error!.isNotEmpty;
@@ -68,7 +74,7 @@ class SanidadOmniOverrides {
   });
 }
 
-/// Servicio de escaneo: OCR (ML Kit) y parsing de QR (JSON / URL)
+/// Servicio de escaneo: OCR (ML Kit/Claude) y parsing de QR (JSON / URL)
 class SanidadReceiptScanService {
   static final SanidadReceiptScanService _instance = SanidadReceiptScanService._();
   factory SanidadReceiptScanService() => _instance;
@@ -162,19 +168,13 @@ class SanidadReceiptScanService {
     return int.tryParse(v.toString());
   }
 
-  // --- OCR (Cloud with Claude) ---
+  // --- OCR (Cloud with Claude via OcrService) ---
 
-  /// Ejecuta OCR sobre [imagePath].
+  /// Ejecuta OCR sobre [imagePath] (ruta a archivo).
   Future<SanidadOcrExtractResult> runOcrFromPath(String imagePath) async {
     try {
-      final bytes = await readImageBytes(imagePath);
-      if (bytes == null || bytes.isEmpty) {
-        return const SanidadOcrExtractResult(
-          source: OcrExtractSourceSanidad.ocr,
-          error: 'No se pudo leer el archivo de imagen.',
-        );
-      }
-      return _analyzeWithClaude(bytes);
+      final xfile = XFile(imagePath);
+      return runOcrFromXFile(xfile);
     } catch (e, st) {
       debugPrint('SanidadReceiptScanService.runOcr: $e\n$st');
       return const SanidadOcrExtractResult(
@@ -184,98 +184,125 @@ class SanidadReceiptScanService {
     }
   }
 
-  /// OCR desde bytes
-  Future<SanidadOcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
-    // width y height se ignoran porque usamos Claude Vision
-    return _analyzeWithClaude(bytes);
-  }
-
-  Future<SanidadOcrExtractResult> _analyzeWithClaude(Uint8List bytes) async {
+  /// Ejecuta OCR sobre [XFile] (para compatibilidad Web).
+  Future<SanidadOcrExtractResult> runOcrFromXFile(XFile file) async {
     try {
-      const prompt = '''Analiza este recibo de sueldo de Sanidad (FATSA).
-Extrae los siguientes datos en formato JSON estricto:
-- "cuil": CUIL del empleado (con guiones o sin ellos).
-- "nombre": Nombre del empleado.
-- "sueldoBasico": El sueldo básico mensual (numérico).
-- "antiguedadPct": El porcentaje de antigüedad (ej: 2.0). Si solo figura en años, usa el campo "antiguedad" con la cantidad de años.
-- "categoria": La categoría profesional (ej: Enfermero, Administrativo, Mucama).
-- "horasNocturnas": Cantidad de horas nocturnas trabajadas (entero).
-- "jurisdiccion": Provincia o jurisdicción (ej: CABA, Buenos Aires).
-- "adicionalTitulo": Monto por título.
-- "tareaCriticaRiesgo": Monto por tarea crítica o riesgo.
-- "adicionalZonaPatagonica": Monto por zona patagónica.
+      // Usamos el OcrService estándar (el del verificador y docentes)
+      // Pasamos 'Sanidad' como contexto para ayudar a la IA si fuera necesario
+      final ocrService = OcrService();
+      final ocrResult = await ocrService.procesarImagen(file, contextoConvenio: 'Sanidad FATSA');
 
-Responde SOLO con el JSON.
-Estructura:
-{
-  "cuil": "20-12345678-9",
-  "nombre": "Juan Perez",
-  "sueldoBasico": 123456.78,
-  "antiguedadPct": 2.0,
-  "antiguedad": 1,
-  "categoria": "Enfermero",
-  "horasNocturnas": 0,
-  "jurisdiccion": "CABA",
-  "adicionalTitulo": 0.0,
-  "tareaCriticaRiesgo": 0.0,
-  "adicionalZonaPatagonica": 0.0
-}
-''';
-
-      final jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes, customPrompt: prompt);
-      
-      Map<String, dynamic> data;
-      try {
-        // Limpieza robusta de bloques de código Markdown
-        String jsonStr = jsonResponse;
-        if (jsonStr.contains('```json')) {
-          jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
-        } else if (jsonStr.contains('```')) {
-          jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
-        }
+      if (!ocrResult.exito || ocrResult.reciboModel == null) {
+        final errorMsg = ocrResult.texto.length > 200 
+            ? '${ocrResult.texto.substring(0, 200)}...' 
+            : ocrResult.texto;
         
-        data = jsonDecode(jsonStr);
-      } catch (e) {
-        // Fallback simple por si acaso
-        final cleaned = jsonResponse.replaceAll(RegExp(r'```json|```'), '').trim();
-        data = jsonDecode(cleaned);
+        return SanidadOcrExtractResult(
+          source: OcrExtractSourceSanidad.ocr,
+          error: 'No se pudieron extraer datos: $errorMsg', 
+          rawTextOcr: ocrResult.textoCrudo,
+        );
       }
-      
-      // Reutilizamos _fromJson pero forzamos el source a OCR
-      final baseResult = _fromJson(data);
-      
-      return SanidadOcrExtractResult(
-        cuil: baseResult.cuil,
-        nombre: baseResult.nombre,
-        sueldoBasico: baseResult.sueldoBasico,
-        antiguedadPct: baseResult.antiguedadPct,
-        categoriaRaw: baseResult.categoriaRaw,
-        horasNocturnas: baseResult.horasNocturnas,
-        jurisdiccionRaw: baseResult.jurisdiccionRaw,
-        urlDetectada: baseResult.urlDetectada,
-        source: OcrExtractSourceSanidad.ocr,
-        rawTextOcr: jsonResponse,
-        adicionalTitulo: baseResult.adicionalTitulo,
-        tareaCriticaRiesgo: baseResult.tareaCriticaRiesgo,
-        adicionalZonaPatagonica: baseResult.adicionalZonaPatagonica,
-      );
 
-    } catch (e) {
-      debugPrint('Error en Claude Vision (Sanidad): $e');
-      // Si falla, devolvemos un mensaje de error controlado, no el raw text gigante si es un error de parseo
-      String errorMsg = 'No se pudo interpretar el recibo.';
-      if (e.toString().contains('FormatException') || e.toString().contains('SyntaxError')) {
-         errorMsg = 'La IA respondió pero el formato no es válido.';
-      } else {
-         errorMsg = 'Error: $e';
-      }
-      
-      return SanidadOcrExtractResult(
+      // MAPEO: Transformamos ReciboModel (complejo) a SanidadOcrExtractResult (plano)
+      return _mapReciboModelToSanidadResult(ocrResult.reciboModel!, ocrResult.textoCrudo);
+
+    } catch (e, st) {
+      debugPrint('SanidadReceiptScanService.runOcrFromXFile: $e\n$st');
+      return const SanidadOcrExtractResult(
         source: OcrExtractSourceSanidad.ocr,
-        error: errorMsg,
-        rawTextOcr: e.toString(), // Guardamos el error técnico en rawText para debug
+        error: 'Error al procesar la imagen.',
       );
     }
+  }
+
+  /// Mapea la estructura compleja de ReciboModel a la estructura de Sanidad
+  SanidadOcrExtractResult _mapReciboModelToSanidadResult(ReciboModel model, String rawText) {
+    final cab = model.cabecera;
+    final det = model.liquidacionDetallada;
+
+    // 1. Mapeo de Items para referencia (opcional pero útil)
+    List<Map<String, dynamic>> allItems = [];
+    for (var h in det.haberes) {
+      allItems.add({
+        'descripcion': h.descripcion,
+        'monto': h.monto,
+        'tipo': 'haber',
+      });
+    }
+    for (var r in det.retenciones) {
+      allItems.add({
+        'descripcion': r.descripcion,
+        'monto': r.monto,
+        'tipo': 'retencion',
+      });
+    }
+
+    // 2. Extracción de valores clave para Sanidad usando lógica difusa sobre los items
+    double? basico;
+    double? antiguedad;
+    int? horasNocturnas;
+    double? zona;
+    double? titulo;
+    double? riesgo;
+    
+    // Buscamos conceptos específicos en los haberes
+    for (var h in det.haberes) {
+      final desc = h.descripcion.toLowerCase();
+      
+      // Básico
+      if (basico == null && (desc.contains('basico') || desc.contains('básico') || desc.contains('sueldo'))) {
+        basico = h.monto;
+      }
+      
+      // Antigüedad
+      if (antiguedad == null && (desc.contains('antiguedad') || desc.contains('antigüedad'))) {
+        // Intentamos sacar el porcentaje de la cantidad o descripción si es posible
+        final cant = cleanAmount(h.cantidad);
+        if (cant != null && cant > 0 && cant < 100) {
+           antiguedad = cant; // Asumimos años/porcentaje
+        }
+      }
+      
+      // Horas Nocturnas
+      if (horasNocturnas == null && (desc.contains('nocturna') || desc.contains('noche'))) {
+        final cant = cleanAmount(h.cantidad);
+        if (cant != null) {
+          horasNocturnas = cant.toInt();
+        }
+      }
+      
+      // Zona Patagónica
+      if (zona == null && (desc.contains('zona') || desc.contains('patagonica') || desc.contains('patagónica'))) {
+        zona = h.monto;
+      }
+      
+      // Título
+      if (titulo == null && (desc.contains('titulo') || desc.contains('título'))) {
+        titulo = h.monto;
+      }
+      
+      // Riesgo / Tarea Crítica
+      if (riesgo == null && (desc.contains('riesgo') || desc.contains('critica') || desc.contains('crítica'))) {
+        riesgo = h.monto;
+      }
+    }
+
+    return SanidadOcrExtractResult(
+      cuil: cab.empleadoCuil,
+      nombre: cab.empleadoNombre,
+      sueldoBasico: basico,
+      antiguedadPct: antiguedad,
+      categoriaRaw: cab.categoriaProfesional, // Usamos la categoría detectada en cabecera
+      horasNocturnas: horasNocturnas,
+      jurisdiccionRaw: cab.empresaDomicilio, // Aproximación
+      source: OcrExtractSourceSanidad.ocr,
+      rawTextOcr: rawText,
+      adicionalTitulo: titulo,
+      tareaCriticaRiesgo: riesgo,
+      adicionalZonaPatagonica: zona,
+      items: allItems,
+    );
   }
 
   /// Parsea el contenido de [BarcodeCapture] si es código QR
@@ -291,6 +318,5 @@ Estructura:
 
   void close() {
     // _textRecognizer?.close();
-    // _textRecognizer = null;
   }
 }

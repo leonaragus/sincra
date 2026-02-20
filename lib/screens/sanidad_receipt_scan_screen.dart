@@ -62,12 +62,10 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
         setState(() => _loading = false);
         return;
       }
-      final path = f.path;
-      if (path.isEmpty) {
-        _showError('No se pudo obtener la imagen.');
-        return;
-      }
-      final result = await _svc.runOcrFromPath(path);
+      
+      // Usamos XFile directo para compatibilidad Web
+      final result = await _svc.runOcrFromXFile(f);
+      
       if (result.hasError) {
         // Truncar error si es muy largo
         String errorMsg = result.error!;
@@ -99,28 +97,110 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
     );
   }
 
+  /// OCR (ML Kit) y QR (mobile_scanner) solo tienen implementación nativa en Android e iOS.
+  /// En Windows/macOS/Linux se evita invocar los plugins para no generar MissingPluginException.
+  /// ACTUALIZACIÓN: Ahora usamos Claude Vision (Cloud) para OCR, por lo que Web es compatible.
+  static bool get _isScanSupported => true;
+
   @override
   Widget build(BuildContext context) {
-    // OCR (ML Kit) y QR (mobile_scanner) solo tienen implementación nativa en Android e iOS.
-    // En Windows/desktop/Web no están los plugins nativos: MissingPluginException.
-    // Por eso mostramos aviso y deshabilitamos opciones.
-    final bool isDesktop = kIsWeb || (!kIsWeb && (Theme.of(context).platform == TargetPlatform.windows || Theme.of(context).platform == TargetPlatform.linux || Theme.of(context).platform == TargetPlatform.macOS));
+    if (!_isScanSupported) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
+          title: const Text('Escanear Recibo FATSA', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.phonelink_off, size: 56, color: AppColors.textMuted),
+                const SizedBox(height: 16),
+                Text(
+                  'El escaneo de recibos (OCR y códigos QR) está disponible solo en Android e iOS.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.35),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'En Windows puede cargar datos manualmente o usar la app en un celular.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Escanear Recibo FATSA', style: TextStyle(color: Colors.white)),
-        backgroundColor: AppColors.background,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
+        title: const Text('Escanear Recibo FATSA', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
       ),
       body: Center(
-        child: isDesktop
-          ? _buildDesktopWarning()
-          : _buildMobileOptions(),
+        child: _loading
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: AppColors.pastelMint),
+                  SizedBox(height: 16),
+                  Text('Procesando imagen con IA...', style: TextStyle(color: AppColors.textSecondary)),
+                ],
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Colors.red.shade900.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
+                          child: Row(children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade300),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.textPrimary))),
+                          ]),
+                        ),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: AppColors.glassFillStrong, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.glassBorder)),
+                      child: Column(
+                        children: [
+                          Icon(Icons.receipt_long, size: 48, color: AppColors.pastelMint),
+                          const SizedBox(height: 16),
+                          const Text('Escaneo Inteligente FATSA', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          const Text('Procesamiento con IA (OCR + QR)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          const SizedBox(height: 20),
+                          _Bot(label: 'Escanear código QR', icon: Icons.qr_code_scanner, onTap: _openQrScanner),
+                          const SizedBox(height: 12),
+                          _Bot(label: 'Tomar foto', icon: Icons.camera_alt, onTap: () => _pickAndOcr(ImageSource.camera)),
+                          const SizedBox(height: 12),
+                          _Bot(label: 'Elegir de galería', icon: Icons.photo_library, onTap: () => _pickAndOcr(ImageSource.gallery)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }
 
+/*
   Widget _buildDesktopWarning() {
     return Container(
       margin: const EdgeInsets.all(40),
@@ -231,6 +311,7 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
       ),
     );
   }
+*/
 }
 
 class _Bot extends StatelessWidget {
@@ -242,16 +323,19 @@ class _Bot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: FilledButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 24),
-        label: Text(label, style: const TextStyle(fontSize: 16)),
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.glassFill,
-          foregroundColor: Colors.white,
+    return Material(
+      color: AppColors.glassFill,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          child: Row(children: [
+            Icon(icon, color: AppColors.pastelMint, size: 28),
+            const SizedBox(width: 16),
+            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+          ]),
         ),
       ),
     );
