@@ -462,6 +462,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
           ? _ocrOverrides?.sueldoBasicoOverride
           : double.tryParse(_sueldoBasicoOverrideController.text.replaceAll(',', '.'));
 
+      final baseIndemnizatoria = double.tryParse(_baseIndemnizatoriaController.text.replaceAll(',', '.'));
       final input = DocenteOmniInput(
         nombre: nombre,
         cuil: _cuilController.text.trim(),
@@ -489,91 +490,102 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
         fechaCese: _fechaCeseController.text.isNotEmpty ? DateFormat('yyyy-MM-dd').parse(_fechaCeseController.text) : null,
         motivoCese: _motivoCese,
         incluyePreaviso: _incluyePreaviso,
-        baseIndemnizatoria: double.tryParse(_baseIndemnizatoriaController.text.replaceAll(',', '.')),
+        baseIndemnizatoria: baseIndemnizatoria,
       );
 
-      final r = TeacherOmniEngine.liquidar(
-        input,
-        periodo: DateFormat('MMMM yyyy', 'es_AR').format(DateTime.now()),
-        fechaPago: DateFormat('dd/MM/yyyy').format(DateTime.now()),
-        cantidadCargos: int.tryParse(_cantCargosController.text) ?? 1,
-        conceptosPropios: _conceptosPropios,
-        deduccionesAdicionales: _deduccionesAdicionales,
-      );
-      
-      // VALIDACIÓN CRÍTICA: Embargos y descuentos adicionales (20% del neto máximo)
-      bool advertenciaEmbargoLegal = false;
-      final deduccionesKeys = _deduccionesAdicionales.keys.where((k) => 
-        k.toLowerCase().contains('embargo')).toList();
-      double totalEmbargos = 0;
-      for (final k in deduccionesKeys) {
-        totalEmbargos += _deduccionesAdicionales[k] ?? 0;
-      }
-      if (totalEmbargos > 0) {
-        final limiteEmbargoLegal = r.netoACobrar * 0.20;
-        if (totalEmbargos > limiteEmbargoLegal) {
-          advertenciaEmbargoLegal = true;
+      try {
+        final r = TeacherOmniEngine.liquidar(
+          input,
+          periodo: DateFormat('MMMM yyyy', 'es_AR').format(DateTime.now()),
+          fechaPago: DateFormat('dd/MM/yyyy').format(DateTime.now()),
+          cantidadCargos: int.tryParse(_cantCargosController.text) ?? 1,
+          conceptosPropios: _conceptosPropios,
+          deduccionesAdicionales: _deduccionesAdicionales,
+        );
+        
+        // VALIDACIÓN CRÍTICA: Embargos y descuentos adicionales (20% del neto máximo)
+        bool advertenciaEmbargoLegal = false;
+        final deduccionesKeys = _deduccionesAdicionales.keys.where((k) => 
+          k.toLowerCase().contains('embargo')).toList();
+        double totalEmbargos = 0;
+        for (final k in deduccionesKeys) {
+          totalEmbargos += _deduccionesAdicionales[k] ?? 0;
         }
-      }
-      
-      // VALIDACIÓN CRÍTICA: Neto positivo
-      bool advertenciaNetoNegativo = false;
-      if (r.netoACobrar < 0) {
-        advertenciaNetoNegativo = true;
-      }
-      
-      if (!mounted) return;
-      setState(() {
-        _resultado = r;
-        _calculando = false;
-      });
-      
-      // Mostrar advertencias después de calcular
-      if (advertenciaEmbargoLegal) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '⚠️ LÍMITE LEGAL: Los embargos (\$${totalEmbargos.toStringAsFixed(2)}) '
-                'exceden el 20% del neto (\$${(r.netoACobrar * 0.20).toStringAsFixed(2)}). '
-                'Se recomienda revisar los descuentos adicionales.',
-              ),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 6),
-            ),
-          );
+        if (totalEmbargos > 0) {
+          final limiteEmbargoLegal = r.netoACobrar * 0.20;
+          if (totalEmbargos > limiteEmbargoLegal) {
+            advertenciaEmbargoLegal = true;
+          }
+        }
+        
+        // VALIDACIÓN CRÍTICA: Neto positivo
+        bool advertenciaNetoNegativo = false;
+        if (r.netoACobrar < 0) {
+          advertenciaNetoNegativo = true;
+        }
+        
+        if (!mounted) return;
+        setState(() {
+          _resultado = r;
+          _calculando = false;
         });
-      }
-      
-      if (advertenciaNetoNegativo) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Row(
-                children: [
-                  Icon(Icons.error, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Neto Negativo'),
+        
+        // Mostrar advertencias después de calcular
+        if (advertenciaEmbargoLegal) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '⚠️ LÍMITE LEGAL: Los embargos (\$${totalEmbargos.toStringAsFixed(2)}) '
+                  'exceden el 20% del neto (\$${(r.netoACobrar * 0.20).toStringAsFixed(2)}). '
+                  'Se recomienda revisar los descuentos adicionales.',
+                ),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 6),
+              ),
+            );
+          });
+        }
+        
+        if (advertenciaNetoNegativo) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Row(
+                  children: [
+                    Icon(Icons.error, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Neto Negativo'),
+                  ],
+                ),
+                content: Text(
+                  'El total de descuentos (\$${r.totalDescuentos.toStringAsFixed(2)}) '
+                  'excede los haberes (\$${(r.totalBrutoRemunerativo + r.totalNoRemunerativo).toStringAsFixed(2)}).\n\n'
+                  'Neto a cobrar: \$${r.netoACobrar.toStringAsFixed(2)}\n\n'
+                  '⚠️ Esta liquidación es INVÁLIDA y no puede procesarse.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Entendido'),
+                  ),
                 ],
               ),
-              content: Text(
-                'El total de descuentos (\$${r.totalDescuentos.toStringAsFixed(2)}) '
-                'excede los haberes (\$${(r.totalBrutoRemunerativo + r.totalNoRemunerativo).toStringAsFixed(2)}).\n\n'
-                'Neto a cobrar: \$${r.netoACobrar.toStringAsFixed(2)}\n\n'
-                '⚠️ Esta liquidación es INVÁLIDA y no puede procesarse.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Entendido'),
-                ),
-              ],
-            ),
-          );
-        });
+            );
+          });
+        }
+      } catch (e, st) {
+        debugPrint('Error en TeacherOmniEngine.liquidar: $e\n$st');
+        if (mounted) {
+          setState(() => _calculando = false);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error al calcular liquidación: $e'),
+            backgroundColor: Colors.red,
+          ));
+        }
       }
     });
   }
@@ -676,56 +688,65 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
   }
 
   void _aplicarDatosOcr(OcrConfirmResult o) {
-    setState(() {
-      if (o.nombre != null && o.nombre!.isNotEmpty) _nombreController.text = o.nombre!;
-      if (o.cuil != null && o.cuil!.isNotEmpty) _cuilController.text = o.cuil!;
-      if (o.razonSocial != null && o.razonSocial!.isNotEmpty) _razonSocialController.text = o.razonSocial!;
-      if (o.cuitEmpresa != null && o.cuitEmpresa!.isNotEmpty) _cuitEmpresaController.text = o.cuitEmpresa!;
-      if (o.jurisdiccion != null) _jurisdiccion = o.jurisdiccion!;
-      if (o.tipoGestion != null) _tipoGestion = o.tipoGestion!;
-      if (o.cargo != null) _cargo = o.cargo!;
-      if (o.nivel != null) _nivel = o.nivel!;
-      if (o.zona != null) _zona = o.zona!;
-      if (o.fechaIngreso != null) _fechaIngreso = o.fechaIngreso!;
-      if (o.cargasFamiliares != null) _cargasController.text = o.cargasFamiliares.toString();
-      if (o.horasCatedra != null) _horasCatController.text = o.horasCatedra.toString();
-      if (o.cantidadCargos != null) _cantCargosController.text = o.cantidadCargos.toString();
-      if (o.codigoRnos != null) _codigoRnosController.text = o.codigoRnos!;
-      if (o.domicilioEmpresa != null) _domicilioController.text = o.domicilioEmpresa!;
-      
-      // Procesar items detectados
-      _conceptosPropios.clear();
-      _deduccionesAdicionales.clear();
-      
-      if (o.items != null) {
-        for (final item in o.items!) {
-          final desc = item['descripcion'].toString().toLowerCase();
-          final monto = item['monto'] is num ? (item['monto'] as num).toDouble() : 0.0;
-          final tipo = item['tipo'].toString();
-          
-          // Filtrar conceptos estándar calculados automáticamente para evitar duplicados
-          if (_esConceptoEstandar(desc)) continue;
+    try {
+      setState(() {
+        if (o.nombre != null && o.nombre!.isNotEmpty) _nombreController.text = o.nombre!;
+        if (o.cuil != null && o.cuil!.isNotEmpty) _cuilController.text = o.cuil!;
+        if (o.razonSocial != null && o.razonSocial!.isNotEmpty) _razonSocialController.text = o.razonSocial!;
+        if (o.cuitEmpresa != null && o.cuitEmpresa!.isNotEmpty) _cuitEmpresaController.text = o.cuitEmpresa!;
+        if (o.jurisdiccion != null) _jurisdiccion = o.jurisdiccion!;
+        if (o.tipoGestion != null) _tipoGestion = o.tipoGestion!;
+        if (o.cargo != null) _cargo = o.cargo!;
+        if (o.nivel != null) _nivel = o.nivel!;
+        if (o.zona != null) _zona = o.zona!;
+        if (o.fechaIngreso != null) _fechaIngreso = o.fechaIngreso!;
+        if (o.cargasFamiliares != null) _cargasController.text = o.cargasFamiliares.toString();
+        if (o.horasCatedra != null) _horasCatController.text = o.horasCatedra.toString();
+        if (o.cantidadCargos != null) _cantCargosController.text = o.cantidadCargos.toString();
+        if (o.codigoRnos != null) _codigoRnosController.text = o.codigoRnos!;
+        if (o.domicilioEmpresa != null) _domicilioController.text = o.domicilioEmpresa!;
+        
+        // Procesar items detectados
+        _conceptosPropios.clear();
+        _deduccionesAdicionales.clear();
+        
+        if (o.items != null) {
+          for (final item in o.items!) {
+            try {
+              final desc = item['descripcion']?.toString().toLowerCase() ?? '';
+              final monto = item['monto'] is num ? (item['monto'] as num).toDouble() : 0.0;
+              final tipo = item['tipo']?.toString() ?? 'otro';
+              
+              // Filtrar conceptos estándar calculados automáticamente para evitar duplicados
+              if (_esConceptoEstandar(desc)) continue;
 
-          if (tipo == 'retencion') {
-            _deduccionesAdicionales[item['descripcion'].toString()] = monto;
-          } else {
-            // Haber o Otro
-            _conceptosPropios.add(ConceptoPropioOmni(
-              codigo: item['codigo']?.toString() ?? 'VAR',
-              descripcion: item['descripcion'].toString(),
-              monto: monto,
-              esRemunerativo: tipo == 'haber' || (item['es_remunerativo'] == true),
-              esBonificable: false, // Por defecto
-            ));
+              if (tipo == 'retencion') {
+                _deduccionesAdicionales[item['descripcion'].toString()] = monto;
+              } else {
+                // Haber o Otro
+                _conceptosPropios.add(ConceptoPropioOmni(
+                  codigo: item['codigo']?.toString() ?? 'VAR',
+                  descripcion: item['descripcion'].toString(),
+                  monto: monto,
+                  esRemunerativo: tipo == 'haber' || (item['es_remunerativo'] == true),
+                  esBonificable: false, // Por defecto
+                ));
+              }
+            } catch (e) {
+              debugPrint('Error procesando item OCR: $e');
+            }
           }
         }
-      }
 
-      _ocrOverrides = o.overrides;
-      if (o.overrides.valorIndiceOverride != null) _valorIndiceController.text = o.overrides.valorIndiceOverride!.toStringAsFixed(2).replaceAll('.', ',');
-      if (o.overrides.sueldoBasicoOverride != null) _sueldoBasicoOverrideController.text = o.overrides.sueldoBasicoOverride!.toStringAsFixed(2).replaceAll('.', ',');
-    });
-    _recalcular();
+        _ocrOverrides = o.overrides;
+        if (o.overrides.valorIndiceOverride != null) _valorIndiceController.text = o.overrides.valorIndiceOverride!.toStringAsFixed(2).replaceAll('.', ',');
+        if (o.overrides.sueldoBasicoOverride != null) _sueldoBasicoOverrideController.text = o.overrides.sueldoBasicoOverride!.toStringAsFixed(2).replaceAll('.', ',');
+      });
+      _recalcular();
+    } catch (e) {
+      debugPrint('Error general en _aplicarDatosOcr: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al aplicar datos OCR: $e')));
+    }
   }
 
   Future<void> _exportarLsd() async {

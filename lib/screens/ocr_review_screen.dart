@@ -56,38 +56,63 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
 
   List<Map<String, dynamic>> _items = [];
 
+  String? _initError;
+
   @override
   void initState() {
     super.initState();
-    _items = widget.extract.items != null ? List.from(widget.extract.items!) : [];
-    _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
-    _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
-    _razonSocialCtr = TextEditingController(text: widget.extract.razonSocial ?? '');
-    _cuitEmpresaCtr = TextEditingController(text: widget.extract.cuitEmpresa ?? '');
-    _domicilioCtr = TextEditingController(text: widget.extract.domicilioEmpresa ?? '');
-    _sueldoBasicoCtr = TextEditingController(
-      text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
-    );
-    _antiguedadPctCtr = TextEditingController(
-      text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
-    );
-    _puntosCtr = TextEditingController(
-      text: widget.extract.puntos?.toString() ?? '',
-    );
-    _valorIndiceCtr = TextEditingController(
-      text: widget.extract.valorIndice != null ? _fmtNum(widget.extract.valorIndice!) : '',
-    );
-    _cargasCtr = TextEditingController(text: '0');
-    _horasCatCtr = TextEditingController(text: '0');
-    _cantCargosCtr = TextEditingController(text: '1');
-    _codigoRnosCtr = TextEditingController(text: '');
+    try {
+      _items = widget.extract.items != null ? List.from(widget.extract.items!) : [];
+      _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
+      _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
+      _razonSocialCtr = TextEditingController(text: widget.extract.razonSocial ?? '');
+      _cuitEmpresaCtr = TextEditingController(text: widget.extract.cuitEmpresa ?? '');
+      _domicilioCtr = TextEditingController(text: widget.extract.domicilioEmpresa ?? '');
+      _sueldoBasicoCtr = TextEditingController(
+        text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
+      );
+      _antiguedadPctCtr = TextEditingController(
+        text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
+      );
+      _puntosCtr = TextEditingController(
+        text: widget.extract.puntos?.toString() ?? '',
+      );
+      _valorIndiceCtr = TextEditingController(
+        text: widget.extract.valorIndice != null ? _fmtNum(widget.extract.valorIndice!) : '',
+      );
+      _cargasCtr = TextEditingController(text: '0');
+      _horasCatCtr = TextEditingController(text: '0');
+      _cantCargosCtr = TextEditingController(text: '1');
+      _codigoRnosCtr = TextEditingController(text: '');
 
-    if (widget.extract.jurisdiccionRaw != null && widget.extract.jurisdiccionRaw!.isNotEmpty) {
-      final j = _parseJurisdiccion(widget.extract.jurisdiccionRaw!);
-      if (j != null) _jurisdiccion = j;
+      if (widget.extract.jurisdiccionRaw != null && widget.extract.jurisdiccionRaw!.isNotEmpty) {
+        final j = _parseJurisdiccion(widget.extract.jurisdiccionRaw!);
+        if (j != null) _jurisdiccion = j;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlantilla());
+    } catch (e, st) {
+      debugPrint('Error en OcrReviewScreen.initState: $e\n$st');
+      setState(() => _initError = 'Error al cargar datos del OCR: $e');
+      // Inicializar controladores vacíos para evitar errores posteriores en dispose/build si se llamara
+      _initControllersFallback();
     }
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlantilla());
+  void _initControllersFallback() {
+    _cuilCtr = TextEditingController();
+    _nombreCtr = TextEditingController();
+    _razonSocialCtr = TextEditingController();
+    _cuitEmpresaCtr = TextEditingController();
+    _domicilioCtr = TextEditingController();
+    _sueldoBasicoCtr = TextEditingController();
+    _antiguedadPctCtr = TextEditingController();
+    _puntosCtr = TextEditingController();
+    _valorIndiceCtr = TextEditingController();
+    _cargasCtr = TextEditingController();
+    _horasCatCtr = TextEditingController();
+    _cantCargosCtr = TextEditingController();
+    _codigoRnosCtr = TextEditingController();
   }
 
   Future<void> _loadPlantilla() async {
@@ -444,6 +469,49 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_initError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error en Lectura')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                const SizedBox(height: 20),
+                const Text(
+                  'Ocurrió un error al procesar los datos del recibo.',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Text(
+                    _initError!,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Volver e intentar de nuevo'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
