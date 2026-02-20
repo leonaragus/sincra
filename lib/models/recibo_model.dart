@@ -150,12 +150,10 @@ class ItemHaber {
 
   factory ItemHaber.fromJson(Map<String, dynamic> json) {
     return ItemHaber(
-      codigo: json['codigo'] ?? '',
-      descripcion: json['descripcion'] ?? '',
+      codigo: json['codigo']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString() ?? '',
       cantidad: json['cantidad']?.toString() ?? '',
-      monto: (json['monto'] is int)
-          ? (json['monto'] as int).toDouble()
-          : (json['monto'] as double? ?? 0.0),
+      monto: _parseMonto(json['monto']),
       esRemunerativo: json['es_remunerativo'] ?? true,
     );
   }
@@ -186,12 +184,10 @@ class ItemRetencion {
 
   factory ItemRetencion.fromJson(Map<String, dynamic> json) {
     return ItemRetencion(
-      codigo: json['codigo'] ?? '',
-      descripcion: json['descripcion'] ?? '',
+      codigo: json['codigo']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString() ?? '',
       porcentaje: json['porcentaje']?.toString() ?? '',
-      monto: (json['monto'] is int)
-          ? (json['monto'] as int).toDouble()
-          : (json['monto'] as double? ?? 0.0),
+      monto: _parseMonto(json['monto']),
     );
   }
 
@@ -216,10 +212,8 @@ class ItemOtro {
 
   factory ItemOtro.fromJson(Map<String, dynamic> json) {
     return ItemOtro(
-      descripcion: json['descripcion'] ?? '',
-      monto: (json['monto'] is int)
-          ? (json['monto'] as int).toDouble()
-          : (json['monto'] as double? ?? 0.0),
+      descripcion: json['descripcion']?.toString() ?? '',
+      monto: _parseMonto(json['monto']),
     );
   }
 
@@ -248,19 +242,11 @@ class Totales {
 
   factory Totales.fromJson(Map<String, dynamic> json) {
     return Totales(
-      totalBruto: (json['total_bruto'] is int)
-          ? (json['total_bruto'] as int).toDouble()
-          : (json['total_bruto'] as double? ?? 0.0),
-      totalRetenciones: (json['total_retenciones'] is int)
-          ? (json['total_retenciones'] as int).toDouble()
-          : (json['total_retenciones'] as double? ?? 0.0),
-      totalNoRemunerativo: (json['total_no_remunerativo'] is int)
-          ? (json['total_no_remunerativo'] as int).toDouble()
-          : (json['total_no_remunerativo'] as double? ?? 0.0),
-      netoACobrar: (json['neto_a_cobrar'] is int)
-          ? (json['neto_a_cobrar'] as int).toDouble()
-          : (json['neto_a_cobrar'] as double? ?? 0.0),
-      netoEnLetras: json['neto_en_letras'] ?? '',
+      totalBruto: _parseMonto(json['total_bruto']),
+      totalRetenciones: _parseMonto(json['total_retenciones']),
+      totalNoRemunerativo: _parseMonto(json['total_no_remunerativo']),
+      netoACobrar: _parseMonto(json['neto_a_cobrar']),
+      netoEnLetras: json['neto_en_letras']?.toString() ?? '',
     );
   }
 
@@ -290,16 +276,14 @@ class AuditoriaIA {
 
   factory AuditoriaIA.fromJson(Map<String, dynamic> json) {
     return AuditoriaIA(
-      analisisLegal: json['analisis_legal'] ?? '',
+      analisisLegal: json['analisis_legal']?.toString() ?? '',
       alertasCriticas: (json['alertas_criticas'] as List?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
       explicacionConceptosComplejos:
-          json['explicacion_conceptos_complejos'] ?? '',
-      puntuacionConfianzaOcr: (json['puntuacion_confianza_ocr'] is int)
-          ? (json['puntuacion_confianza_ocr'] as int).toDouble()
-          : (json['puntuacion_confianza_ocr'] as double? ?? 0.0),
+          json['explicacion_conceptos_complejos']?.toString() ?? '',
+      puntuacionConfianzaOcr: _parseMonto(json['puntuacion_confianza_ocr']),
     );
   }
 
@@ -311,4 +295,37 @@ class AuditoriaIA {
       'puntuacion_confianza_ocr': puntuacionConfianzaOcr,
     };
   }
+}
+
+/// Helper para parsear montos robustamente (acepta num, String, formato AR, formato US)
+double _parseMonto(dynamic v) {
+  if (v == null) return 0.0;
+  if (v is num) return v.toDouble();
+  String s = v.toString().trim();
+  if (s.isEmpty) return 0.0;
+
+  // 1. Intento parseo directo (formato estándar 1234.56)
+  final d = double.tryParse(s);
+  if (d != null) return d;
+
+  // 2. Limpieza de símbolos ($ y espacios)
+  s = s.replaceAll(RegExp(r'[^\d.,-]'), '');
+
+  // 3. Heurística para separadores
+  if (s.contains(',') && s.contains('.')) {
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+      // Formato AR/EU: 1.234,56 -> Quitar puntos, cambiar coma por punto
+      s = s.replaceAll('.', '').replaceAll(',', '.');
+    } else {
+      // Formato US: 1,234.56 -> Quitar comas
+      s = s.replaceAll(',', '');
+    }
+  } else if (s.contains(',')) {
+    // Asumimos coma como decimal (estándar local más probable si viene como texto)
+    s = s.replaceAll(',', '.');
+  }
+  // Si solo tiene puntos (1.234), double.tryParse arriba ya lo manejó como 1.234.
+  // Si era 1.234 (mil), mala suerte, pero en JSON numérico el punto es decimal.
+
+  return double.tryParse(s) ?? 0.0;
 }
