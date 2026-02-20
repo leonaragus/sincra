@@ -10,7 +10,6 @@ import 'package:flutter/foundation.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import '../utils/image_bytes_reader.dart';
-import 'claude_vision_service.dart';
 import 'ocr_service.dart'; // Import OcrService
 import '../models/recibo_model.dart'; // Import ReciboModel
 
@@ -23,6 +22,8 @@ class OcrExtractResult {
   final String? nombre;
   final String? razonSocial; // Institución
   final String? cuitEmpresa; // CUIT Institución
+  final String? domicilioEmpresa; // Domicilio Institución
+  final List<Map<String, dynamic>>? items; // Items del recibo (conceptos)
   final DateTime? fechaIngreso;
   final double? sueldoBasico;
   final double? antiguedadPct;
@@ -39,6 +40,8 @@ class OcrExtractResult {
     this.nombre,
     this.razonSocial,
     this.cuitEmpresa,
+    this.domicilioEmpresa,
+    this.items,
     this.fechaIngreso,
     this.sueldoBasico,
     this.antiguedadPct,
@@ -240,47 +243,84 @@ class TeacherReceiptScanService {
   OcrExtractResult _mapReciboModelToExtractResult(ReciboModel model, String rawText) {
     final cab = model.cabecera;
     final det = model.liquidacionDetallada;
-    
-    // Extracción inteligente de valores desde los items de haberes
+
+    // 1. Mapeo de Items (todos)
+    List<Map<String, dynamic>> allItems = [];
+
+    // Haberes
+    for (var h in det.haberes) {
+      allItems.add({
+        'codigo': h.codigo,
+        'descripcion': h.descripcion,
+        'cantidad': h.cantidad,
+        'monto': h.monto,
+        'tipo': 'haber',
+        'es_remunerativo': h.esRemunerativo,
+      });
+    }
+
+    // Retenciones
+    for (var r in det.retenciones) {
+      allItems.add({
+        'codigo': r.codigo,
+        'descripcion': r.descripcion,
+        'cantidad': r.porcentaje, // Usamos porcentaje como cantidad/detalle
+        'monto': r.monto,
+        'tipo': 'retencion',
+      });
+    }
+
+    // Otros
+    for (var o in det.otrosConceptos) {
+      allItems.add({
+        'codigo': '',
+        'descripcion': o.descripcion,
+        'monto': o.monto,
+        'tipo': 'otro',
+      });
+    }
+
+    // 2. Extracción de valores clave para el docente (Básico, Antigüedad)
     double? basico;
-    double? antiguedad;
     
-    // Buscamos conceptos comunes
+    // Buscamos concepto Básico explícitamente
     for (var h in det.haberes) {
       final desc = h.descripcion.toLowerCase();
+      // Ajustar heurística según nombres comunes en recibos docentes
       if (desc.contains('basico') || desc.contains('básico')) {
         basico = h.monto;
-      }
-      if (desc.contains('antiguedad') || desc.contains('antigüedad')) {
-        antiguedad = h.monto; // Esto suele ser el monto, no el porcentaje
+        break; 
       }
     }
 
-    // Intentamos obtener antigüedad % si está en la descripción o cantidad
-    // Esto es un intento básico, la IA del OcrService ya hizo el trabajo pesado de estructurar
-    
     // Parseo de CUIL
     String? cuil = cab.empleadoCuil.isNotEmpty ? cab.empleadoCuil : null;
-    
+
     // Parseo de Jurisdicción (si viniera en cabecera o se deduce)
-    // Por ahora lo dejamos null o intentamos deducir de empresaNombre
     String? jurisdiccion;
-    if (cab.empresaNombre.toLowerCase().contains('buenos aires') || cab.empresaNombre.toLowerCase().contains('pba')) {
+    final empresaLower = cab.empresaNombre.toLowerCase();
+    if (empresaLower.contains('buenos aires') || empresaLower.contains('pba')) {
       jurisdiccion = 'PBA';
-    } else if (cab.empresaNombre.toLowerCase().contains('caba') || cab.empresaNombre.toLowerCase().contains('ciudad')) {
+    } else if (empresaLower.contains('caba') || empresaLower.contains('ciudad')) {
       jurisdiccion = 'CABA';
+    } else if (empresaLower.contains('mendoza')) {
+      jurisdiccion = 'Mendoza';
     }
 
     // Parseo de Fecha Ingreso
     DateTime? fechaIngreso;
     if (cab.fechaIngreso.isNotEmpty) {
       try {
-        // Formatos posibles: dd/MM/yyyy, yyyy-MM-dd
-        final parts = cab.fechaIngreso.split(RegExp(r'[-/]'));
+        // Normalizamos separadores
+        String f = cab.fechaIngreso.replaceAll('-', '/');
+        final parts = f.split('/');
         if (parts.length == 3) {
+          // Formato yyyy/mm/dd
           if (parts[0].length == 4) {
             fechaIngreso = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
-          } else {
+          } 
+          // Formato dd/mm/yyyy
+          else {
             fechaIngreso = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
           }
         }
@@ -292,15 +332,13 @@ class TeacherReceiptScanService {
       nombre: cab.empleadoNombre.isNotEmpty ? cab.empleadoNombre : null,
       razonSocial: cab.empresaNombre.isNotEmpty ? cab.empresaNombre : null,
       cuitEmpresa: cab.empresaCuit.isNotEmpty ? cab.empresaCuit : null,
+      domicilioEmpresa: cab.empresaDomicilio.isNotEmpty ? cab.empresaDomicilio : null,
+      items: allItems,
       fechaIngreso: fechaIngreso,
       sueldoBasico: basico,
-      // antiguedadPct: null, // Difícil de extraer directo del monto sin contexto
-      // puntos: null, // No suele venir explícito en recibo estándar salvo docentes
-      // valorIndice: null,
       jurisdiccionRaw: jurisdiccion,
       source: OcrExtractSource.ocr,
       rawTextOcr: rawText,
-      // Usamos los datos crudos para que el usuario pueda completar lo que falte
     );
   }
 

@@ -9,6 +9,8 @@ class OcrConfirmResult {
   final String? cuil;
   final String? razonSocial; // Nuevo: Nombre de la institución/empresa
   final String? cuitEmpresa; // Nuevo: CUIT de la institución/empresa
+  final String? domicilioEmpresa; // Nuevo: Domicilio de la institución/empresa
+  final List<Map<String, dynamic>>? items; // Nuevo: Items del recibo
   final Jurisdiccion? jurisdiccion;
   final TipoGestion? tipoGestion;
   final TipoNomenclador? cargo;
@@ -30,6 +32,8 @@ class OcrConfirmResult {
     this.cuil,
     this.razonSocial,
     this.cuitEmpresa,
+    this.domicilioEmpresa,
+    this.items,
     this.jurisdiccion,
     this.tipoGestion,
     this.cargo,

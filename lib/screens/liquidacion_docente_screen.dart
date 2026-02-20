@@ -40,6 +40,8 @@ class LiquidacionDocenteScreen extends StatefulWidget {
   final bool soloHorasCatedra;
   /// Modo de liquidación: "mensual", "sac", "vacaciones", "final"
   final String modo;
+  /// Datos iniciales provenientes de OCR (opcional)
+  final OcrConfirmResult? initialData;
 
   const LiquidacionDocenteScreen({
     super.key, 
@@ -47,6 +49,7 @@ class LiquidacionDocenteScreen extends StatefulWidget {
     this.razonSocial, 
     this.soloHorasCatedra = false,
     this.modo = "mensual",
+    this.initialData,
   });
 
   @override
@@ -129,6 +132,11 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     _cantCargosController.addListener(_recalcular);
     _valorIndiceController.addListener(_recalcular);
     _sueldoBasicoOverrideController.addListener(_recalcular);
+    if (widget.initialData != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _aplicarDatosOcr(widget.initialData!);
+      });
+    }
     _recalcular();
   }
 
@@ -641,10 +649,33 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Legajo eliminado')));
   }
 
+  bool _esConceptoEstandar(String desc) {
+    const keywords = [
+      'basico', 'básico', 
+      'antiguedad', 'antigüedad', 
+      'zona', 'desfavorable', 
+      'fonid', 'incentivo', 
+      'conectividad', 
+      'material', 'didactico', 'didáctico',
+      'aula', 
+      'estado docente', 
+      'jubilacion', 'jubilación', 
+      'obra social', 'ioma', 'issn', 'osplad', 'ioscor', 'ipauss', 'insssep', 'ips',
+      'ley 19032', 'pami', 'inssjp'
+    ];
+    for (final k in keywords) {
+      if (desc.contains(k)) return true;
+    }
+    return false;
+  }
+
   Future<void> _abrirEscanerRecibo() async {
     final res = await Navigator.push(context, MaterialPageRoute(builder: (c) => const TeacherReceiptScanScreen()));
     if (res == null || res is! OcrConfirmResult || !mounted) return;
-    final o = res;
+    _aplicarDatosOcr(res);
+  }
+
+  void _aplicarDatosOcr(OcrConfirmResult o) {
     setState(() {
       if (o.nombre != null && o.nombre!.isNotEmpty) _nombreController.text = o.nombre!;
       if (o.cuil != null && o.cuil!.isNotEmpty) _cuilController.text = o.cuil!;
@@ -660,6 +691,36 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
       if (o.horasCatedra != null) _horasCatController.text = o.horasCatedra.toString();
       if (o.cantidadCargos != null) _cantCargosController.text = o.cantidadCargos.toString();
       if (o.codigoRnos != null) _codigoRnosController.text = o.codigoRnos!;
+      if (o.domicilioEmpresa != null) _domicilioController.text = o.domicilioEmpresa!;
+      
+      // Procesar items detectados
+      _conceptosPropios.clear();
+      _deduccionesAdicionales.clear();
+      
+      if (o.items != null) {
+        for (final item in o.items!) {
+          final desc = item['descripcion'].toString().toLowerCase();
+          final monto = item['monto'] is num ? (item['monto'] as num).toDouble() : 0.0;
+          final tipo = item['tipo'].toString();
+          
+          // Filtrar conceptos estándar calculados automáticamente para evitar duplicados
+          if (_esConceptoEstandar(desc)) continue;
+
+          if (tipo == 'retencion') {
+            _deduccionesAdicionales[item['descripcion'].toString()] = monto;
+          } else {
+            // Haber o Otro
+            _conceptosPropios.add(ConceptoPropioOmni(
+              codigo: item['codigo']?.toString() ?? 'VAR',
+              descripcion: item['descripcion'].toString(),
+              monto: monto,
+              esRemunerativo: tipo == 'haber' || (item['es_remunerativo'] == true),
+              esBonificable: false, // Por defecto
+            ));
+          }
+        }
+      }
+
       _ocrOverrides = o.overrides;
       if (o.overrides.valorIndiceOverride != null) _valorIndiceController.text = o.overrides.valorIndiceOverride!.toStringAsFixed(2).replaceAll('.', ',');
       if (o.overrides.sueldoBasicoOverride != null) _sueldoBasicoOverrideController.text = o.overrides.sueldoBasicoOverride!.toStringAsFixed(2).replaceAll('.', ',');

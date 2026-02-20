@@ -11,6 +11,8 @@ import 'liquidacion_docente_screen.dart';
 import 'opciones_liquidacion_docente_screen.dart';
 import 'profile_screen.dart';
 import 'contabilidad/configuracion_contable_screen.dart';
+import 'teacher_receipt_scan_screen.dart';
+import '../models/ocr_confirm_result.dart';
 
 class TeacherInterfaceScreen extends StatefulWidget {
   const TeacherInterfaceScreen({super.key});
@@ -100,6 +102,14 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
     );
   }
 
+  Future<void> _onEscanearRecibo() async {
+    final res = await Navigator.push(context, MaterialPageRoute(builder: (c) => const TeacherReceiptScanScreen()));
+    if (res != null && res is OcrConfirmResult && mounted) {
+      await Navigator.push(context, MaterialPageRoute(builder: (c) => LiquidacionDocenteScreen(initialData: res)));
+      if (mounted) await _cargarInstituciones();
+    }
+  }
+
   /// 4 botones: Crear institución, Institución ya creada, Opciones de liquidación, Tutorial.
   Widget _buildBotonesPrincipales() {
     return Container(
@@ -112,6 +122,21 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _onEscanearRecibo,
+              icon: const Icon(Icons.document_scanner, size: 26),
+              label: const Text('Escanear Recibo Existente\nReplicar formato validado', textAlign: TextAlign.center),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accentEmerald,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(

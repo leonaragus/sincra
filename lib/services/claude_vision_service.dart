@@ -72,6 +72,7 @@ Usa EXACTAMENTE esta estructura JSON:
    "cabecera": {
      "empresa_nombre": "Nombre o Razón Social",
      "empresa_cuit": "00-00000000-0",
+     "empresa_domicilio": "Calle 123, Ciudad, Provincia",
      "empleado_nombre": "Nombre Completo",
      "empleado_cuil": "00-00000000-0",
      "legajo": "12345",

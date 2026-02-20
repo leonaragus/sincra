@@ -19,7 +19,6 @@ import '../utils/validadores.dart';
 import '../core/codigos_afip_arca.dart';
 import 'teacher_receipt_scan_screen.dart';
 import '../services/ocr_service.dart';
-import '../models/recibo_model.dart';
 
 class InstitucionFormScreen extends StatefulWidget {
   final Map<String, dynamic>? institucion;
@@ -512,6 +511,9 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
             }
             if (cabecera.empresaNombre.isNotEmpty) {
                 _razonSocialController.text = cabecera.empresaNombre;
+            }
+            if (cabecera.empresaDomicilio.isNotEmpty) {
+                _domicilioController.text = cabecera.empresaDomicilio;
             }
         });
         

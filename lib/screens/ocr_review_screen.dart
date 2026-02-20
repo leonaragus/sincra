@@ -27,6 +27,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
   late TextEditingController _nombreCtr;
   late TextEditingController _razonSocialCtr;
   late TextEditingController _cuitEmpresaCtr;
+  late TextEditingController _domicilioCtr;
   late TextEditingController _sueldoBasicoCtr;
   late TextEditingController _antiguedadPctCtr;
   late TextEditingController _puntosCtr;
@@ -53,13 +54,17 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
     return a < 0 ? 0 : a;
   }
 
+  List<Map<String, dynamic>> _items = [];
+
   @override
   void initState() {
     super.initState();
+    _items = widget.extract.items != null ? List.from(widget.extract.items!) : [];
     _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
     _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
     _razonSocialCtr = TextEditingController(text: widget.extract.razonSocial ?? '');
     _cuitEmpresaCtr = TextEditingController(text: widget.extract.cuitEmpresa ?? '');
+    _domicilioCtr = TextEditingController(text: widget.extract.domicilioEmpresa ?? '');
     _sueldoBasicoCtr = TextEditingController(
       text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
     );
@@ -287,6 +292,76 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
     return (a - ref).abs() > 0.01;
   }
 
+  Widget _buildItemsList() {
+    if (_items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Text('No se detectaron conceptos específicos.', style: TextStyle(color: AppColors.textSecondary)),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _items.length,
+      itemBuilder: (context, index) {
+        final item = _items[index];
+        final isHaber = item['tipo'] == 'haber';
+        final isRet = item['tipo'] == 'retencion';
+        final color = isHaber ? Colors.green.shade700 : (isRet ? Colors.red.shade700 : Colors.blue.shade700);
+        
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          color: AppColors.glassFill,
+          child: ListTile(
+            leading: Text(item['codigo']?.toString() ?? '—', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+            title: TextFormField(
+              initialValue: item['descripcion']?.toString(),
+              style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+              decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+              onChanged: (v) => item['descripcion'] = v,
+            ),
+            subtitle: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                     initialValue: item['cantidad']?.toString() ?? '',
+                     style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                     decoration: const InputDecoration(labelText: 'Cant/%', border: InputBorder.none, isDense: true),
+                     onChanged: (v) => item['cantidad'] = v,
+                  ),
+                ),
+                Expanded(
+                  child: TextFormField(
+                     initialValue: item['monto']?.toString() ?? '',
+                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+                     decoration: const InputDecoration(labelText: 'Monto', border: InputBorder.none, isDense: true),
+                     onChanged: (v) => item['monto'] = double.tryParse(v.replaceAll(',', '.')) ?? 0.0,
+                  ),
+                ),
+              ],
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, size: 20, color: AppColors.pastelPink),
+              onPressed: () => setState(() => _items.removeAt(index)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _agregarConceptoManual() {
+    setState(() {
+      _items.add({
+        'codigo': '',
+        'descripcion': 'Nuevo Concepto',
+        'cantidad': '1',
+        'monto': 0.0,
+        'tipo': 'haber',
+      });
+    });
+  }
+
   Widget _buildCard({
     required String label,
     required String valorDetectado,
@@ -421,6 +496,12 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
                 _buildCard(label: 'Nombre', valorDetectado: widget.extract.nombre ?? '—', ctr: _nombreCtr),
                 _buildCard(label: 'Institución', valorDetectado: widget.extract.razonSocial ?? '—', ctr: _razonSocialCtr),
                 _buildCard(label: 'CUIT Institución', valorDetectado: widget.extract.cuitEmpresa ?? '—', ctr: _cuitEmpresaCtr),
+                _buildCard(label: 'Domicilio', valorDetectado: widget.extract.domicilioEmpresa ?? '—', ctr: _domicilioCtr),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Datos Laborales', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                ),
                 _buildCard(label: 'Sueldo Básico', valorDetectado: AppNumberFormatter.format(widget.extract.sueldoBasico, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.sueldoBasico, valorIndice: false) : '—', ctr: _sueldoBasicoCtr, valorFederal: _valorFederal('sueldoBasico'), valorPlantilla: _valorPlantilla('sueldoBasico'), isNumero: true),
                 _buildCard(label: 'Antigüedad %', valorDetectado: AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false) : '—', ctr: _antiguedadPctCtr, valorPlantilla: _valorPlantilla('antiguedadPct'), isNumero: true),
                 _buildCard(label: 'Puntos', valorDetectado: widget.extract.puntos?.toString() ?? '—', ctr: _puntosCtr, valorFederal: _valorFederal('puntos'), valorPlantilla: _valorPlantilla('puntos'), isNumero: true),
@@ -483,6 +564,23 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Conceptos Detectados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      IconButton(
+                         icon: const Icon(Icons.add, color: AppColors.pastelMint),
+                         onPressed: _agregarConceptoManual,
+                         tooltip: 'Agregar concepto manual',
+                      ),
+                    ],
+                  ),
+                ),
+                _buildItemsList(),
+                const SizedBox(height: 100), // Espacio final
               ],
             ),
           ),
@@ -566,6 +664,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
           cuil: _cuilCtr.text.trim(),
           razonSocial: _razonSocialCtr.text.trim().isEmpty ? null : _razonSocialCtr.text.trim(),
           cuitEmpresa: _cuitEmpresaCtr.text.trim().isEmpty ? null : _cuitEmpresaCtr.text.trim(),
+          domicilioEmpresa: _domicilioCtr.text.trim().isEmpty ? null : _domicilioCtr.text.trim(),
+          items: _items,
           jurisdiccion: _jurisdiccion,
           tipoGestion: _tipoGestion,
           cargo: _cargo,

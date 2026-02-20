@@ -35,6 +35,7 @@ class ReciboModel {
 class Cabecera {
   final String empresaNombre;
   final String empresaCuit;
+  final String empresaDomicilio;
   final String empleadoNombre;
   final String empleadoCuil;
   final String legajo;
@@ -48,6 +49,7 @@ class Cabecera {
   Cabecera({
     this.empresaNombre = '',
     this.empresaCuit = '',
+    this.empresaDomicilio = '',
     this.empleadoNombre = '',
     this.empleadoCuil = '',
     this.legajo = '',
@@ -63,6 +65,7 @@ class Cabecera {
     return Cabecera(
       empresaNombre: json['empresa_nombre'] ?? '',
       empresaCuit: json['empresa_cuit'] ?? '',
+      empresaDomicilio: json['empresa_domicilio'] ?? '',
       empleadoNombre: json['empleado_nombre'] ?? '',
       empleadoCuil: json['empleado_cuil'] ?? '',
       legajo: json['legajo'] ?? '',
@@ -79,6 +82,7 @@ class Cabecera {
     return {
       'empresa_nombre': empresaNombre,
       'empresa_cuit': empresaCuit,
+      'empresa_domicilio': empresaDomicilio,
       'empleado_nombre': empleadoNombre,
       'empleado_cuil': empleadoCuil,
       'legajo': legajo,
