@@ -62,12 +62,8 @@ class _TeacherReceiptScanScreenState extends State<TeacherReceiptScanScreen> {
         setState(() => _loading = false);
         return;
       }
-      final path = f.path;
-      if (path.isEmpty) {
-        _showError('No se pudo obtener la imagen.');
-        return;
-      }
-      final result = await _svc.runOcrFromPath(path);
+      // Usamos XFile directo para compatibilidad Web
+      final result = await _svc.runOcrFromXFile(f);
       if (result.hasError) {
         _showError(result.error ?? 'No se pudo leer. Complete los datos a mano o escanee una foto con mejor resolución.');
         return;
@@ -100,7 +96,8 @@ class _TeacherReceiptScanScreenState extends State<TeacherReceiptScanScreen> {
 
   /// OCR (ML Kit) y QR (mobile_scanner) solo tienen implementación nativa en Android e iOS.
   /// En Windows/macOS/Linux se evita invocar los plugins para no generar MissingPluginException.
-  static bool get _isScanSupported => !kIsWeb; // Simplificado para permitir web/mobile pero MLKit fallará en web, manejado por OCRService
+  /// ACTUALIZACIÓN: Ahora usamos Claude Vision (Cloud) para OCR, por lo que Web es compatible.
+  static bool get _isScanSupported => true; 
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +177,7 @@ class _TeacherReceiptScanScreenState extends State<TeacherReceiptScanScreen> {
                       decoration: BoxDecoration(color: AppColors.glassFillStrong, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.glassBorder)),
                       child: Column(
                         children: [
-                          const Text('Procesamiento 100% en el dispositivo (OCR + QR)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          const Text('Procesamiento Inteligente con IA (OCR + QR)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           const SizedBox(height: 20),
                           _Bot(label: 'Escanear código QR', icon: Icons.qr_code_scanner, onTap: _openQrScanner),
                           const SizedBox(height: 12),

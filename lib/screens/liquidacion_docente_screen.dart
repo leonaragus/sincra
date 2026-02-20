@@ -648,6 +648,8 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     setState(() {
       if (o.nombre != null && o.nombre!.isNotEmpty) _nombreController.text = o.nombre!;
       if (o.cuil != null && o.cuil!.isNotEmpty) _cuilController.text = o.cuil!;
+      if (o.razonSocial != null && o.razonSocial!.isNotEmpty) _razonSocialController.text = o.razonSocial!;
+      if (o.cuitEmpresa != null && o.cuitEmpresa!.isNotEmpty) _cuitEmpresaController.text = o.cuitEmpresa!;
       if (o.jurisdiccion != null) _jurisdiccion = o.jurisdiccion!;
       if (o.tipoGestion != null) _tipoGestion = o.tipoGestion!;
       if (o.cargo != null) _cargo = o.cargo!;

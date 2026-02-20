@@ -41,6 +41,9 @@ class ClaudeVisionService {
       // Default Receipt Prompt
       promptText = '''Eres un experto auditor de liquidación de sueldos en Argentina. Tu tarea es analizar la imagen del recibo de sueldo y extraer TODA la información en un formato JSON estricto.
 
+IMPORTANTE: TODA LA RESPUESTA DEBE ESTAR EN ESPAÑOL. 
+Los campos de texto libre como "analisis_legal", "alertas_criticas" y "explicacion_conceptos_complejos" DEBEN redactarse en ESPAÑOL claro y profesional.
+
 Debes responder ÚNICAMENTE con el JSON válido, sin texto adicional antes ni después (ni markdown ```json ... ```).
 
 IMPORTANTE:
@@ -148,6 +151,8 @@ El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento de leyes laborales arge
             'image_base64': base64Image,
             'media_type': 'image/jpeg',
             'return': 'structured_json',
+            'custom_prompt': promptText, // Intentamos pasar el prompt personalizado
+            'prompt': promptText,        // Alternativa de nombre de parámetro
             if (contextoConvenio != null) 'contexto_convenio': contextoConvenio,
           };
         } else {

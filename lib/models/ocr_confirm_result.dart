@@ -7,6 +7,8 @@ import '../services/teacher_receipt_scan_service.dart' show DocenteOmniOverrides
 class OcrConfirmResult {
   final String? nombre;
   final String? cuil;
+  final String? razonSocial; // Nuevo: Nombre de la institución/empresa
+  final String? cuitEmpresa; // Nuevo: CUIT de la institución/empresa
   final Jurisdiccion? jurisdiccion;
   final TipoGestion? tipoGestion;
   final TipoNomenclador? cargo;
@@ -26,6 +28,8 @@ class OcrConfirmResult {
   const OcrConfirmResult({
     this.nombre,
     this.cuil,
+    this.razonSocial,
+    this.cuitEmpresa,
     this.jurisdiccion,
     this.tipoGestion,
     this.cargo,

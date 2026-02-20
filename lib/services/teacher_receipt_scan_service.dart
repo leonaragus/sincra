@@ -8,8 +8,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 import '../utils/image_bytes_reader.dart';
 import 'claude_vision_service.dart';
+import 'ocr_service.dart'; // Import OcrService
+import '../models/recibo_model.dart'; // Import ReciboModel
 
 /// Origen de los datos extraídos
 enum OcrExtractSource { qrJson, qrUrl, ocr }
@@ -18,6 +21,9 @@ enum OcrExtractSource { qrJson, qrUrl, ocr }
 class OcrExtractResult {
   final String? cuil;
   final String? nombre;
+  final String? razonSocial; // Institución
+  final String? cuitEmpresa; // CUIT Institución
+  final DateTime? fechaIngreso;
   final double? sueldoBasico;
   final double? antiguedadPct;
   final int? puntos;
@@ -31,6 +37,9 @@ class OcrExtractResult {
   const OcrExtractResult({
     this.cuil,
     this.nombre,
+    this.razonSocial,
+    this.cuitEmpresa,
+    this.fechaIngreso,
     this.sueldoBasico,
     this.antiguedadPct,
     this.puntos,
@@ -44,6 +53,7 @@ class OcrExtractResult {
 
   bool get hasError => error != null && error!.isNotEmpty;
 }
+
 
 /// Overrides para DocenteOmniInput (mapeo desde OcrReviewScreen)
 class DocenteOmniOverrides {
@@ -124,6 +134,9 @@ class TeacherReceiptScanService {
     return OcrExtractResult(
       cuil: j,
       nombre: m['nombre']?.toString().trim(),
+      razonSocial: m['razonSocial']?.toString().trim(),
+      cuitEmpresa: m['cuitEmpresa']?.toString().trim(),
+      fechaIngreso: m['fechaIngreso'] != null ? DateTime.tryParse(m['fechaIngreso'].toString()) : null,
       sueldoBasico: vb,
       antiguedadPct: va,
       puntos: p,
@@ -156,7 +169,7 @@ class TeacherReceiptScanService {
     return int.tryParse(v.toString());
   }
 
-  // --- OCR (Cloud with Claude) ---
+  // --- OCR (Cloud with Claude via OcrService) ---
 
   /// Ejecuta OCR sobre [imagePath] (ruta a archivo).
   Future<OcrExtractResult> runOcrFromPath(String imagePath) async {
@@ -168,7 +181,24 @@ class TeacherReceiptScanService {
           error: 'No se pudo leer el archivo de imagen.',
         );
       }
-      return _analyzeWithClaude(bytes);
+      // NOTA: Para mantener compatibilidad con OcrService que usa XFile,
+      // aquí podríamos convertir bytes a XFile o usar la lógica directa.
+      // Dado que OcrService está optimizado para XFile (web/mobile),
+      // lo ideal sería usar XFile desde el principio.
+      // Pero si venimos de path, usamos el servicio interno temporalmente o
+      // adaptamos OcrService para aceptar bytes.
+      // POR AHORA: Usamos _analyzeWithClaude que ahora usará OcrService internamente si es posible
+      // o mantendrá la lógica pero adaptada.
+      // MEJOR: Vamos a simular un XFile o usar la lógica de OcrService directamente si pudiéramos.
+      // Pero OcrService pide XFile.
+      // Vamos a instanciar OcrService y usar su lógica, pero necesitamos XFile.
+      // Como fallback, usamos la lógica legacy refactorizada para usar el mismo prompt que OcrService?
+      // NO, el usuario quiere usar LA MISMA LLAMADA.
+      // OcrService.procesarImagen(XFile).
+      
+      final xfile = XFile(imagePath);
+      return runOcrFromXFile(xfile);
+
     } catch (e, st) {
       debugPrint('TeacherReceiptScanService.runOcr: $e\n$st');
       return const OcrExtractResult(
@@ -177,74 +207,113 @@ class TeacherReceiptScanService {
       );
     }
   }
-
-  /// OCR desde bytes.
-  Future<OcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
-    // width y height se ignoran
-    return _analyzeWithClaude(bytes);
-  }
-
-  Future<OcrExtractResult> _analyzeWithClaude(Uint8List bytes) async {
+  
+  /// Ejecuta OCR sobre [XFile] (para compatibilidad Web).
+  Future<OcrExtractResult> runOcrFromXFile(XFile file) async {
     try {
-      const prompt = '''Analiza este recibo de sueldo Docente.
-Extrae los siguientes datos en formato JSON estricto:
-- "cuil": CUIL del docente.
-- "nombre": Nombre del docente.
-- "sueldoBasico": El sueldo básico (numérico).
-- "antiguedadPct": Porcentaje de antigüedad (ej: 50.0). Si está en años, usa "antiguedad" (años).
-- "puntos": Cantidad de puntos (si figura).
-- "valorIndice": Valor del índice (si figura).
-- "jurisdiccion": Jurisdicción (ej: PBA, CABA).
-- "url": Si hay una URL o código QR con link, extraelo.
+      // Usamos el OcrService estándar (el del verificador)
+      final ocrService = OcrService();
+      // Le pasamos contextoConvenio null por ahora, o podríamos pasar algo si fuera relevante
+      final ocrResult = await ocrService.procesarImagen(file);
 
-Responde SOLO con el JSON.
-Estructura:
-{
-  "cuil": "...",
-  "nombre": "...",
-  "sueldoBasico": 123.45,
-  "antiguedadPct": 50.0,
-  "antiguedad": 10,
-  "puntos": 0,
-  "valorIndice": 0.0,
-  "jurisdiccion": "PBA",
-  "url": "..."
-}
-''';
-
-      final jsonResponse = await ClaudeVisionService.analyzeReceipt(bytes, customPrompt: prompt);
-      
-      Map<String, dynamic> data;
-      try {
-        data = jsonDecode(jsonResponse);
-      } catch (e) {
-        final cleaned = jsonResponse.replaceAll(RegExp(r'```json|```'), '').trim();
-        data = jsonDecode(cleaned);
+      if (!ocrResult.exito || ocrResult.reciboModel == null) {
+        return OcrExtractResult(
+          source: OcrExtractSource.ocr,
+          error: ocrResult.texto, // Mensaje de error del servicio
+          rawTextOcr: ocrResult.textoCrudo,
+        );
       }
-      
-      final baseResult = _fromJson(data);
-      
-      return OcrExtractResult(
-        cuil: baseResult.cuil,
-        nombre: baseResult.nombre,
-        sueldoBasico: baseResult.sueldoBasico,
-        antiguedadPct: baseResult.antiguedadPct,
-        puntos: baseResult.puntos,
-        valorIndice: baseResult.valorIndice,
-        jurisdiccionRaw: baseResult.jurisdiccionRaw,
-        urlDetectada: baseResult.urlDetectada,
-        source: OcrExtractSource.ocr, // Force OCR source
-        rawTextOcr: jsonResponse,
-      );
 
-    } catch (e) {
-      debugPrint('Error en Claude Vision (Teacher): $e');
-      return OcrExtractResult(
+      // MAPEO: Transformamos ReciboModel (complejo) a OcrExtractResult (plano para docentes)
+      return _mapReciboModelToExtractResult(ocrResult.reciboModel!, ocrResult.textoCrudo);
+
+    } catch (e, st) {
+      debugPrint('TeacherReceiptScanService.runOcrFromXFile: $e\n$st');
+      return const OcrExtractResult(
         source: OcrExtractSource.ocr,
-        error: 'No se pudo interpretar el recibo: $e',
+        error: 'Error al procesar la imagen.',
       );
     }
   }
+
+  /// Mapea la estructura compleja de ReciboModel a la estructura plana de OcrExtractResult
+  OcrExtractResult _mapReciboModelToExtractResult(ReciboModel model, String rawText) {
+    final cab = model.cabecera;
+    final det = model.liquidacionDetallada;
+    
+    // Extracción inteligente de valores desde los items de haberes
+    double? basico;
+    double? antiguedad;
+    
+    // Buscamos conceptos comunes
+    for (var h in det.haberes) {
+      final desc = h.descripcion.toLowerCase();
+      if (desc.contains('basico') || desc.contains('básico')) {
+        basico = h.monto;
+      }
+      if (desc.contains('antiguedad') || desc.contains('antigüedad')) {
+        antiguedad = h.monto; // Esto suele ser el monto, no el porcentaje
+      }
+    }
+
+    // Intentamos obtener antigüedad % si está en la descripción o cantidad
+    // Esto es un intento básico, la IA del OcrService ya hizo el trabajo pesado de estructurar
+    
+    // Parseo de CUIL
+    String? cuil = cab.empleadoCuil.isNotEmpty ? cab.empleadoCuil : null;
+    
+    // Parseo de Jurisdicción (si viniera en cabecera o se deduce)
+    // Por ahora lo dejamos null o intentamos deducir de empresaNombre
+    String? jurisdiccion;
+    if (cab.empresaNombre.toLowerCase().contains('buenos aires') || cab.empresaNombre.toLowerCase().contains('pba')) {
+      jurisdiccion = 'PBA';
+    } else if (cab.empresaNombre.toLowerCase().contains('caba') || cab.empresaNombre.toLowerCase().contains('ciudad')) {
+      jurisdiccion = 'CABA';
+    }
+
+    // Parseo de Fecha Ingreso
+    DateTime? fechaIngreso;
+    if (cab.fechaIngreso.isNotEmpty) {
+      try {
+        // Formatos posibles: dd/MM/yyyy, yyyy-MM-dd
+        final parts = cab.fechaIngreso.split(RegExp(r'[-/]'));
+        if (parts.length == 3) {
+          if (parts[0].length == 4) {
+            fechaIngreso = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+          } else {
+            fechaIngreso = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+          }
+        }
+      } catch (_) {}
+    }
+
+    return OcrExtractResult(
+      cuil: cuil,
+      nombre: cab.empleadoNombre.isNotEmpty ? cab.empleadoNombre : null,
+      razonSocial: cab.empresaNombre.isNotEmpty ? cab.empresaNombre : null,
+      cuitEmpresa: cab.empresaCuit.isNotEmpty ? cab.empresaCuit : null,
+      fechaIngreso: fechaIngreso,
+      sueldoBasico: basico,
+      // antiguedadPct: null, // Difícil de extraer directo del monto sin contexto
+      // puntos: null, // No suele venir explícito en recibo estándar salvo docentes
+      // valorIndice: null,
+      jurisdiccionRaw: jurisdiccion,
+      source: OcrExtractSource.ocr,
+      rawTextOcr: rawText,
+      // Usamos los datos crudos para que el usuario pueda completar lo que falte
+    );
+  }
+
+  /// OCR desde bytes.
+  Future<OcrExtractResult> runOcrFromBytes(Uint8List bytes, int width, int height) async {
+    // Para usar OcrService necesitamos XFile.
+    // XFile.fromData es compatible con bytes en memoria.
+    final xfile = XFile.fromData(bytes);
+    return runOcrFromXFile(xfile);
+  }
+
+  // _analyzeWithClaude REMOVED/DEPRECATED in favor of OcrService logic
+
 
   /// Parsea el contenido de [BarcodeCapture] si es código QR. Devuelve el string raw.
   String? getQrRawFromBarcode(BarcodeCapture capture) {

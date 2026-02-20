@@ -18,6 +18,8 @@ import '../utils/formatters.dart';
 import '../utils/validadores.dart';
 import '../core/codigos_afip_arca.dart';
 import 'teacher_receipt_scan_screen.dart';
+import '../services/ocr_service.dart';
+import '../models/recibo_model.dart';
 
 class InstitucionFormScreen extends StatefulWidget {
   final Map<String, dynamic>? institucion;
@@ -30,6 +32,11 @@ class InstitucionFormScreen extends StatefulWidget {
 
 class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  
+  // OCR Service initialization
+  final OcrService _ocrService = OcrService();
+  bool _estaProcesando = false;
+
   final _cuitController = TextEditingController();
   final _razonSocialController = TextEditingController();
   final _domicilioController = TextEditingController();
@@ -478,6 +485,63 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
     setState(() => _listaConceptosPropios.removeAt(idx));
   }
 
+  Future<void> _escanearRecibo() async {
+    setState(() => _estaProcesando = true);
+    
+    try {
+      final imagenFile = await _ocrService.obtenerImagen();
+      if (imagenFile == null) {
+        setState(() => _estaProcesando = false);
+        return;
+      }
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Procesando recibo con IA... aguarde un momento')),
+      );
+
+      final resultadoOcr = await _ocrService.procesarImagen(imagenFile);
+      
+      if (!mounted) return;
+
+      if (resultadoOcr.reciboModel != null) {
+        final cabecera = resultadoOcr.reciboModel!.cabecera;
+        setState(() {
+            if (cabecera.empresaCuit.isNotEmpty) {
+                 _cuitController.text = cabecera.empresaCuit.replaceAll(RegExp(r'[^\d]'), '');
+            }
+            if (cabecera.empresaNombre.isNotEmpty) {
+                _razonSocialController.text = cabecera.empresaNombre;
+            }
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Datos extraídos del recibo exitosamente'),
+            backgroundColor: AppColors.pastelMint,
+          ),
+        );
+      } else {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudieron extraer datos estructurados. Complete manualmente.'),
+            backgroundColor: AppColors.pastelPink,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al procesar: $e'),
+          backgroundColor: AppColors.pastelPink,
+        ),
+      );
+    } finally {
+        if (mounted) setState(() => _estaProcesando = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final esEdicion = widget.institucion != null;
@@ -508,6 +572,49 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            if (!esEdicion)
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                child: InkWell(
+                  onTap: _estaProcesando ? null : _escanearRecibo,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.glassFillStrong,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.pastelBlue.withOpacity(0.5), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.pastelBlue.withOpacity(0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _estaProcesando
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.pastelBlue))
+                            : const Icon(Icons.document_scanner, color: AppColors.pastelBlue, size: 28),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Escanear Recibo', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Completar datos automáticamente',
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             _buildSeccion('Información Básica', Icons.business, [
               _buildTextField(
                 controller: _cuitController,

@@ -25,6 +25,8 @@ class OcrReviewScreen extends StatefulWidget {
 class _OcrReviewScreenState extends State<OcrReviewScreen> {
   late TextEditingController _cuilCtr;
   late TextEditingController _nombreCtr;
+  late TextEditingController _razonSocialCtr;
+  late TextEditingController _cuitEmpresaCtr;
   late TextEditingController _sueldoBasicoCtr;
   late TextEditingController _antiguedadPctCtr;
   late TextEditingController _puntosCtr;
@@ -56,6 +58,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
     super.initState();
     _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
     _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
+    _razonSocialCtr = TextEditingController(text: widget.extract.razonSocial ?? '');
+    _cuitEmpresaCtr = TextEditingController(text: widget.extract.cuitEmpresa ?? '');
     _sueldoBasicoCtr = TextEditingController(
       text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
     );
@@ -127,6 +131,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
   void dispose() {
     _cuilCtr.dispose();
     _nombreCtr.dispose();
+    _razonSocialCtr.dispose();
+    _cuitEmpresaCtr.dispose();
     _sueldoBasicoCtr.dispose();
     _antiguedadPctCtr.dispose();
     _puntosCtr.dispose();
@@ -291,6 +297,10 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
   }) {
     final key = label == 'CUIL'
         ? 'cuil'
+        : label == 'Institución'
+            ? 'razonSocial'
+            : label == 'CUIT Institución'
+                ? 'cuitEmpresa'
         : label == 'Sueldo Básico'
             ? 'sueldoBasico'
             : label == 'Valor Índice'
@@ -409,6 +419,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
               children: [
                 _buildCard(label: 'CUIL', valorDetectado: widget.extract.cuil ?? '—', ctr: _cuilCtr),
                 _buildCard(label: 'Nombre', valorDetectado: widget.extract.nombre ?? '—', ctr: _nombreCtr),
+                _buildCard(label: 'Institución', valorDetectado: widget.extract.razonSocial ?? '—', ctr: _razonSocialCtr),
+                _buildCard(label: 'CUIT Institución', valorDetectado: widget.extract.cuitEmpresa ?? '—', ctr: _cuitEmpresaCtr),
                 _buildCard(label: 'Sueldo Básico', valorDetectado: AppNumberFormatter.format(widget.extract.sueldoBasico, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.sueldoBasico, valorIndice: false) : '—', ctr: _sueldoBasicoCtr, valorFederal: _valorFederal('sueldoBasico'), valorPlantilla: _valorPlantilla('sueldoBasico'), isNumero: true),
                 _buildCard(label: 'Antigüedad %', valorDetectado: AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false).isNotEmpty ? AppNumberFormatter.format(widget.extract.antiguedadPct, valorIndice: false) : '—', ctr: _antiguedadPctCtr, valorPlantilla: _valorPlantilla('antiguedadPct'), isNumero: true),
                 _buildCard(label: 'Puntos', valorDetectado: widget.extract.puntos?.toString() ?? '—', ctr: _puntosCtr, valorFederal: _valorFederal('puntos'), valorPlantilla: _valorPlantilla('puntos'), isNumero: true),
@@ -552,6 +564,8 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
         final result = OcrConfirmResult(
           nombre: _nombreCtr.text.trim().isEmpty ? null : _nombreCtr.text.trim(),
           cuil: _cuilCtr.text.trim(),
+          razonSocial: _razonSocialCtr.text.trim().isEmpty ? null : _razonSocialCtr.text.trim(),
+          cuitEmpresa: _cuitEmpresaCtr.text.trim().isEmpty ? null : _cuitEmpresaCtr.text.trim(),
           jurisdiccion: _jurisdiccion,
           tipoGestion: _tipoGestion,
           cargo: _cargo,
