@@ -226,8 +226,17 @@ Estructura:
       
       Map<String, dynamic> data;
       try {
-        data = jsonDecode(jsonResponse);
+        // Limpieza robusta de bloques de código Markdown
+        String jsonStr = jsonResponse;
+        if (jsonStr.contains('```json')) {
+          jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+        } else if (jsonStr.contains('```')) {
+          jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
+        }
+        
+        data = jsonDecode(jsonStr);
       } catch (e) {
+        // Fallback simple por si acaso
         final cleaned = jsonResponse.replaceAll(RegExp(r'```json|```'), '').trim();
         data = jsonDecode(cleaned);
       }
@@ -253,9 +262,18 @@ Estructura:
 
     } catch (e) {
       debugPrint('Error en Claude Vision (Sanidad): $e');
+      // Si falla, devolvemos un mensaje de error controlado, no el raw text gigante si es un error de parseo
+      String errorMsg = 'No se pudo interpretar el recibo.';
+      if (e.toString().contains('FormatException') || e.toString().contains('SyntaxError')) {
+         errorMsg = 'La IA respondió pero el formato no es válido.';
+      } else {
+         errorMsg = 'Error: $e';
+      }
+      
       return SanidadOcrExtractResult(
         source: OcrExtractSourceSanidad.ocr,
-        error: 'No se pudo interpretar el recibo: $e',
+        error: errorMsg,
+        rawTextOcr: e.toString(), // Guardamos el error técnico en rawText para debug
       );
     }
   }

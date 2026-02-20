@@ -69,7 +69,12 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
       }
       final result = await _svc.runOcrFromPath(path);
       if (result.hasError) {
-        _showError(result.error ?? 'No se pudo leer. Complete los datos a mano o escanee una foto con mejor resolución.');
+        // Truncar error si es muy largo
+        String errorMsg = result.error!;
+        if (errorMsg.length > 200) {
+          errorMsg = '${errorMsg.substring(0, 200)}...';
+        }
+        _showError(errorMsg);
         return;
       }
       _goToReview(result);

@@ -24,26 +24,39 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
 
   CategoriaSanidad _categoria = CategoriaSanidad.profesional;
   NivelTituloSanidad _nivelTitulo = NivelTituloSanidad.sinTitulo;
+  
+  String? _initError; // Para capturar errores de carga
 
   @override
   void initState() {
     super.initState();
-    _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
-    _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
-    _sueldoBasicoCtr = TextEditingController(
-      text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
-    );
-    _antiguedadPctCtr = TextEditingController(
-      text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
-    );
-    _horasNocturnasCtr = TextEditingController(
-      text: widget.extract.horasNocturnas?.toString() ?? '0',
-    );
+    try {
+      _cuilCtr = TextEditingController(text: widget.extract.cuil ?? '');
+      _nombreCtr = TextEditingController(text: widget.extract.nombre ?? '');
+      _sueldoBasicoCtr = TextEditingController(
+        text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
+      );
+      _antiguedadPctCtr = TextEditingController(
+        text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
+      );
+      _horasNocturnasCtr = TextEditingController(
+        text: widget.extract.horasNocturnas?.toString() ?? '0',
+      );
 
-    // Intentar parsear categoría del OCR
-    if (widget.extract.categoriaRaw != null) {
-      final cat = _parseCategoria(widget.extract.categoriaRaw!);
-      if (cat != null) _categoria = cat;
+      // Intentar parsear categoría del OCR
+      if (widget.extract.categoriaRaw != null) {
+        final cat = _parseCategoria(widget.extract.categoriaRaw!);
+        if (cat != null) _categoria = cat;
+      }
+    } catch (e, st) {
+      debugPrint('Error en SanidadOcrReviewScreen.initState: $e\n$st');
+      _initError = 'Error al procesar datos: $e';
+      // Inicializar controladores vacíos para evitar crash en build
+      _cuilCtr = TextEditingController();
+      _nombreCtr = TextEditingController();
+      _sueldoBasicoCtr = TextEditingController();
+      _antiguedadPctCtr = TextEditingController();
+      _horasNocturnasCtr = TextEditingController();
     }
   }
 
@@ -231,6 +244,50 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_initError != null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(title: const Text('Error en Lectura')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                const SizedBox(height: 20),
+                const Text(
+                  'Ocurrió un error al procesar los datos del recibo.',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade300),
+                  ),
+                  child: Text(
+                    _initError!,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Volver e intentar de nuevo'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

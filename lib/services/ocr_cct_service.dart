@@ -81,40 +81,39 @@ Estructura:
         customPrompt: prompt
       );
 
-      // Parsear respuesta
-      Map<String, dynamic> data;
-      try {
-        data = jsonDecode(jsonResponse);
-      } catch (e) {
-        // Intento de limpieza si viene con markdown
-        final cleaned = jsonResponse.replaceAll(RegExp(r'```json|```'), '').trim();
-        data = jsonDecode(cleaned);
+      // 1. Limpieza de bloques de código Markdown si existen
+      String jsonStr = jsonResponse;
+      if (jsonStr.contains('```json')) {
+        jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+      } else if (jsonStr.contains('```')) {
+        jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
       }
 
-      final codigoCCT = data['codigoCCT']?.toString() ?? '';
-      final nombreCCT = data['nombreCCT']?.toString() ?? '';
-      final escalasData = (data['escalas'] as List?) ?? [];
-
-      final escalas = escalasData.map((e) {
-        return EscalaSalarialExtraida(
-          categoria: e['categoria']?.toString() ?? 'Desconocida',
-          basico: double.tryParse(e['basico']?.toString() ?? '0') ?? 0.0,
-          observaciones: e['observaciones']?.toString(),
-          confianza: 90, // Claude suele ser preciso
-        );
-      }).toList();
+      // 2. Parseo robusto con doble intento
+      Map<String, dynamic> data;
+      try {
+         data = jsonDecode(jsonStr);
+      } catch (_) {
+         // Si falla definitivamente, lanzamos error controlado
+         throw FormatException('No se pudo interpretar el JSON de la IA');
+      }
 
       return ResultadoOCRCCT(
-        codigoCCT: codigoCCT,
-        nombreCCT: nombreCCT,
-        escalas: escalas,
-        textoCompleto: jsonResponse, // Guardamos el JSON raw como "texto completo" para debug
-        totalEscalasDetectadas: escalas.length,
+        codigoCCT: data['codigoCCT'] ?? '',
+        nombreCCT: data['nombreCCT'] ?? '',
+        escalas: (data['escalas'] as List? ?? []).map((e) => EscalaSalarialExtraida(
+          categoria: e['categoria']?.toString() ?? 'Sin categoría',
+          basico: e['basico'] is num ? (e['basico'] as num).toDouble() : null,
+          observaciones: e['observaciones']?.toString(),
+          confianza: 80, // Asumimos confianza alta si Claude respondió JSON válido
+        )).toList(),
+        textoCompleto: jsonStr, // Guardamos el JSON limpio
+        totalEscalasDetectadas: (data['escalas'] as List? ?? []).length,
         exito: true,
       );
 
     } catch (e) {
-      debugPrint('Error procesando imagen CCT con Claude: $e');
+      debugPrint('Error en OCRCCTService: $e');
       return ResultadoOCRCCT(
         codigoCCT: '',
         nombreCCT: '',

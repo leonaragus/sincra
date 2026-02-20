@@ -2,7 +2,7 @@
 // On-Device: ML Kit OCR + prioridad QR JSON > QR URL > OCR. Loading y manejo de imagen borrosa.
 // OCR y QR solo en Android/iOS; en Windows/desktop se muestra aviso (evita MissingPluginException).
 
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';

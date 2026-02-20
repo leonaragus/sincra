@@ -56,7 +56,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
 
   List<Map<String, dynamic>> _items = [];
 
-  String? _initError;
+  String? _initError; // Para capturar errores de carga
 
   @override
   void initState() {
@@ -68,6 +68,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
       _razonSocialCtr = TextEditingController(text: widget.extract.razonSocial ?? '');
       _cuitEmpresaCtr = TextEditingController(text: widget.extract.cuitEmpresa ?? '');
       _domicilioCtr = TextEditingController(text: widget.extract.domicilioEmpresa ?? '');
+      
       _sueldoBasicoCtr = TextEditingController(
         text: widget.extract.sueldoBasico != null ? _fmtNum(widget.extract.sueldoBasico!) : '',
       );
@@ -75,26 +76,45 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
         text: widget.extract.antiguedadPct != null ? _fmtNum(widget.extract.antiguedadPct!) : '',
       );
       _puntosCtr = TextEditingController(
-        text: widget.extract.puntos?.toString() ?? '',
+        text: widget.extract.puntos != null ? widget.extract.puntos.toString() : '',
       );
       _valorIndiceCtr = TextEditingController(
         text: widget.extract.valorIndice != null ? _fmtNum(widget.extract.valorIndice!) : '',
       );
-      _cargasCtr = TextEditingController(text: '0');
-      _horasCatCtr = TextEditingController(text: '0');
+
+      // Cargas sociales (si hay items, sumar)
+      // double totalCargas = 0;
+      // if (widget.extract.items != null) {
+      //   // Lógica simple: sumar conceptos negativos (deducciones)
+      // }
+      _cargasCtr = TextEditingController(text: ''); 
+      _horasCatCtr = TextEditingController(text: '');
       _cantCargosCtr = TextEditingController(text: '1');
       _codigoRnosCtr = TextEditingController(text: '');
 
-      if (widget.extract.jurisdiccionRaw != null && widget.extract.jurisdiccionRaw!.isNotEmpty) {
-        final j = _parseJurisdiccion(widget.extract.jurisdiccionRaw!);
-        if (j != null) _jurisdiccion = j;
+      // Detectar jurisdicción
+      if (widget.extract.jurisdiccionRaw != null) {
+        final raw = widget.extract.jurisdiccionRaw!.toLowerCase();
+        if (raw.contains('buenos aires') || raw.contains('pba')) {
+          _jurisdiccion = Jurisdiccion.buenosAires;
+        } else if (raw.contains('caba') || raw.contains('ciudad')) {
+          _jurisdiccion = Jurisdiccion.caba;
+        } else if (raw.contains('mendoza')) {
+          _jurisdiccion = Jurisdiccion.mendoza;
+        } else if (raw.contains('santa fe')) {
+          _jurisdiccion = Jurisdiccion.santaFe;
+        } else {
+          final j = _parseJurisdiccion(widget.extract.jurisdiccionRaw!);
+          if (j != null) _jurisdiccion = j;
+        }
       }
 
+      // Validar contra plantilla si hay coincidencia
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlantilla());
     } catch (e, st) {
       debugPrint('Error en OcrReviewScreen.initState: $e\n$st');
-      setState(() => _initError = 'Error al cargar datos del OCR: $e');
-      // Inicializar controladores vacíos para evitar errores posteriores en dispose/build si se llamara
+      _initError = 'Error al procesar datos: $e';
+      // Inicializar controladores vacíos para evitar crash en build
       _initControllersFallback();
     }
   }
