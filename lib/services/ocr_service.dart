@@ -42,19 +42,37 @@ class OcrService {
           if (text.isNotEmpty) {
             // Intentar parsear el JSON estructurado
             try {
-              final jsonMap = jsonDecode(text);
+              // Limpieza de bloques de código Markdown si existen
+              String jsonStr = text;
+              if (jsonStr.contains('```json')) {
+                jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+              } else if (jsonStr.contains('```')) {
+                jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
+              }
+              
+              final jsonMap = jsonDecode(jsonStr);
               model = ReciboModel.fromJson(jsonMap);
+              
+              // Si llegamos aquí, el parseo fue exitoso
+              return OcrResult(
+                texto: text,
+                exito: true,
+                confianza: 0.95,
+                textoCrudo: text,
+                reciboModel: model,
+              );
             } catch (e) {
               print("Error parseando JSON de Claude: $e");
+              // Si falla el parseo, devolvemos error explícito en lugar de éxito falso
+              return OcrResult(
+                texto: "La IA respondió pero no se pudo interpretar el formato (JSON inválido).",
+                exito: false,
+                confianza: 0.0,
+                textoCrudo: text, // Guardamos el original para debug
+                esParcial: true,
+                reciboModel: null,
+              );
             }
-
-            return OcrResult(
-              texto: text,
-              exito: true,
-              confianza: 0.95, // Alta confianza para Claude
-              textoCrudo: text,
-              reciboModel: model,
-            );
           }
         } catch (e) {
           print("Claude Vision falló: $e");

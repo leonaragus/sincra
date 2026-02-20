@@ -220,9 +220,13 @@ class TeacherReceiptScanService {
       final ocrResult = await ocrService.procesarImagen(file);
 
       if (!ocrResult.exito || ocrResult.reciboModel == null) {
+        final errorMsg = ocrResult.texto.length > 200 
+            ? '${ocrResult.texto.substring(0, 200)}...' 
+            : ocrResult.texto;
+        
         return OcrExtractResult(
           source: OcrExtractSource.ocr,
-          error: ocrResult.texto, // Mensaje de error del servicio
+          error: 'No se pudieron extraer datos: $errorMsg', 
           rawTextOcr: ocrResult.textoCrudo,
         );
       }
