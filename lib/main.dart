@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
 import 'screens/verificador_recibo_screen.dart';
 import 'screens/web_login_screen.dart';
+import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'package:url_strategy/url_strategy.dart'; // Import agregado
 
@@ -86,15 +87,7 @@ class MyApp extends StatelessWidget {
 
         return null;
       },
-      home: Builder(
-        builder: (context) {
-          final user = Supabase.instance.client.auth.currentUser;
-          if (user == null) {
-            return const WebLoginScreen();
-          }
-          return const HomeScreen();
-        },
-      ),
+      home: const SplashScreen(),
     );
   }
 }

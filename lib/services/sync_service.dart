@@ -15,19 +15,15 @@
 // 3. Realizar cambios locales (push en background)
 // ========================================================================
 
-import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Importar servicios existentes para delegar la sincronización específica
-import 'hybrid_store.dart';
 import 'empleados_service.dart';
 import 'instituciones_service.dart';
 import 'conceptos_recurrentes_service.dart';
 import 'ausencias_service.dart';
-import 'liquidacion_historial_service.dart';
-import '../models/empleado_completo.dart';
 
 class SyncService {
   static const String _lastFullSyncKey = 'syncra_last_full_sync';
@@ -88,9 +84,8 @@ class SyncService {
     }
     
     // 3. Merge: Remote -> Local
-    bool cambiosLocales = false;
     for (final r in remoteEmpresas) {
-      final map = r as Map<String, dynamic>;
+      final map = r;
       final cuit = map['cuit']?.toString();
       if (cuit == null) continue;
       
@@ -99,7 +94,6 @@ class SyncService {
       // Por simplicidad, asumimos que remoto gana si hay conflicto por ahora
       if (local == null) {
         await InstitucionesService.saveInstitucion(map);
-        cambiosLocales = true;
       }
     }
     

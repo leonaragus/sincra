@@ -241,7 +241,27 @@ class AppHelp {
 
 💡 Configure RNOS y categorías específicas para cálculos precisos.''',
         };
-      
+
+      case 'EmpresaReceiptScanScreen':
+        return {
+          'title': 'Escaneo de Empresa',
+          'content': '''• ESCANEAR: Use la cámara para escanear un recibo oficial o documento con datos de la empresa.
+• AUTOMÁTICO: El sistema detectará CUIT, Razón Social y Domicilio.
+• MANUAL: Si el escaneo falla, podrá ingresar los datos manualmente en el siguiente paso.
+
+💡 Asegúrese de tener buena iluminación para mejores resultados.''',
+        };
+
+      case 'SanidadReceiptScanScreen':
+        return {
+          'title': 'Escaneo FATSA (Sanidad)',
+          'content': '''• ESCANEAR: Use la cámara para escanear un recibo oficial de sanidad (FATSA).
+• AUTOMÁTICO: El sistema detectará conceptos, aportes y el neto según CCT 122/75 o 108/75.
+• MANUAL: Si el escaneo falla, podrá ingresar los datos manualmente en el siguiente paso.
+
+💡 Asegúrese de que el QR o los textos sean legibles para mejores resultados.''',
+        };
+
       default:
         return {
           'title': 'Ayuda',

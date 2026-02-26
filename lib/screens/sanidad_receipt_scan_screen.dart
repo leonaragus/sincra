@@ -4,12 +4,12 @@
 
 // import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:mobile_scanner/mobile_scanner.dart'; // Comentado para compatibilidad web
 import '../services/sanidad_receipt_scan_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/app_help.dart';
 import 'sanidad_ocr_review_screen.dart';
 
 class SanidadReceiptScanScreen extends StatefulWidget {
@@ -147,10 +147,7 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
         title: const Text('Escanear Recibo FATSA', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
-          AppHelp.buildHelpButton(context, () {
-            final helpContent = AppHelp.getHelpContent('SanidadReceiptScanScreen');
-            AppHelp.showHelpDialog(context, helpContent['title'], helpContent['content']);
-          }),
+          AppHelp.buildHelpButton(context, 'SanidadReceiptScanScreen'),
         ],
       ),
       body: Center(

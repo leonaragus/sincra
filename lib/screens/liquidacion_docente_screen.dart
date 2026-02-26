@@ -1561,15 +1561,6 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     }
   }
 
-  void _mostrarAyuda() {
-    final helpContent = AppHelp.getHelpContent('LiquidadorFinalScreen');
-    AppHelp.showHelpDialog(
-      context,
-      helpContent['title']!,
-      helpContent['content']!,
-    );
-  }
-
   @override
   void dispose() {
     _nombreController.dispose();
@@ -1598,19 +1589,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
         title: Text('Liquidación${(widget.razonSocial ?? '').isNotEmpty ? ' · ${widget.razonSocial}' : ''}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-              ),
-              child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
-            ),
-            tooltip: 'Ayuda',
-            onPressed: _mostrarAyuda,
-          ),
+          AppHelp.buildHelpButton(context, 'LiquidadorFinalScreen'),
         ],
       ),
       persistentFooterButtons: [

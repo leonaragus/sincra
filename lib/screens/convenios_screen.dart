@@ -133,15 +133,6 @@ class _ConveniosScreenState extends State<ConveniosScreen> {
     );
   }
 
-  void _mostrarAyuda() {
-    final helpContent = AppHelp.getHelpContent('ConveniosScreen');
-    AppHelp.showHelpDialog(
-      context,
-      helpContent['title']!,
-      helpContent['content']!,
-    );
-  }
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -253,19 +244,7 @@ class _ConveniosScreenState extends State<ConveniosScreen> {
                 fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-              ),
-              child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
-            ),
-            tooltip: 'Ayuda',
-            onPressed: _mostrarAyuda,
-          ),
+          AppHelp.buildHelpButton(context, 'ConveniosScreen'),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

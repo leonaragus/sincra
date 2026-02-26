@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cross_file/cross_file.dart';
 import '../services/empresa_receipt_scan_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/app_help.dart';
 
 class EmpresaReceiptScanScreen extends StatefulWidget {
   const EmpresaReceiptScanScreen({super.key});
@@ -70,10 +70,7 @@ class _EmpresaReceiptScanScreenState extends State<EmpresaReceiptScanScreen> {
         ),
         title: const Text('Escanear Datos de Empresa', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
-          AppHelp.buildHelpButton(context, () {
-            final helpContent = AppHelp.getHelpContent('EmpresaReceiptScanScreen');
-            AppHelp.showHelpDialog(context, helpContent['title'], helpContent['content']);
-          }),
+          AppHelp.buildHelpButton(context, 'EmpresaReceiptScanScreen'),
         ],
       ),
       body: Center(

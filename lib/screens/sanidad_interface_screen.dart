@@ -391,15 +391,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     );
   }
 
-  void _mostrarAyuda() {
-    final helpContent = AppHelp.getHelpContent('sanidad_interface');
-    AppHelp.showHelpDialog(
-      context,
-      helpContent['title']!,
-      helpContent['content']!,
-    );
-  }
-
   void _mostrarModalMaestroSanidad() {
     showDialog(
       context: context,
@@ -1981,22 +1972,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             ),
           ),
           // Botón de Ayuda
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-                ),
-                child: const Icon(Icons.help_outline, color: AppColors.primary, size: 20),
-              ),
-              tooltip: 'Ayuda',
-              onPressed: _mostrarAyuda,
-            ),
-          ),
+          AppHelp.buildHelpButton(context, 'sanidad_interface'),
         ],
       ),
       body: ListView(
