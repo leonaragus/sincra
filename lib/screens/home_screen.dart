@@ -26,6 +26,7 @@ import 'gestion_conceptos_screen.dart';
 import 'gestion_ausencias_screen.dart';
 import 'gestion_prestamos_screen.dart';
 import 'biblioteca_cct_screen.dart';
+import 'buscador_categorias_screen.dart';
 import 'dashboard_riesgos_screen.dart';
 
 import 'verificador_recibo_screen.dart';
@@ -310,6 +311,14 @@ class HomeScreenState extends State<HomeScreen> {
         icon: Icons.library_books,
         iconColor: const Color(0xFF92400E),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BibliotecaCCTScreen())),
+      ),
+      _buildModernCard(
+        title: 'Buscador de Categorías',
+        subtitle: 'Encontrá tu categoría por tareas',
+        icon: Icons.search,
+        iconColor: AppColors.accentBlue,
+        isHighlighted: true,
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BuscadorCategoriasScreen())),
       ),
       _buildModernCard(
         title: 'Dashboard de Riesgos',

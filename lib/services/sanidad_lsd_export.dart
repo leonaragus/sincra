@@ -83,9 +83,10 @@ Future<String> sanidadOmniToLsdTxt({
   sb.write(LSDGenerator.eolLsd);
 
   // Registro 2: Datos referenciales (NUEVO ARCA)
+  final nombreLimpio = liquidacion.input.nombre.replaceAll(RegExp(r'\s'), '');
   final reg2 = LSDGenerator.generateRegistro2DatosReferenciales(
     cuilEmpleado: cuil,
-    legajo: liquidacion.input.nombre.replaceAll(RegExp(r'\s'), '').substring(0, min(10, liquidacion.input.nombre.length)),
+    legajo: nombreLimpio.substring(0, min(10, nombreLimpio.length)),
     diasBase: 30,
   );
   sb.write(latin1.decode(reg2));

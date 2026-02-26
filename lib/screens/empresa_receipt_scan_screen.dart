@@ -69,6 +69,12 @@ class _EmpresaReceiptScanScreenState extends State<EmpresaReceiptScanScreen> {
           onPressed: () => Navigator.pop(context)
         ),
         title: const Text('Escanear Datos de Empresa', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        actions: [
+          AppHelp.buildHelpButton(context, () {
+            final helpContent = AppHelp.getHelpContent('EmpresaReceiptScanScreen');
+            AppHelp.showHelpDialog(context, helpContent['title'], helpContent['content']);
+          }),
+        ],
       ),
       body: Center(
         child: _loading

@@ -146,6 +146,12 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
         elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: () => Navigator.pop(context)),
         title: const Text('Escanear Recibo FATSA', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        actions: [
+          AppHelp.buildHelpButton(context, () {
+            final helpContent = AppHelp.getHelpContent('SanidadReceiptScanScreen');
+            AppHelp.showHelpDialog(context, helpContent['title'], helpContent['content']);
+          }),
+        ],
       ),
       body: Center(
         child: _loading

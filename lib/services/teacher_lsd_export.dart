@@ -93,9 +93,10 @@ Future<String> teacherOmniToLsdTxt({
   sb.write(LSDGenerator.eolLsd);
 
   // Registro 2: Datos referenciales (NUEVO ARCA)
+  final nombreSanitizado = liquidacion.input.nombre.replaceAll(RegExp(r'\s'), '');
   final reg2 = LSDGenerator.generateRegistro2DatosReferenciales(
     cuilEmpleado: cuil,
-    legajo: liquidacion.input.nombre.replaceAll(RegExp(r'\s'), '').substring(0, min(10, liquidacion.input.nombre.length)),
+    legajo: nombreSanitizado.substring(0, min(10, nombreSanitizado.length)),
     diasBase: 30,
   );
   sb.write(latin1.decode(reg2));
@@ -103,9 +104,15 @@ Future<String> teacherOmniToLsdTxt({
 
   final conceptos = <Map<String, dynamic>>[];
 
-  void addHaber(String codigo, String desc, double monto) {
+  void addHaber(String codigo, String desc, double monto, {int? cantidad}) {
     if (monto <= 0) return;
-    conceptos.add({'codigo': codigo, 'desc': desc, 'importe': monto, 'tipo': 'H'});
+    conceptos.add({
+      'codigo': codigo, 
+      'desc': desc, 
+      'importe': monto, 
+      'tipo': 'H',
+      'cantidad': cantidad
+    });
   }
 
   void addDescuento(String codigo, String desc, double monto) {
@@ -113,7 +120,10 @@ Future<String> teacherOmniToLsdTxt({
     conceptos.add({'codigo': codigo, 'desc': desc, 'importe': monto, 'tipo': 'D'});
   }
 
-  addHaber(TeacherLsdCodigos.sueldoBasico, 'Sueldo Básico', liquidacion.sueldoBasico);
+  // Convertir horas cátedra a entero para cantidad (si aplica)
+  final int cantHoras = liquidacion.horasCatedra > 0 ? liquidacion.horasCatedra.toInt() : 0;
+
+  addHaber(TeacherLsdCodigos.sueldoBasico, 'Sueldo Básico', liquidacion.sueldoBasico, cantidad: cantHoras > 0 ? cantHoras : null);
   addHaber(TeacherLsdCodigos.antiguedad, 'Antigüedad', liquidacion.adicionalAntiguedad);
   addHaber(TeacherLsdCodigos.adicionalZona, 'Adicional Zona', liquidacion.adicionalZona);
   if (liquidacion.adicionalZonaPatagonica > 0) {
@@ -128,7 +138,9 @@ Future<String> teacherOmniToLsdTxt({
   addHaber(TeacherLsdCodigos.estadoDocente, 'Estado Docente', liquidacion.estadoDocente);
   addHaber(TeacherLsdCodigos.fonid, 'FONID', liquidacion.fonid);
   addHaber(TeacherLsdCodigos.conectividad, 'Conectividad', liquidacion.conectividad);
-  addHaber(TeacherLsdCodigos.horasCatedra, 'Horas Cátedra', liquidacion.horasCatedra);
+  // Eliminamos Horas Cátedra como concepto monetario separado porque es la cantidad del básico
+  // addHaber(TeacherLsdCodigos.horasCatedra, 'Horas Cátedra', liquidacion.horasCatedra); 
+  
   addHaber(TeacherLsdCodigos.equiparacion13047, 'Ajuste Equiparación Ley 13.047', liquidacion.ajusteEquiparacionLey13047);
   addHaber(TeacherLsdCodigos.fondoCompensador, 'Fondo Compensador', liquidacion.fondoCompensador);
   
@@ -165,6 +177,7 @@ Future<String> teacherOmniToLsdTxt({
       importe: c['importe'] as double,
       descripcionConcepto: descripcionLimpia,
       tipo: c['tipo'] as String?,
+      cantidad: c['cantidad'] as int?,
     );
     sb.write(latin1.decode(r3));
     sb.write(LSDGenerator.eolLsd);

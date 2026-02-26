@@ -246,7 +246,7 @@ class _GestionPrestamosScreenState extends State<GestionPrestamosScreen> {
           children: [
             Chip(
               label: Text(prestamo.estado.name.toUpperCase(), style: const TextStyle(fontSize: 10)),
-              backgroundColor: color.withOpacity(0.3),
+              backgroundColor: color.withValues(alpha: 0.3),
             ),
           ],
         ),

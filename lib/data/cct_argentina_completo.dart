@@ -1221,29 +1221,42 @@ final List<CCTCompleto> cctArgentinaCompleto = [
     pdfUrl: 'https://cafydma.org/wp-content/uploads/2022/03/CCT-335-75-FAIMA-USIMRA.pdf',
   ),
 
-  // CCT Sanidad (FATSA)
+  // CCT Minería - AOMA
   CCTCompleto(
-    id: 'cct_sanidad_122_75',
-    numeroCCT: '122/75',
-    nombre: 'Sanidad - FATSA',
-    descripcion: 'CCT 122/75 para Clínicas, Sanatorios y Hospitales Privados',
-    actividad: 'Sanidad',
+    id: 'cct_mineria',
+    numeroCCT: '36/89',
+    nombre: 'Minería - AOMA',
+    descripcion: 'Convenio Colectivo de Trabajo para la Industria Minera (Rama Cemento/Cal/Piedra)',
+    actividad: 'Minería',
     categorias: [
       CategoriaCCT(
-        id: 'enfermero',
-        nombre: 'Enfermero/a',
+        id: 'operador_equipo_pesado',
+        nombre: 'Operador Equipo Pesado',
+        salarioBase: 1800000.0,
+        descripcion: 'Operador de retroexcavadora, pala cargadora, etc.',
+      ),
+      CategoriaCCT(
+        id: 'oficial_especializado_mineria',
+        nombre: 'Oficial Especializado',
+        salarioBase: 1600000.0,
+        descripcion: 'Mecánico, Electricista de planta',
+      ),
+      CategoriaCCT(
+        id: 'oficial_minero',
+        nombre: 'Oficial Minero',
+        salarioBase: 1400000.0,
+        descripcion: 'Perforista, Operador de planta',
+      ),
+      CategoriaCCT(
+        id: 'medio_oficial_minero',
+        nombre: 'Medio Oficial',
         salarioBase: 1200000.0,
-        descripcion: 'Personal de enfermería',
       ),
       CategoriaCCT(
-        id: 'administrativo_a',
-        nombre: 'Administrativo A',
-        salarioBase: 1100000.0,
-      ),
-      CategoriaCCT(
-        id: 'mucama',
-        nombre: 'Mucama',
-        salarioBase: 900000.0,
+        id: 'peon_mineria',
+        nombre: 'Peón',
+        salarioBase: 1000000.0,
+        descripcion: 'Tareas generales de limpieza y ayuda',
       ),
     ],
     descuentos: [
@@ -1264,13 +1277,8 @@ final List<CCTCompleto> cctArgentinaCompleto = [
       ),
       DescuentoCCT(
         id: 'sindicato',
-        nombre: 'Sindicato ATSA',
-        porcentaje: 2.0,
-      ),
-      DescuentoCCT(
-        id: 'fatsa',
-        nombre: 'FATSA',
-        porcentaje: 1.0,
+        nombre: 'Sindicato AOMA',
+        porcentaje: 2.5,
       ),
     ],
     zonas: [
@@ -1280,17 +1288,258 @@ final List<CCTCompleto> cctArgentinaCompleto = [
         adicionalPorcentaje: 0.0,
       ),
       ZonaCCT(
-        id: 'zona_patagonia',
-        nombre: 'Zona Patagónica',
+        id: 'zona_cordillera',
+        nombre: 'Zona Cordillera/Puna',
+        adicionalPorcentaje: 40.0,
+        descripcion: 'Adicional por zona inhóspita o altura',
+      ),
+      ZonaCCT(
+        id: 'zona_sur',
+        nombre: 'Zona Sur',
         adicionalPorcentaje: 20.0,
       ),
     ],
-    adicionalPresentismo: 0.0, // Sanidad tiene otros adicionales
-    adicionalAntiguedad: 2.0,
+    adicionalPresentismo: 8.33,
+    adicionalAntiguedad: 1.5,
+    horasMensualesDivisor: 192.0,
+    esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'http://aoma.org.ar/convenios/CCT-36-89.pdf',
+  ),
+
+  // CCT Rurales - UATRE
+  CCTCompleto(
+    id: 'cct_rurales',
+    numeroCCT: 'Ley 26.727',
+    nombre: 'Rurales - UATRE',
+    descripcion: 'Régimen de Trabajo Agrario (CNTA). Peón Rural.',
+    actividad: 'Rural / Agro',
+    categorias: [
+      CategoriaCCT(
+        id: 'capataz',
+        nombre: 'Capataz',
+        salarioBase: 950000.0,
+        descripcion: 'Encargado general',
+      ),
+      CategoriaCCT(
+        id: 'conductor_tractorista',
+        nombre: 'Conductor Tractorista',
+        salarioBase: 850000.0,
+        descripcion: 'Mecánico tractorista',
+      ),
+      CategoriaCCT(
+        id: 'peon_especializado',
+        nombre: 'Peón Especializado',
+        salarioBase: 780000.0,
+        descripcion: 'Cultivos específicos, ordeñadores, etc.',
+      ),
+      CategoriaCCT(
+        id: 'peon_general',
+        nombre: 'Peón General',
+        salarioBase: 700000.0,
+        descripcion: 'Tareas generales de campo',
+      ),
+    ],
+    descuentos: [
+      DescuentoCCT(
+        id: 'obra_social',
+        nombre: 'Obra Social (OSPRERA)',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'jubilacion',
+        nombre: 'Jubilación',
+        porcentaje: 11.0,
+      ),
+      DescuentoCCT(
+        id: 'ley_19032',
+        nombre: 'Ley 19.032',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'sindicato',
+        nombre: 'Sindicato UATRE',
+        porcentaje: 2.0,
+      ),
+      DescuentoCCT(
+        id: 'renatre',
+        nombre: 'RENATRE',
+        porcentaje: 1.5,
+        descripcion: 'Registro Nacional de Trabajadores Rurales',
+      ),
+    ],
+    zonas: [
+      ZonaCCT(
+        id: 'zona_nacional',
+        nombre: 'Zona Nacional',
+        adicionalPorcentaje: 0.0,
+      ),
+      ZonaCCT(
+        id: 'zona_patagonia',
+        nombre: 'Zona Patagonia',
+        adicionalPorcentaje: 20.0,
+        descripcion: 'Chubut, Santa Cruz, Tierra del Fuego, Río Negro, Neuquén',
+      ),
+    ],
+    adicionalPresentismo: 0.0,
+    adicionalAntiguedad: 1.0, // 1% por año
     horasMensualesDivisor: 200.0,
     esDivisorDias: false,
     fechaVigencia: DateTime(2024, 1, 1),
     activo: true,
-    pdfUrl: 'https://www.sanidad.org.ar/ContentManager/Files/ContentFileManager/acciongremial/cct_pdfs/c122/cct122_actualizacionoctubre_2024.pdf',
+    pdfUrl: 'https://www.uatre.org.ar/escalas.php',
+  ),
+
+  // CCT Transporte Pasajeros - UTA
+  CCTCompleto(
+    id: 'cct_uta',
+    numeroCCT: '460/73',
+    nombre: 'Transporte (UTA)',
+    descripcion: 'Convenio Colectivo de Trabajo para Conductores de Transporte de Pasajeros',
+    actividad: 'Transporte Pasajeros',
+    categorias: [
+      CategoriaCCT(
+        id: 'conductor_guarda',
+        nombre: 'Conductor Guarda',
+        salarioBase: 1200000.0,
+        descripcion: 'Chofer de colectivo urbano/interurbano',
+      ),
+      CategoriaCCT(
+        id: 'conductor_larga_distancia',
+        nombre: 'Conductor Larga Distancia',
+        salarioBase: 1400000.0,
+        descripcion: 'Chofer de ómnibus larga distancia',
+      ),
+      CategoriaCCT(
+        id: 'tecnico_primera',
+        nombre: 'Técnico de Primera',
+        salarioBase: 1300000.0,
+        descripcion: 'Mecánico especializado',
+      ),
+      CategoriaCCT(
+        id: 'administrativo_a',
+        nombre: 'Administrativo A',
+        salarioBase: 1100000.0,
+      ),
+      CategoriaCCT(
+        id: 'auxiliar',
+        nombre: 'Auxiliar / Lavador',
+        salarioBase: 900000.0,
+        descripcion: 'Personal de limpieza y servicios',
+      ),
+    ],
+    descuentos: [
+      DescuentoCCT(
+        id: 'obra_social',
+        nombre: 'Obra Social',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'jubilacion',
+        nombre: 'Jubilación',
+        porcentaje: 11.0,
+      ),
+      DescuentoCCT(
+        id: 'ley_19032',
+        nombre: 'Ley 19.032',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'sindicato',
+        nombre: 'Sindicato UTA',
+        porcentaje: 1.5,
+      ),
+    ],
+    zonas: [
+      ZonaCCT(
+        id: 'zona_normal',
+        nombre: 'Zona Normal',
+        adicionalPorcentaje: 0.0,
+      ),
+    ],
+    adicionalPresentismo: 0.0, // UTA tiene sumas no remunerativas y viáticos fijos usualmente
+    adicionalAntiguedad: 1.5, // Variable según empresa/rama
+    horasMensualesDivisor: 192.0,
+    esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'http://www.uta.org.ar/convenios.php',
+  ),
+
+  // CCT Seguridad Privada - UPSRA
+  CCTCompleto(
+    id: 'cct_seguridad',
+    numeroCCT: '507/07',
+    nombre: 'Seguridad Privada (UPSRA)',
+    descripcion: 'Convenio Colectivo de Trabajo para Vigiladores y Seguridad Privada',
+    actividad: 'Seguridad',
+    categorias: [
+      CategoriaCCT(
+        id: 'vigilador_general',
+        nombre: 'Vigilador General',
+        salarioBase: 850000.0,
+        descripcion: 'Vigilancia general sin arma',
+      ),
+      CategoriaCCT(
+        id: 'vigilador_bombero',
+        nombre: 'Vigilador Bombero',
+        salarioBase: 900000.0,
+        descripcion: 'Con especialización en prevención de incendios',
+      ),
+      CategoriaCCT(
+        id: 'administrativo',
+        nombre: 'Administrativo',
+        salarioBase: 880000.0,
+      ),
+      CategoriaCCT(
+        id: 'monitorista',
+        nombre: 'Monitorista',
+        salarioBase: 920000.0,
+        descripcion: 'Operador de monitoreo de alarmas/cámaras',
+      ),
+    ],
+    descuentos: [
+      DescuentoCCT(
+        id: 'obra_social',
+        nombre: 'Obra Social (OSPSIP)',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'jubilacion',
+        nombre: 'Jubilación',
+        porcentaje: 11.0,
+      ),
+      DescuentoCCT(
+        id: 'ley_19032',
+        nombre: 'Ley 19.032',
+        porcentaje: 3.0,
+      ),
+      DescuentoCCT(
+        id: 'sindicato',
+        nombre: 'Sindicato UPSRA',
+        porcentaje: 2.0,
+      ),
+    ],
+    zonas: [
+      ZonaCCT(
+        id: 'zona_normal',
+        nombre: 'Zona Normal',
+        adicionalPorcentaje: 0.0,
+      ),
+      ZonaCCT(
+        id: 'zona_sur',
+        nombre: 'Zona Sur',
+        adicionalPorcentaje: 20.0,
+        descripcion: 'Adicional por zona desfavorable',
+      ),
+    ],
+    adicionalPresentismo: 8.33,
+    adicionalAntiguedad: 1.0, // 1% por año
+    horasMensualesDivisor: 200.0,
+    esDivisorDias: false,
+    fechaVigencia: DateTime(2024, 1, 1),
+    activo: true,
+    pdfUrl: 'https://upsra.org.ar/gremiales/escalas-salariales/',
   ),
 ];
