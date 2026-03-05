@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../data/cct_argentina_completo.dart';
 import '../models/cct_completo.dart';
+import '../services/educational_concepts_service.dart';
 import '../theme/app_colors.dart';
 
 class BuscadorCategoriasScreen extends StatefulWidget {
@@ -17,21 +18,17 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
   String? _filtroConvenioId;
   final TextEditingController _searchController = TextEditingController();
 
-  // Obtener lista única de convenios para el filtro
   List<CCTCompleto> get _conveniosDisponibles => cctArgentinaCompleto;
 
-  // Lógica de filtrado principal
   List<Map<String, dynamic>> _obtenerResultados() {
     List<Map<String, dynamic>> resultados = [];
 
     for (var cct in cctArgentinaCompleto) {
-      // Filtrar por convenio si está seleccionado
       if (_filtroConvenioId != null && cct.id != _filtroConvenioId) {
         continue;
       }
 
       for (var cat in cct.categorias) {
-        // Filtrar por texto (busca en nombre de categoría, descripción y nombre del convenio)
         if (_filtroTexto.isNotEmpty) {
           final texto = _filtroTexto.toLowerCase();
           final coincideNombre = cat.nombre.toLowerCase().contains(texto);
@@ -68,7 +65,6 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
       ),
       body: Column(
         children: [
-          // Header con filtros
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -101,7 +97,6 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Buscador
                 TextField(
                   controller: _searchController,
                   onChanged: (value) {
@@ -133,7 +128,6 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Filtro de Convenio
                 DropdownButtonFormField<String>(
                   value: _filtroConvenioId,
                   decoration: InputDecoration(
@@ -170,8 +164,6 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
               ],
             ),
           ),
-          
-          // Lista de resultados
           Expanded(
             child: resultados.isEmpty
                 ? Center(
@@ -294,17 +286,72 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
     );
   }
 
+  void _showHelpDialog(BuildContext context, String conceptTitle) {
+    final concept = EducationalConceptsService.getConceptByTitle(conceptTitle);
+    if (concept == null) {
+      // Fallback for concepts not yet in the service
+       if (conceptTitle == 'Sueldo Neto') {
+         showDialog(
+           context: context,
+           builder: (context) => AlertDialog(
+             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+             title: Row(
+               children: [
+                 Icon(Icons.help_outline, color: AppColors.primary.withOpacity(0.8)),
+                 const SizedBox(width: 10),
+                 Expanded(child: Text('Sueldo Neto o "de Bolsillo"', style: GoogleFonts.inter(fontWeight: FontWeight.bold))),
+               ],
+             ),
+             content: Text(
+               'Es la suma de dinero que efectivamente recibís en tu cuenta bancaria o en mano. Se calcula tomando tu sueldo bruto y restándole los descuentos obligatorios por ley, como los aportes a la jubilación, la obra social y el PAMI (Ley 19.032).',
+                style: GoogleFonts.inter(height: 1.4)
+              ),
+             actions: [
+               TextButton(
+                 onPressed: () => Navigator.of(context).pop(),
+                 child: const Text('Entendido'),
+               ),
+             ],
+           ),
+         );
+       }
+       return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.help_outline, color: AppColors.primary.withOpacity(0.8)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(concept.titulo, style: GoogleFonts.inter(fontWeight: FontWeight.bold))),
+          ],
+        ),
+        content: Text(concept.explicacionDetallada, style: GoogleFonts.inter(height: 1.4)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _mostrarDetalleCategoria(BuildContext context, CCTCompleto cct, CategoriaCCT cat) {
     final currencyFormat = NumberFormat.currency(locale: 'es_AR', symbol: '\$');
     
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
+        initialChildSize: 0.8,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
@@ -350,7 +397,12 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              _buildInfoSection('Sueldo Básico Estimado (Actualizado)', currencyFormat.format(cat.salarioBase), isPrice: true),
+              _buildInfoSection(
+                'Sueldo Básico Estimado',
+                currencyFormat.format(cat.salarioBase),
+                isPrice: true,
+                helpTopic: 'Sueldo Básico',
+              ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -365,7 +417,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Este valor refleja la escala salarial vigente más reciente (2024/2026). Puede incluir sumas no remunerativas según el acuerdo.',
+                        'Este valor refleja la escala salarial vigente más reciente. Es la base sobre la que se calculan tus descuentos y adicionales.',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: Colors.blue.shade900,
@@ -376,6 +428,11 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                   ],
                 ),
               ),
+
+              // --- SECCIÓN DE CÁLCULO NETO ---
+              _buildNetoEstimadoSection(cat, cct),
+              // --------------------------------
+
               const SizedBox(height: 16),
               if (cat.descripcion != null)
                 _buildInfoSection('Descripción de Tareas', cat.descripcion!),
@@ -397,9 +454,17 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
               ),
               const SizedBox(height: 16),
               if (cct.adicionalAntiguedad > 0 || cct.porcentajeAntiguedadAnual > 0)
-                _buildAdicionalRow('Antigüedad', '${cct.porcentajeAntiguedadAnual}% por año'),
+                _buildAdicionalRow(
+                  'Antigüedad', 
+                  '${cct.porcentajeAntiguedadAnual}% por año',
+                  helpTopic: 'Adicional por Antigüedad',
+                ),
               if (cct.adicionalPresentismo > 0)
-                _buildAdicionalRow('Presentismo', '${cct.adicionalPresentismo}%'),
+                _buildAdicionalRow(
+                  'Presentismo',
+                  '${cct.adicionalPresentismo}%',
+                  helpTopic: 'Adicional por Presentismo',
+                ),
               
               if (cct.zonas.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -441,17 +506,153 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
     );
   }
 
-  Widget _buildInfoSection(String title, String content, {bool isPrice = false}) {
+  Widget _buildNetoEstimadoSection(CategoriaCCT cat, CCTCompleto cct) {
+    final currencyFormat = NumberFormat.currency(locale: 'es_AR', symbol: '\$');
+    
+    final descuentosDeLey = cct.descuentos.where((d) {
+      final nombre = d.nombre.toLowerCase();
+      return nombre.contains('jubilación') || nombre.contains('obra social') || nombre.contains('ley 19.032');
+    }).toList();
+
+    if (descuentosDeLey.isEmpty) {
+      descuentosDeLey.addAll([
+          const DescuentoCCT(id: 'jubilacion', nombre: 'Jubilación', porcentaje: 11.0),
+          const DescuentoCCT(id: 'ley_19032', nombre: 'Ley 19.032', porcentaje: 3.0),
+          const DescuentoCCT(id: 'obra_social', nombre: 'Obra Social', porcentaje: 3.0),
+      ]);
+    }
+
+    final totalPorcentaje = descuentosDeLey.fold<double>(0.0, (sum, item) => sum + item.porcentaje);
+    final montoDescuentos = cat.salarioBase * (totalPorcentaje / 100);
+    final netoEstimado = cat.salarioBase - montoDescuentos;
+
+    final descuentosDesc = descuentosDeLey.map((d) => '${d.porcentaje}%').join(' + ');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'Estimación "de Bolsillo"',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => _showHelpDialog(context, 'Sueldo Neto'),
+              borderRadius: BorderRadius.circular(30),
+              child: const Icon(Icons.help_outline, size: 18, color: AppColors.textMuted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        _buildCalculationRow('Sueldo Básico', cat.salarioBase, currencyFormat, isPositive: true),
+        _buildCalculationRow('Descuentos de Ley ($descuentosDesc)', montoDescuentos, currencyFormat, isPositive: false),
+        
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          child: Divider(thickness: 1.5),
+        ),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Neto Estimado',
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+            Text(
+              currencyFormat.format(netoEstimado),
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.amber.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.amber.shade200),
           ),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 20, color: Colors.amber.shade800),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Cálculo aproximado sólo sobre el básico. No incluye adicionales (antigüedad, presentismo), horas extras, ni el impuesto a las ganancias.',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.amber.shade900,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCalculationRow(String label, double amount, NumberFormat format, {required bool isPositive}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary),
+          ),
+          Text(
+            '${isPositive ? '' : '- '}${format.format(amount)}',
+            style: GoogleFonts.inter(
+              fontSize: 14, 
+              color: isPositive ? Colors.green.shade700 : Colors.red.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(String title, String content, {bool isPrice = false, String? helpTopic}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            if (helpTopic != null) ...[
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => _showHelpDialog(context, helpTopic),
+                borderRadius: BorderRadius.circular(30),
+                child: const Icon(Icons.help_outline, size: 18, color: AppColors.textMuted),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 4),
         Text(
@@ -466,18 +667,30 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
     );
   }
 
-  Widget _buildAdicionalRow(String label, String value) {
+  Widget _buildAdicionalRow(String label, String value, {String? helpTopic}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (helpTopic != null) ...[
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => _showHelpDialog(context, helpTopic),
+                  borderRadius: BorderRadius.circular(30),
+                  child: const Icon(Icons.help_outline, size: 18, color: AppColors.textMuted),
+                ),
+              ],
+            ],
           ),
           Text(
             value,

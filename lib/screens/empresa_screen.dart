@@ -17,6 +17,7 @@ import '../utils/app_help.dart';
 import '../utils/image_preview.dart';
 import 'empresa_receipt_scan_screen.dart';
 import '../services/empresa_receipt_scan_service.dart';
+import 'package:collection/collection.dart';
 
 class EmpresaScreen extends StatefulWidget {
   final String? razonSocial;
@@ -54,6 +55,17 @@ class EmpresaScreenState extends State<EmpresaScreen> {
   List<CCTCompleto> _conveniosDisponibles = [];
   bool _inicializando = true; // Flag para evitar que el listener se ejecute durante initState
 
+  // Estado inicial para la detección de cambios
+  String _initialRazonSocial = '';
+  String _initialCuit = '';
+  String _initialDomicilio = '';
+  String _initialCodigoRnos = '';
+  List<String> _initialConvenios = [];
+  String? _initialLogoPath;
+  String? _initialFirmaPath;
+  String? _initialFormatoReciboId;
+
+
   @override
   void initState() {
     super.initState();
@@ -63,8 +75,7 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     
     // Inicializar datos básicos
     if (widget.razonSocial != null) {
-      _razonSocialController.text = widget.razonSocial!;
-      _domicilioController.text = widget.domicilio ?? '';
+      _razonSocialController.text = widget.razonSocial!;\n      _domicilioController.text = widget.domicilio ?? '';
       _logoPath = widget.logoPath == 'No disponible' ? null : widget.logoPath;
       _firmaPath = widget.firmaPath == 'No disponible' ? null : widget.firmaPath;
       
@@ -81,7 +92,9 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     }
     
     // Cargar formato de recibo de forma asíncrona
-    _cargarFormatoRecibo();
+    _cargarFormatoRecibo().then((_){
+      _guardarEstadoInicial();
+    });
     
     // Agregar listener después del primer frame para evitar problemas
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -110,7 +123,57 @@ class EmpresaScreenState extends State<EmpresaScreen> {
       }
       // Agregar listener después de formatear
       _cuitController.addListener(_formatearCUIT);
+      _guardarEstadoInicial();
     });
+  }
+
+  void _guardarEstadoInicial() {
+    _initialRazonSocial = _razonSocialController.text;
+    _initialCuit = _cuitController.text;
+    _initialDomicilio = _domicilioController.text;
+    _initialCodigoRnos = _codigoRnosController.text;
+    _initialConvenios = List.from(_conveniosSeleccionados);
+    _initialLogoPath = _logoPath;
+    _initialFirmaPath = _firmaPath;
+    _initialFormatoReciboId = _formatoReciboId;
+  }
+
+  bool _hasChanges() {
+    final currentConvenios = Set.from(_conveniosSeleccionados);
+    final initialConvenios = Set.from(_initialConvenios);
+
+    return _razonSocialController.text != _initialRazonSocial ||
+        _cuitController.text != _initialCuit ||
+        _domicilioController.text != _initialDomicilio ||
+        _codigoRnosController.text != _initialCodigoRnos ||
+        !const SetEquality().equals(currentConvenios, initialConvenios) ||
+        _logoPath != _initialLogoPath ||
+        _firmaPath != _initialFirmaPath ||
+        _formatoReciboId != _initialFormatoReciboId;
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_hasChanges()) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Cambios sin Guardar'),
+          content: const Text('Has realizado cambios. ¿Estás seguro de que quieres salir sin guardarlos?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Quedarse'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Salir sin Guardar'),
+            ),
+          ],
+        ),
+      );
+      return confirm ?? false;
+    }
+    return true;
   }
 
   Future<void> _cargarConveniosSeleccionados() async {
@@ -358,6 +421,51 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     Navigator.pop(context, true);
   }
 
+   Future<void> _eliminarEmpresa() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Empresa'),
+        content: const Text('¿Estás seguro de que deseas eliminar permanentemente esta empresa? Esta acción no se puede deshacer.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final List<Map<String, String>> empresas = await HybridStore.getEmpresas();
+    final razonSocialOriginal = widget.razonSocial;
+
+    empresas.removeWhere((e) => e['razonSocial'] == razonSocialOriginal);
+    await HybridStore.saveEmpresas(empresas);
+
+    // Limpiar datos asociados
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('empresa_convenios_$razonSocialOriginal');
+    await prefs.remove('empresa_formato_$razonSocialOriginal');
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Empresa "$razonSocialOriginal" eliminada correctamente.'),
+        backgroundColor: Colors.red.withOpacity(0.8),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+
+    Navigator.of(context).pop(true); // Pop para indicar que hubo un cambio
+  }
+
   Future<void> _elegirImagen(bool esFirma) async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -486,394 +594,433 @@ class EmpresaScreenState extends State<EmpresaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.glassFillStrong,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          widget.razonSocial != null ? 'Editar Empresa' : 'Nueva Empresa',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                color: AppColors.glassFillStrong,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.3)),
+                border: Border.all(color: AppColors.glassBorder),
               ),
-              child: const Icon(Icons.document_scanner, color: AppColors.pastelBlue, size: 20),
+              child: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
             ),
-            tooltip: 'Escanear Recibo',
-            onPressed: _escanearRecibo,
+            onPressed: () async {
+              if (await _onWillPop()) {
+                Navigator.pop(context);
+              }
+            },
           ),
-          const SizedBox(width: 8),
-          AppHelp.buildHelpButton(context, 'EmpresaScreen'),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.disabled, // Deshabilitar validación automática
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            _buildSeccion(
-              'Información Básica',
-              Icons.business_center,
-              [
-                _buildOcrButton(),
-                const SizedBox(height: 24),
-                _buildTextField(
-                  controller: _razonSocialController,
-                  label: 'Razón Social',
-                  icon: Icons.business,
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty
-                          ? 'Ingrese la razón social'
-                          : null,
+          title: Text(
+            widget.razonSocial != null ? 'Editar Empresa' : 'Nueva Empresa',
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.3)),
                 ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _cuitController,
-                  label: 'CUIT',
-                  icon: Icons.badge,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(11),
-                  ],
-                  validator: (value) {
-                    // Usar la función de validación matemática
-                    return validarCUITCUILConMensaje(value);
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _domicilioController,
-                  label: 'Domicilio legal (calle/numero/ciudad)',
-                  icon: Icons.location_on,
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty
-                          ? 'Ingrese el domicilio legal en formato: calle/numero/ciudad'
-                          : null,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _codigoRnosController,
-                        label: 'Código RNOS (obra social)',
-                        icon: Icons.medical_services,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+                child: const Icon(Icons.document_scanner, color: AppColors.pastelBlue, size: 20),
+              ),
+              tooltip: 'Escanear Recibo',
+              onPressed: _escanearRecibo,
+            ),
+            const SizedBox(width: 8),
+            AppHelp.buildHelpButton(context, 'EmpresaScreen'),
+          ],
+        ),
+        body: Form(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.disabled, // Deshabilitar validación automática
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _buildSeccion(
+                'Información Básica',
+                Icons.business_center,
+                [
+                  _buildOcrButton(),
+                  const SizedBox(height: 24),
+                  _buildTextField(
+                    controller: _razonSocialController,
+                    label: 'Razón Social',
+                    icon: Icons.business,
+                    onChanged: (_) => setState(() {}),
+                    validator: (value) =>
+                        value == null || value.trim().isEmpty
+                            ? 'Ingrese la razón social'
+                            : null,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _cuitController,
+                    label: 'CUIT',
+                    icon: Icons.badge,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
+                    validator: (value) {
+                      // Usar la función de validación matemática
+                      return validarCUITCUILConMensaje(value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _domicilioController,
+                    label: 'Domicilio legal (calle/numero/ciudad)',
+                    icon: Icons.location_on,
+                    onChanged: (_) => setState(() {}),
+                    validator: (value) =>
+                        value == null || value.trim().isEmpty
+                            ? 'Ingrese el domicilio legal en formato: calle/numero/ciudad'
+                            : null,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _codigoRnosController,
+                          label: 'Código RNOS (obra social)',
+                          icon: Icons.medical_services,
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setState(() {}),
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        onPressed: _mostrarBuscadorRNOS,
+                        icon: const Icon(Icons.search),
+                        tooltip: 'Buscar en catálogo nacional',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.pastelBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.pastelBlue.withOpacity(0.3),
+                        width: 1,
                       ),
                     ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: AppColors.pastelBlue, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '¿No encuentra el convenio que necesita? Puede añadirlo desde la ventana de Convenios.',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildSeccion(
+                'Convenios Colectivos',
+                Icons.description,
+                [
+                  const Text(
+                    'Selecciona los convenios que aplican en tu empresa (puedes elegir varios)',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Opción "Fuera de Convenio"
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: _conveniosSeleccionados.contains('fuera_convenio')
+                          ? AppColors.pastelBlue.withValues(alpha: 0.15)
+                          : AppColors.glassFill,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _conveniosSeleccionados.contains('fuera_convenio')
+                            ? AppColors.pastelBlue
+                            : AppColors.glassBorder,
+                        width: _conveniosSeleccionados.contains('fuera_convenio') ? 2 : 1,
+                      ),
+                    ),
+                    child: CheckboxListTile(
+                      value: _conveniosSeleccionados.contains('fuera_convenio'),
+                      onChanged: (bool? value) {
+                        setState(() {
+                          if (value == true) {
+                            if (!_conveniosSeleccionados.contains('fuera_convenio')) {
+                              _conveniosSeleccionados.add('fuera_convenio');
+                            }
+                          } else {
+                            _conveniosSeleccionados.remove('fuera_convenio');
+                          }
+                        });
+                      },
+                      title: const Text(
+                        'Fuera de Convenio',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Para empleados sin convenio colectivo',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      activeColor: AppColors.pastelBlue,
+                      checkColor: AppColors.background,
+                    ),
+                  ),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 300),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _conveniosDisponibles.length,
+                      itemBuilder: (context, index) {
+                        final convenio = _conveniosDisponibles[index];
+                        final estaSeleccionado = _conveniosSeleccionados.contains(convenio.id);
+                        
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: estaSeleccionado 
+                                ? AppColors.pastelBlue.withValues(alpha: 0.15)
+                                : AppColors.glassFill,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: estaSeleccionado 
+                                  ? AppColors.pastelBlue 
+                                  : AppColors.glassBorder,
+                              width: estaSeleccionado ? 2 : 1,
+                            ),
+                          ),
+                          child: CheckboxListTile(
+                            value: estaSeleccionado,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                if (value == true) {
+                                  if (!_conveniosSeleccionados.contains(convenio.id)) {
+                                    _conveniosSeleccionados.add(convenio.id);
+                                  }
+                                } else {
+                                  _conveniosSeleccionados.remove(convenio.id);
+                                }
+                              });
+                            },
+                            title: Text(
+                              convenio.nombre,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'CCT ${convenio.numeroCCT}',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            activeColor: AppColors.pastelBlue,
+                            checkColor: AppColors.background,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildSeccion(
+                'Logo de la Empresa',
+                Icons.image,
+                [
+                  _buildImageSelector(
+                    path: _logoPath,
+                    onTap: () => _elegirImagen(false),
+                    onDelete: () => _eliminarImagen(false),
+                    hintText: 'Toca para seleccionar logo',
+                    subText: 'Galería o Cámara',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildSeccion(
+                'Firma Digital / Sello',
+                Icons.draw,
+                [
+                  _buildImageSelector(
+                    path: _firmaPath,
+                    onTap: () => _elegirImagen(true),
+                    onDelete: () => _eliminarImagen(true),
+                    hintText: 'Toca para seleccionar firma o sello',
+                    subText: 'Galería o Cámara',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildSeccion(
+                'Formato de Recibo',
+                Icons.receipt_long,
+                [
+                  GestureDetector(
+                    onTap: _abrirSelectorFormato,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.glassFillStrong,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.receipt_long,
+                                  color: AppColors.pastelBlue,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _formatoReciboId != null
+                                          ? FormatoRecibo.obtenerPorId(_formatoReciboId!)?.nombre ?? 'No seleccionado'
+                                          : 'No seleccionado',
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatoReciboId != null
+                                          ? FormatoRecibo.obtenerPorId(_formatoReciboId!)?.descripcion ?? 'Selecciona un formato'
+                                          : 'Toca para seleccionar formato de recibo',
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                color: AppColors.textSecondary,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _guardarEmpresa,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.pastelBlue,
+                  foregroundColor: AppColors.background,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.save, size: 22),
                     const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      onPressed: _mostrarBuscadorRNOS,
-                      icon: const Icon(Icons.search),
-                      tooltip: 'Buscar en catálogo nacional',
+                    Text(
+                      widget.razonSocial != null ? 'Actualizar Empresa' : 'Crear Empresa',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
+              ),
+              if (widget.razonSocial != null) ...[
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.pastelBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.pastelBlue.withOpacity(0.3),
-                      width: 1,
+                OutlinedButton(
+                  onPressed: _eliminarEmpresa,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red[400],
+                    side: BorderSide(color: Colors.red[400]!),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(16)),
                     ),
                   ),
                   child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: AppColors.pastelBlue, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '¿No encuentra el convenio que necesita? Puede añadirlo desde la ventana de Convenios.',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 13,
-                          ),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.delete_forever, size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Eliminar Empresa',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 24),
-            _buildSeccion(
-              'Convenios Colectivos',
-              Icons.description,
-              [
-                const Text(
-                  'Selecciona los convenios que aplican en tu empresa (puedes elegir varios)',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Opción "Fuera de Convenio"
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: _conveniosSeleccionados.contains('fuera_convenio')
-                        ? AppColors.pastelBlue.withValues(alpha: 0.15)
-                        : AppColors.glassFill,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _conveniosSeleccionados.contains('fuera_convenio')
-                          ? AppColors.pastelBlue
-                          : AppColors.glassBorder,
-                      width: _conveniosSeleccionados.contains('fuera_convenio') ? 2 : 1,
-                    ),
-                  ),
-                  child: CheckboxListTile(
-                    value: _conveniosSeleccionados.contains('fuera_convenio'),
-                    onChanged: (bool? value) {
-                      setState(() {
-                        if (value == true) {
-                          if (!_conveniosSeleccionados.contains('fuera_convenio')) {
-                            _conveniosSeleccionados.add('fuera_convenio');
-                          }
-                        } else {
-                          _conveniosSeleccionados.remove('fuera_convenio');
-                        }
-                      });
-                    },
-                    title: const Text(
-                      'Fuera de Convenio',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Para empleados sin convenio colectivo',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                    activeColor: AppColors.pastelBlue,
-                    checkColor: AppColors.background,
-                  ),
-                ),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 300),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _conveniosDisponibles.length,
-                    itemBuilder: (context, index) {
-                      final convenio = _conveniosDisponibles[index];
-                      final estaSeleccionado = _conveniosSeleccionados.contains(convenio.id);
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: estaSeleccionado 
-                              ? AppColors.pastelBlue.withValues(alpha: 0.15)
-                              : AppColors.glassFill,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: estaSeleccionado 
-                                ? AppColors.pastelBlue 
-                                : AppColors.glassBorder,
-                            width: estaSeleccionado ? 2 : 1,
-                          ),
-                        ),
-                        child: CheckboxListTile(
-                          value: estaSeleccionado,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              if (value == true) {
-                                if (!_conveniosSeleccionados.contains(convenio.id)) {
-                                  _conveniosSeleccionados.add(convenio.id);
-                                }
-                              } else {
-                                _conveniosSeleccionados.remove(convenio.id);
-                              }
-                            });
-                          },
-                          title: Text(
-                            convenio.nombre,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'CCT ${convenio.numeroCCT}',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                          activeColor: AppColors.pastelBlue,
-                          checkColor: AppColors.background,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSeccion(
-              'Logo de la Empresa',
-              Icons.image,
-              [
-                _buildImageSelector(
-                  path: _logoPath,
-                  onTap: () => _elegirImagen(false),
-                  onDelete: () => _eliminarImagen(false),
-                  hintText: 'Toca para seleccionar logo',
-                  subText: 'Galería o Cámara',
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSeccion(
-              'Firma Digital / Sello',
-              Icons.draw,
-              [
-                _buildImageSelector(
-                  path: _firmaPath,
-                  onTap: () => _elegirImagen(true),
-                  onDelete: () => _eliminarImagen(true),
-                  hintText: 'Toca para seleccionar firma o sello',
-                  subText: 'Galería o Cámara',
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSeccion(
-              'Formato de Recibo',
-              Icons.receipt_long,
-              [
-                GestureDetector(
-                  onTap: _abrirSelectorFormato,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppColors.glassFillStrong,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.glassBorder),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.pastelBlue.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.receipt_long,
-                                color: AppColors.pastelBlue,
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _formatoReciboId != null
-                                        ? FormatoRecibo.obtenerPorId(_formatoReciboId!)?.nombre ?? 'No seleccionado'
-                                        : 'No seleccionado',
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatoReciboId != null
-                                        ? FormatoRecibo.obtenerPorId(_formatoReciboId!)?.descripcion ?? 'Selecciona un formato'
-                                        : 'Toca para seleccionar formato de recibo',
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 13,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons.arrow_forward_ios,
-                              color: AppColors.textSecondary,
-                              size: 18,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _guardarEmpresa,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.pastelBlue,
-                foregroundColor: AppColors.background,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(16)),
-                ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.save, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.razonSocial != null ? 'Actualizar Empresa' : 'Crear Empresa',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1087,11 +1234,13 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      onChanged: onChanged,
       style: const TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,

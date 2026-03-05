@@ -1,9 +1,3 @@
-// ========================================================================
-// BIBLIOTECA CCT EN LA NUBE
-// Convenios actualizados por robot BAT con banner de sincronización
-// Misma metodología que Docentes y Sanidad
-// ========================================================================
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,24 +19,43 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
   Map<String, dynamic>? _infoSincronizacion;
   
   String _filtroSector = 'todos'; // todos, sanidad, docente, comercio
+
+  // State for search functionality
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
   
   @override
   void initState() {
     super.initState();
     _cargarCCTs();
+    _searchController.addListener(() {
+      if (_searchQuery != _searchController.text) {
+        setState(() {
+          _searchQuery = _searchController.text;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
   
   Future<void> _cargarCCTs() async {
     try {
       final res = await CCTCloudService.sincronizarCCT();
       
-      setState(() {
-        _infoSincronizacion = res;
-        final data = res['data'] as List? ?? [];
-        _ccts = data.map((m) => CCTMaster.fromMap(m)).toList();
-      });
+      if (mounted) {
+        setState(() {
+          _infoSincronizacion = res;
+          final data = res['data'] as List? ?? [];
+          _ccts = data.map((m) => CCTMaster.fromMap(m)).toList();
+        });
+      }
     } catch (e) {
-      _mostrarError('Error cargando CCT: $e');
+      if (mounted) _mostrarError('Error cargando CCT: $e');
     }
   }
   
@@ -51,31 +64,35 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
     
     setState(() => _sincronizando = true);
     
-    final res = await CCTCloudService.sincronizarCCT();
-    
-    if (mounted) {
-      setState(() {
-        _infoSincronizacion = res;
-        _sincronizando = false;
-        
-        final data = res['data'] as List? ?? [];
-        _ccts = data.map((m) => CCTMaster.fromMap(m)).toList();
-      });
+    try {
+      final res = await CCTCloudService.sincronizarCCT();
       
-      if (res['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('CCT sincronizados correctamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      if (mounted) {
+        setState(() {
+          _infoSincronizacion = res;
+          final data = res['data'] as List? ?? [];
+          _ccts = data.map((m) => CCTMaster.fromMap(m)).toList();
+        });
+        
+        if (res['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('CCT sincronizados correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch(e) {
+       if (mounted) _mostrarError('Error al sincronizar: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _sincronizando = false);
       }
     }
   }
 
-  // === CCT SCANNER (Nuevo) ===
   Future<void> _escanearCCT() async {
-    // Navegar a la pantalla de escaneo dedicada (estilo Docentes)
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CctScanScreen()),
@@ -88,14 +105,10 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      // Aquí se podría recargar la lista si el escaneo guardó algo en la nube/BD
       _cargarCCTs(); 
     }
   }
 
-  // El método _mostrarResultadosCCT ya no es necesario aquí porque se maneja en CctOcrReviewScreen
-
-  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,7 +130,8 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _buildBannerSincronizacion(),
-          // _buildAcademyBanner(context),
+          const SizedBox(height: 8),
+          _buildSearchField(),
           const SizedBox(height: 16),
           _buildInstruccionesRobot(),
           const SizedBox(height: 16),
@@ -130,10 +144,42 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
     );
   }
 
-  // Widget _buildAcademyBanner removed
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Buscar por código o nombre...',
+          prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: AppColors.textMuted),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: AppColors.surface,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.glassBorder),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.glassBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.accentBlue, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
 
-  
-  /// Banner de sincronización (misma metodología que Docentes y Sanidad)
   Widget _buildBannerSincronizacion() {
     if (_infoSincronizacion == null && !_sincronizando) {
       return const SizedBox.shrink();
@@ -142,7 +188,7 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
     final info = _infoSincronizacion;
     final bool success = info?['success'] ?? false;
     final bool isOffline = info?['modo'] == 'offline';
-    final DateTime? fecha = info?['fecha'];
+    final DateTime? fecha = info?['fecha'] != null ? DateTime.tryParse(info!['fecha']) : null;
     final int cantidad = info?['cantidad'] ?? 0;
     final String fechaStr = fecha != null 
         ? DateFormat('dd/MM/yyyy HH:mm').format(fecha) 
@@ -233,7 +279,6 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Aquí podrías abrir una pantalla para ver el log del robot
                     _mostrarHistorialRobot();
                   },
                   icon: const Icon(Icons.history),
@@ -266,6 +311,15 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
   Widget _buildListaCCTs() {
     var ccts = _ccts;
     
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase().trim();
+      ccts = ccts.where((cct) {
+        final nombreMatches = cct.nombre.toLowerCase().contains(query);
+        final codigoMatches = cct.codigo.toLowerCase().contains(query);
+        return nombreMatches || codigoMatches;
+      }).toList();
+    }
+
     if (_filtroSector != 'todos') {
       ccts = ccts.where((c) => c.sector == _filtroSector).toList();
     }
@@ -276,13 +330,14 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
           padding: const EdgeInsets.all(32),
           child: Column(
             children: [
-              const Icon(Icons.library_books, size: 80, color: Colors.grey),
+              Icon(_searchQuery.isNotEmpty ? Icons.search_off : Icons.library_books, size: 80, color: Colors.grey),
               const SizedBox(height: 16),
-              const Text('No hay CCT disponibles'),
+              Text(_searchQuery.isNotEmpty ? 'No hay CCT que coincidan' : 'No hay CCT disponibles'),
               const SizedBox(height: 8),
-              const Text(
-                'Ejecuta el robot BAT para actualizar',
-                style: TextStyle(fontSize: 12),
+              Text(
+                _searchQuery.isNotEmpty ? 'Probá con otro término de búsqueda.' : 'Ejecuta el robot BAT o sincroniza ahora.',
+                style: const TextStyle(fontSize: 12),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
@@ -413,7 +468,6 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
                     Text(cct.descripcion!, style: const TextStyle(color: AppColors.textSecondary, height: 1.5)),
                   ],
 
-                  // Sección de Categorías y Escalas
                   const SizedBox(height: 32),
                   const Text('Escalas y Categorías', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 18)),
                   const SizedBox(height: 16),
@@ -568,6 +622,7 @@ class _BibliotecaCCTScreenState extends State<BibliotecaCCTScreen> {
   }
   
   void _mostrarError(String mensaje) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(mensaje), backgroundColor: Colors.red),
     );
