@@ -7,40 +7,23 @@ import 'dart:convert';
 import 'dart:async';
 import 'empresa_screen.dart';
 import '../services/hybrid_store.dart';
-import 'convenios_screen.dart';
 import '../models/empresa.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import 'empleado_screen.dart';
 import 'lista_empleados_screen.dart';
-import 'liquidador_final_screen.dart';
 import 'parametros_legales_screen.dart';
-import 'teacher_interface_screen.dart';
-import 'sanidad_interface_screen.dart';
-import '../models/subscription_plan.dart';
 import '../utils/logo_avatar.dart';
 import '../utils/app_help.dart';
-
-// Sprint 1 + 2 + 3 + 4 + 5
-import 'gestion_empleados_screen.dart';
-import 'liquidacion_masiva_screen.dart';
-import 'dashboard_gerencial_screen.dart';
-import 'gestion_conceptos_screen.dart';
-import 'gestion_ausencias_screen.dart';
-import 'gestion_prestamos_screen.dart';
-import 'biblioteca_cct_screen.dart';
-import 'buscador_categorias_screen.dart';
-import 'dashboard_riesgos_screen.dart';
-
-import 'verificador_recibo_screen.dart';
-import 'validador_lsd_screen.dart';
-import '../services/sync_service.dart';
 
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'qr_scanner_screen.dart';
-import '../services/web_auth_service.dart'; // <- Importar el nuevo servicio
+import '../services/web_auth_service.dart';
+import '../config/app_modules.dart';
+import '../models/module_info.dart';
+import 'subscription_screen.dart'; // <- IMPORTACIÓN NUEVA
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,7 +36,7 @@ class HomeScreenState extends State<HomeScreen> {
   List<Map<String, String>> _empresas = [];
   Future<void>? _initialSync;
   bool _isPremium = true;
-  final _webAuthService = WebAuthService(); // <- Instancia del servicio
+  final _webAuthService = WebAuthService();
 
   @override
   void initState() {
@@ -65,7 +48,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _webAuthService.dispose(); // <- Limpiar el servicio
+    _webAuthService.dispose();
     super.dispose();
   }
 
@@ -170,7 +153,10 @@ class HomeScreenState extends State<HomeScreen> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () async {
+               if (!mounted) return;
+               Navigator.pop(context, true);
+            },
             child: const Text('Eliminar'),
           ),
         ],
@@ -178,8 +164,13 @@ class HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmado == true) {
-      final nueva = List<Map<String, String>>.from(_empresas)..removeAt(index);
-      await HybridStore.saveEmpresas(nueva);
+      final empresaAEliminar = _empresas[index];
+      final nuevasEmpresas = List<Map<String, String>>.from(_empresas)..removeAt(index);
+      await HybridStore.saveEmpresas(nuevasEmpresas);
+      
+      // Adicionalmente, limpiar los datos asociados a la empresa
+      await HybridStore.removeEmpleadosOfEmpresa(empresaAEliminar['razonSocial']! );
+
       _cargarEmpresas();
     }
   }
@@ -219,164 +210,12 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _irALiquidador() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const LiquidadorFinalScreen(),
-      ),
-    );
-  }
-
-  void _navegarVerificadorRecibo() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const VerificadorReciboScreen(),
-      ),
-    );
-  }
-
-  List<Widget> _buildModuleList() {
-    return [
-      _buildModernCard(
-        title: 'Tu Empresa',
-        subtitle: 'Configura los datos de tu empresa',
-        icon: Icons.business_center,
-        iconColor: AppColors.accentBlue,
-        onTap: () => _navegarAEmpresa(null),
-      ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Validador LSD ARCA',
-          subtitle: 'Validador previo de archivos LSD 2026',
-          icon: Icons.fact_check,
-          iconColor: AppColors.accentBlue,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ValidadorLSDScreen())),
-        ),
-      _buildModernCard(
-        title: 'Verificador de Recibo',
-        subtitle: 'Escaneá y verificá tu liquidación',
-        icon: Icons.document_scanner_outlined,
-        iconColor: AppColors.accentPink,
-        onTap: _navegarVerificadorRecibo,
-      ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Liquidador Final',
-          subtitle: 'Genera las liquidaciones de empleados',
-          icon: Icons.calculate,
-          iconColor: AppColors.primary,
-          isHighlighted: true,
-          onTap: _irALiquidador,
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Convenios',
-          subtitle: 'Gestiona los convenios laborales',
-          icon: Icons.description,
-          iconColor: AppColors.accentYellow,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ConveniosScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Liquidación Docente 2026',
-          subtitle: 'Sistema federal de liquidación docente',
-          icon: Icons.school,
-          iconColor: AppColors.accentEmerald,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherInterfaceScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Liquidación Sanidad 2026',
-          subtitle: 'Sistema de liquidación para sanidad',
-          icon: Icons.local_hospital,
-          iconColor: AppColors.accentPink,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SanidadInterfaceScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Gestión de Empleados',
-          subtitle: 'Base de datos completa de empleados',
-          icon: Icons.people,
-          iconColor: AppColors.accentBlue,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionEmpleadosScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Liquidación Masiva',
-          subtitle: 'Procesa múltiples empleados en paralelo',
-          icon: Icons.bolt,
-          iconColor: AppColors.accentOrange,
-          isHighlighted: true,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LiquidacionMasivaScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Dashboard Gerencial',
-          subtitle: 'Reportes y gráficos ejecutivos',
-          icon: Icons.dashboard,
-          iconColor: const Color(0xFF9333EA),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardGerencialScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Conceptos Recurrentes',
-          subtitle: 'Vales, sindicato, embargos automáticos',
-          icon: Icons.receipt_long,
-          iconColor: AppColors.accentEmerald,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionConceptosScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Ausencias y Licencias',
-          subtitle: 'Gestión de ausencias con aprobación',
-          icon: Icons.event_busy,
-          iconColor: const Color(0xFF14B8A6),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionAusenciasScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Préstamos',
-          subtitle: 'Préstamos con cuotas automáticas',
-          icon: Icons.attach_money,
-          iconColor: const Color(0xFF6366F1),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GestionPrestamosScreen())),
-        ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Biblioteca CCT',
-          subtitle: 'Convenios actualizados vía robot BAT',
-          icon: Icons.library_books,
-          iconColor: const Color(0xFF92400E),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BibliotecaCCTScreen())),
-        ),
-      _buildModernCard(
-        title: 'Buscador de Categorías',
-        subtitle: 'Encontrá tu categoría por tareas',
-        icon: Icons.search,
-        iconColor: AppColors.accentBlue,
-        isHighlighted: true,
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BuscadorCategoriasScreen())),
-      ),
-      if (_isPremium)
-        _buildModernCard(
-          title: 'Dashboard de Riesgos',
-          subtitle: 'Alertas y advertencias del sistema',
-          icon: Icons.warning_amber,
-          iconColor: Colors.red[700]!,
-          isHighlighted: true,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRiesgosScreen())),
-        ),
-    ];
-  }
-
   Widget _buildMainButtons() {
     return Column(
       children: [
         _buildWebLoginCard(),
         const SizedBox(height: 12),
-        ..._buildModuleGrid(),
+        _buildModuleGrid(),
       ],
     );
   }
@@ -392,7 +231,6 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
   
-  // REFACTORIZADO: Usa el WebAuthService
   Future<void> _handleQrScan() async {
     final String? channelId = await Navigator.push(
       context,
@@ -409,9 +247,7 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // REFACTORIZADO: Usa el WebAuthService
   Future<void> _handleManualCode() async {
-    // Muestra un dialog mientras se genera el código y se espera.
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -421,13 +257,13 @@ class HomeScreenState extends State<HomeScreen> {
     try {
       final code = await _webAuthService.listenForManualCodeRequest(
         onTokenSent: () {
-          if (mounted) Navigator.pop(context); // Cierra el loader
+          if (mounted) Navigator.pop(context);
           _showSnackBar('Dispositivo vinculado exitosamente.');
         },
       );
       
       if (mounted) {
-        Navigator.pop(context); // Cierra el loader
+        Navigator.pop(context);
         _mostrarCodigoGenerado(code);
       }
     } catch (e) {
@@ -505,7 +341,7 @@ class HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              _webAuthService.dispose(); // Cancela la escucha si el usuario cierra manualmente
+              _webAuthService.dispose();
               Navigator.pop(ctx);
             },
             child: const Text('Cerrar'),
@@ -515,41 +351,72 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildModuleGrid() {
+    final visibleModules = appModules.where((module) {
+      return !module.isPremium || _isPremium;
+    }).toList();
 
-  List<Widget> _buildModuleGrid() {
-    final modules = _buildModuleList();
-    if (modules.isEmpty) {
-      return [const Center(child: Text('No hay módulos disponibles.'))];
+    if (visibleModules.isEmpty) {
+      return const Center(child: Text('No hay módulos disponibles.'));
     }
 
     final width = MediaQuery.sizeOf(context).width;
     final crossAxisCount = width >= 1100 ? 3 : width >= 760 ? 2 : 1;
 
     if (crossAxisCount == 1) {
-      return [
-        for (var i = 0; i < modules.length; i++) ...[
-          if (i > 0) const SizedBox(height: 12),
-          modules[i],
-        ],
-      ];
-    }
-
-    return [
-      GridView.builder(
+      return ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: crossAxisCount == 3 ? 2.2 : 2.0,
-        ),
-        itemCount: modules.length,
-        itemBuilder: (context, index) => modules[index],
-      )
-    ];
+        itemCount: visibleModules.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final module = visibleModules[index];
+          return _buildModernCard(
+            title: module.title,
+            subtitle: module.subtitle,
+            icon: module.icon,
+            iconColor: module.iconColor,
+            isHighlighted: module.isHighlighted,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: module.buildRoute)),
+          );
+        },
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: crossAxisCount == 3 ? 2.2 : 2.0,
+      ),
+      itemCount: visibleModules.length,
+      itemBuilder: (context, index) {
+        final module = visibleModules[index];
+        return _buildModernCard(
+          title: module.title,
+          subtitle: module.subtitle,
+          icon: module.icon,
+          iconColor: module.iconColor,
+          isHighlighted: module.isHighlighted,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: module.buildRoute)),
+        );
+      },
+    );
   }
 
+  // NUEVO MÉTODO: Maneja el cierre de sesión.
+  Future<void> _signOut() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+      // El WebAuthGate se encargará de la redirección a la pantalla de login.
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Error al cerrar sesión: ${e.toString()}', isError: true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -625,10 +492,8 @@ class HomeScreenState extends State<HomeScreen> {
                               },
                             ),
                             _buildMainButtons(),
-                            if (_empresas.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              _buildEmpresasSection(),
-                            ],
+                            const SizedBox(height: 16),
+                            _buildEmpresasSection(), 
                           ],
                         ),
                       ),
@@ -768,74 +633,59 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // REFACTORIZADO: El Drawer ahora es un menú de navegación estándar.
   Widget _buildDrawer() {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    final userEmail = currentUser?.email ?? 'Bienvenido';
+
     return Drawer(
       backgroundColor: AppColors.background,
       child: Column(
         children: [
-          DrawerHeader(
+          UserAccountsDrawerHeader(
+            accountName: Text(
+              userEmail.split('@').first,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            accountEmail: Text(userEmail),
+            currentAccountPicture: const CircleAvatar(
+              backgroundColor: AppColors.primary,
+              child: Icon(Icons.person, color: Colors.white, size: 36),
+            ),
             decoration: const BoxDecoration(
               color: AppColors.backgroundLight,
               border: Border(bottom: BorderSide(color: AppColors.glassBorder)),
             ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.account_balance_wallet, size: 48, color: AppColors.accentBlue),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'SYncra Premium',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
           ),
           ListTile(
-            leading: const Icon(Icons.card_giftcard, color: Colors.redAccent),
-            title: const Text(
-              'Prueba Gratis de un Mes',
-              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-            ),
-            subtitle: const Text('Disfrutá de todas las funciones', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            leading: const Icon(Icons.home_outlined, color: AppColors.textSecondary),
+            title: const Text('Inicio', style: TextStyle(color: Colors.white)),
             onTap: () {
               Navigator.pop(context);
-              _mostrarInfoPruebaGratis();
             },
           ),
           ListTile(
-            leading: const Icon(Icons.person_outline, color: AppColors.accentBlue),
-            title: const Text('Plan Contador & Pymes', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Costo: 15 USD/mes', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            leading: const Icon(Icons.star_border, color: AppColors.accentYellow),
+            title: const Text('Planes y Suscripción', style: TextStyle(color: Colors.white)),
             onTap: () {
-              Navigator.pop(context);
-              _mostrarInfoPlan('Contador');
+              Navigator.pop(context); // Cierra el drawer
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
             },
           ),
+          const Divider(color: AppColors.glassBorder, indent: 16, endIndent: 16),
           ListTile(
-            leading: const Icon(Icons.business_outlined, color: AppColors.accentOrange),
-            title: const Text('Plan Business Pro', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Acceso Ilimitado - 70 USD/mes', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.redAccent)),
             onTap: () {
-              Navigator.pop(context);
-              _mostrarInfoPlan('Business Pro');
-            },
-          ),
-          const Divider(color: AppColors.glassBorder),
-          ListTile(
-            leading: const Icon(Icons.star_outline, color: AppColors.accentYellow),
-            title: const Text('Beneficios Premium', style: TextStyle(color: Colors.white)),
-            onTap: () {
-              Navigator.pop(context);
-              _mostrarBeneficios();
+               Navigator.pop(context);
+               _signOut();
             },
           ),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              _isPremium ? 'Prueba Premium Activa (30 días)' : 'Versión Gratuita',
+              _isPremium ? 'Estado: Prueba Premium Activa' : 'Estado: Versión Gratuita',
               style: TextStyle(
                 color: _isPremium ? AppColors.success : AppColors.accentOrange,
                 fontWeight: FontWeight.bold,
@@ -847,126 +697,8 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _mostrarInfoPruebaGratis() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        title: const Text('Prueba Gratis de 30 Días', style: TextStyle(color: Colors.redAccent)),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Durante este mes tenés acceso total a todas las funciones premium de SYncra.',
-              style: TextStyle(color: Colors.white),
-            ),
-            SizedBox(height: 12),
-            Text(
-              'Al finalizar el periodo de prueba:',
-              style: TextStyle(color: AppColors.accentBlue, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            _BenefitItem(icon: Icons.check_circle_outline, text: 'Verificador de recibos (Siempre gratis)'),
-            _BenefitItem(icon: Icons.check_circle_outline, text: 'Buscador de categorías (Siempre gratis)'),
-            _BenefitItem(icon: Icons.lock_outline, text: 'Liquidación asistida y LSD (Solo en planes premium)'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _mostrarInfoPlan(String planName) {
-    final plan = planName == 'Contador' 
-        ? SubscriptionPlan.contador 
-        : SubscriptionPlan.businessPro;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        title: Text('Plan ${plan.name}', style: const TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${plan.price} USD / mes', style: const TextStyle(color: AppColors.accentBlue, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Text(
-              planName == 'Contador' 
-                ? 'Ideal para profesionales independientes y pequeñas pymes.'
-                : 'Para grandes contadores y empresas con volumen ilimitado.',
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            if (plan.isUnlimited) ...[
-              const _BenefitItem(icon: Icons.all_inclusive, text: 'Empresas ilimitadas'),
-              const _BenefitItem(icon: Icons.people_alt, text: 'Empleados ilimitados'),
-              const _BenefitItem(icon: Icons.analytics, text: 'Informes y reportes ilimitados'),
-              const _BenefitItem(icon: Icons.download_for_offline, text: 'Descargas de recibos y LSD ilimitadas'),
-            ] else ...[
-              _BenefitItem(icon: Icons.business, text: 'Hasta ${plan.maxCompanies} empresas'),
-              _BenefitItem(icon: Icons.people, text: 'Hasta ${plan.maxEmployeesPerCompany} empleados por empresa'),
-              _BenefitItem(icon: Icons.file_download, text: '${plan.maxMonthlyDownloads} recibos y LSD por mes'),
-              const _BenefitItem(icon: Icons.cloud_done, text: 'Sincronización en la nube'),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _procesarPagoPlayStore(plan.name);
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.accentBlue),
-            child: const Text('Suscribirse'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _procesarPagoPlayStore(String plan) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Conectando con Google Play Store para el Plan $plan...'),
-        backgroundColor: AppColors.accentBlue,
-      ),
-    );
-  }
-
-  void _mostrarBeneficios() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        title: const Text('Beneficios Premium', style: TextStyle(color: Colors.white)),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _BenefitItem(icon: Icons.bolt, text: 'Liquidación Masiva Ultra-Rápida'),
-            _BenefitItem(icon: Icons.cloud_sync, text: 'Sincronización en la Nube'),
-            _BenefitItem(icon: Icons.support_agent, text: 'Soporte Técnico 24/7'),
-            _BenefitItem(icon: Icons.security, text: 'Backups automáticos diarios'),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
-        ],
-      ),
-    );
-  }
+  // ELIMINADOS: _mostrarInfoPruebaGratis, _mostrarInfoPlan, _procesarPagoPlayStore,
+  // _mostrarBeneficios, y la clase _BenefitItem ya no son necesarios aquí.
 
   Widget _buildEmpresasSection() {
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -995,7 +727,7 @@ class HomeScreenState extends State<HomeScreen> {
                   color: AppColors.textPrimary,
                 ),
               ),
-              IconButton(
+              if (_empresas.isNotEmpty) IconButton(
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -1014,22 +746,64 @@ class HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 2.5,
-            ),
-            itemCount: _empresas.length,
-            itemBuilder: (context, index) {
-              final empresa = _empresas[index];
-              return _buildEmpresaCard(empresa, index);
-            },
-          ),
+          _empresas.isEmpty
+              ? _buildEmptyEmpresasCard()
+              : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 2.5,
+                  ),
+                  itemCount: _empresas.length,
+                  itemBuilder: (context, index) {
+                    final empresa = _empresas[index];
+                    return _buildEmpresaCard(empresa, index);
+                  },
+                ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyEmpresasCard() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _navegarAEmpresa(null),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.glassFillStrong,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.glassBorder.withOpacity(0.5)),
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_business_outlined, size: 32, color: AppColors.textSecondary),
+              SizedBox(height: 12),
+              Text(
+                'Crea tu primera empresa',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Pulsa aquí para configurar los datos y empezar a liquidar.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1219,32 +993,6 @@ class HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _BenefitItem extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _BenefitItem({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.accentBlue, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-          ),
-        ],
       ),
     );
   }
