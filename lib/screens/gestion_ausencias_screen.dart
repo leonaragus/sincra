@@ -1,9 +1,20 @@
+
 // ========================================================================
-// PANTALLA DE GESTIÓN DE AUSENCIAS
-// Licencias, ausencias, presentismo
+// PANTALLA DE GESTIÓN DE AUSENCIAS (v2.0 con Calendario)
+// Interfaz rediseñada con vista de calendario y carga optimizada.
 // ========================================================================
 
+// **NOTA IMPORTANTE:** Para que esta pantalla funcione, asegúrate de
+// agregar la dependencia `table_calendar` en tu archivo `pubspec.yaml`:
+// dependencies:
+//   table_calendar: ^3.0.0
+
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
+
 import '../models/ausencia.dart';
 import '../models/empleado_completo.dart';
 import '../services/ausencias_service.dart';
@@ -12,336 +23,315 @@ import '../theme/app_colors.dart';
 import 'ausencia_form_screen.dart';
 
 class GestionAusenciasScreen extends StatefulWidget {
-  final String? empresaCuit;
+  final String empresaCuit;
   final String? empleadoCuilFiltro;
-  
+
   const GestionAusenciasScreen({
     super.key,
-    this.empresaCuit,
+    required this.empresaCuit,
     this.empleadoCuilFiltro,
   });
-  
+
   @override
   State<GestionAusenciasScreen> createState() => _GestionAusenciasScreenState();
 }
 
 class _GestionAusenciasScreenState extends State<GestionAusenciasScreen> {
-  List<Ausencia> _ausencias = [];
-  List<EmpleadoCompleto> _empleados = [];
   bool _cargando = true;
-  
-  String? _filtroEmpleado;
-  String _filtroEstado = 'todos'; // todos, pendiente, aprobado, rechazado
-  String _filtroTipo = 'todos';
-  
+  String _error = '';
+
+  // Datos maestros
+  List<Ausencia> _todasLasAusencias = [];
+  List<EmpleadoCompleto> _empleados = [];
+  Map<DateTime, List<Ausencia>> _eventos = {};
+
+  // Estado de la UI
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  String _filtroEstado = 'todos'; // todos, pendiente, aprobado
+  List<Ausencia> _ausenciasVisibles = [];
+
   @override
   void initState() {
     super.initState();
-    _filtroEmpleado = widget.empleadoCuilFiltro;
+    _selectedDay = _focusedDay;
     _cargarDatos();
   }
-  
-  Future<void> _cargarDatos() async {
-    setState(() => _cargando = true);
-    
+
+  Future<void> _cargarDatos({bool showLoading = true}) async {
+    if (showLoading && mounted) setState(() => _cargando = true);
     try {
-      // Cargar empleados
-      _empleados = await EmpleadosService.obtenerEmpleadosActivos(
-        empresaCuit: widget.empresaCuit,
-      );
+      final results = await Future.wait([
+        AusenciasService.obtenerAusenciasPorEmpresa(empresaCuit: widget.empresaCuit),
+        EmpleadosService.obtenerEmpleadosActivos(empresaCuit: widget.empresaCuit),
+      ]);
+
+      if (!mounted) return;
+      final ausencias = results[0] as List<Ausencia>;
+      final empleados = results[1] as List<EmpleadoCompleto>;
       
-      // Cargar ausencias
-      _ausencias = [];
-      if (_filtroEmpleado != null) {
-        _ausencias = await AusenciasService.obtenerAusenciasPorEmpleado(_filtroEmpleado!);
-      } else {
-        // Cargar todas las ausencias
-        for (final emp in _empleados) {
-          final ausencias = await AusenciasService.obtenerAusenciasPorEmpleado(emp.cuil);
-          _ausencias.addAll(ausencias);
+      final eventos = <DateTime, List<Ausencia>>{};
+      for (final ausencia in ausencias) {
+        for (var i = 0; i <= ausencia.fechaHasta.difference(ausencia.fechaDesde).inDays; i++) {
+          final day = DateUtils.dateOnly(ausencia.fechaDesde.add(Duration(days: i)));
+          (eventos[day] ??= []).add(ausencia);
         }
       }
+
+      setState(() {
+        _todasLasAusencias = ausencias;
+        _empleados = empleados;
+        _eventos = eventos;
+        _cargando = false;
+        _error = '';
+      });
+      _filtrarAusenciasVisibles();
     } catch (e) {
-      _mostrarError('Error cargando datos: $e');
+      if (mounted) setState(() => _error = 'Error cargando datos: $e');
+    } finally {
+      if (mounted) setState(() => _cargando = false);
     }
-    
-    setState(() => _cargando = false);
   }
-  
-  List<Ausencia> get _ausenciasFiltradas {
-    var ausencias = _ausencias;
-    
+
+  void _filtrarAusenciasVisibles() {
+    List<Ausencia> ausenciasDelDia = _selectedDay != null ? _eventos[DateUtils.dateOnly(_selectedDay!)] ?? [] : [];
+
     if (_filtroEstado != 'todos') {
-      ausencias = ausencias.where((a) => a.estado.name == _filtroEstado).toList();
+      ausenciasDelDia = ausenciasDelDia.where((a) => a.estado.name == _filtroEstado).toList();
     }
-    
-    if (_filtroTipo != 'todos') {
-      ausencias = ausencias.where((a) => a.tipo.name == _filtroTipo).toList();
+    if (widget.empleadoCuilFiltro != null) {
+      ausenciasDelDia = ausenciasDelDia.where((a) => a.empleadoCuil == widget.empleadoCuilFiltro).toList();
     }
-    
-    return ausencias;
+
+    ausenciasDelDia.sort((a, b) {
+      if (a.estado == EstadoAusencia.pendiente && b.estado != EstadoAusencia.pendiente) return -1;
+      if (a.estado != EstadoAusencia.pendiente && b.estado == EstadoAusencia.pendiente) return 1;
+      return a.fechaDesde.compareTo(b.fechaDesde);
+    });
+
+    setState(() => _ausenciasVisibles = ausenciasDelDia);
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestión de Ausencias'),
-        backgroundColor: AppColors.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _cargarDatos,
-          ),
-        ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: backgroundColor,
       ),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildFiltros(),
-                Expanded(child: _buildListaAusencias()),
-              ],
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        body: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: _cargando
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.accentBlue))
+                  : _error.isNotEmpty
+                      ? Center(child: Text(_error))
+                      : _buildContent(),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _agregarAusencia,
-        icon: const Icon(Icons.event_busy),
-        label: const Text('Nueva Ausencia'),
-        backgroundColor: AppColors.primary,
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(onPressed: _agregarAusencia, backgroundColor: AppColors.accentBlue, child: const Icon(Icons.add, color: Colors.white)),
       ),
     );
   }
-  
-  Widget _buildFiltros() {
-    return Card(
+
+  Widget _buildHeader() {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 16),
+          decoration: const BoxDecoration(color: AppColors.glassFill, border: Border(bottom: BorderSide(color: AppColors.glassBorder))),
+          child: Row(
+            children: [
+              if (Navigator.canPop(context)) IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+              const SizedBox(width: 8),
+              const Text('Gestión de Ausencias', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              IconButton(icon: const Icon(Icons.refresh, color: AppColors.textSecondary), tooltip: 'Actualizar', onPressed: () => _cargarDatos()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _buildCalendarView()),
+        SliverToBoxAdapter(child: _buildFilterChips()),
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: Text(DateFormat('EEEE d 'de' MMMM', 'es_AR').format(_selectedDay!), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)))),
+        if (_ausenciasVisibles.isEmpty) SliverToBoxAdapter(child: _buildEmptyStateForDay()) else _buildAusenciasList()
+      ],
+    );
+  }
+
+  Widget _buildCalendarView() {
+    return Container(
       margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Filtro empleado
-            if (widget.empleadoCuilFiltro == null)
-              DropdownButtonFormField<String?>(
-                value: _filtroEmpleado,
-                decoration: const InputDecoration(
-                  labelText: 'Empleado',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('Todos')),
-                  ..._empleados.map((e) => DropdownMenuItem(
-                    value: e.cuil,
-                    child: Text(e.nombreCompleto),
-                  )),
-                ],
-                onChanged: (v) {
-                  setState(() => _filtroEmpleado = v);
-                  _cargarDatos();
-                },
-              ),
-            
-            const SizedBox(height: 12),
-            
-            // Filtros de estado y tipo
-            Row(
-              children: [
-                Expanded(
-                  child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'todos', label: Text('Todos')),
-                      ButtonSegment(value: 'pendiente', label: Text('Pendientes')),
-                      ButtonSegment(value: 'aprobado', label: Text('Aprobados')),
-                    ],
-                    selected: {_filtroEstado},
-                    onSelectionChanged: (Set<String> selection) {
-                      setState(() => _filtroEstado = selection.first);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(color: AppColors.glassFill, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.glassBorder)),
+      child: TableCalendar(
+        locale: 'es_AR',
+        firstDay: DateTime.utc(2020, 1, 1),
+        lastDay: DateTime.utc(2030, 12, 31),
+        focusedDay: _focusedDay,
+        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+        onDaySelected: (selectedDay, focusedDay) {
+          if (!isSameDay(_selectedDay, selectedDay)) {
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+            _filtrarAusenciasVisibles();
+          }
+        },
+        eventLoader: (day) => _eventos[DateUtils.dateOnly(day)] ?? [],
+        calendarBuilders: CalendarBuilders(
+          markerBuilder: (context, date, events) {
+            if (events.isEmpty) return null;
+            return Positioned(
+              right: 1, bottom: 1,
+              child: Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.accentBlue.withOpacity(0.8)), child: Text('${events.length}', style: const TextStyle(color: Colors.white, fontSize: 10))),
+            );
+          },
         ),
+        calendarStyle: CalendarStyle(selectedDecoration: BoxDecoration(color: AppColors.accentBlue, shape: BoxShape.circle), todayDecoration: BoxDecoration(color: AppColors.accentBlue.withOpacity(0.5), shape: BoxShape.circle)),
+        headerStyle: const HeaderStyle(titleCentered: true, formatButtonVisible: false, leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.textPrimary), rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.textPrimary)),
       ),
     );
   }
-  
-  Widget _buildListaAusencias() {
-    final ausencias = _ausenciasFiltradas;
-    
-    if (ausencias.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.event_available, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No hay ausencias registradas'),
-          ],
-        ),
-      );
-    }
-    
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: ausencias.length,
-      itemBuilder: (context, index) {
-        final ausencia = ausencias[index];
-        final empleado = _empleados.firstWhere(
-          (e) => e.cuil == ausencia.empleadoCuil,
-          orElse: () => EmpleadoCompleto(
-            cuil: ausencia.empleadoCuil,
-            nombreCompleto: 'Empleado no encontrado',
-            fechaIngreso: DateTime.now(),
-            categoria: '',
-            provincia: '',
-          ),
-        );
-        
-        return _buildAusenciaCard(ausencia, empleado);
-      },
+
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: ['todos', 'pendiente', 'aprobado', 'rechazado'].map((estado) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FilterChip(
+              label: Text(estado[0].toUpperCase() + estado.substring(1)),
+              selected: _filtroEstado == estado,
+              onSelected: (_) => setState(() { _filtroEstado = estado; _filtrarAusenciasVisibles(); }),
+              backgroundColor: AppColors.glassFillStrong,
+              selectedColor: AppColors.accentPink.withOpacity(0.8),
+              labelStyle: TextStyle(color: _filtroEstado == estado ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w500),
+              checkmarkColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.glassBorder)),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
-  
-  Widget _buildAusenciaCard(Ausencia ausencia, EmpleadoCompleto empleado) {
-    final Color estadoColor = ausencia.estado == EstadoAusencia.aprobado
-        ? Colors.green
-        : ausencia.estado == EstadoAusencia.rechazado
-            ? Colors.red
-            : Colors.orange;
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          backgroundColor: estadoColor.withOpacity(0.2),
-          child: Icon(
-            ausencia.tipo == TipoAusencia.vacaciones ? Icons.beach_access : Icons.event_busy,
-            color: estadoColor,
-          ),
-        ),
-        title: Text(
-          ausencia.tipo.displayName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Empleado: ${empleado.nombreCompleto}'),
-            Text(
-              '${ausencia.fechaDesde.day}/${ausencia.fechaDesde.month}/${ausencia.fechaDesde.year} - '
-              '${ausencia.fechaHasta.day}/${ausencia.fechaHasta.month}/${ausencia.fechaHasta.year} '
-              '(${ausencia.diasTotales} días)',
-            ),
-          ],
-        ),
-        trailing: Chip(
-          label: Text(
-            ausencia.estado.name.toUpperCase(),
-            style: const TextStyle(fontSize: 10, color: Colors.white),
-          ),
-          backgroundColor: estadoColor,
-        ),
+
+  Widget _buildAusenciasList() {
+    return SliverList(delegate: SliverChildBuilderDelegate((context, index) {
+      final ausencia = _ausenciasVisibles[index];
+      final empleado = _empleados.firstWhere((e) => e.cuil == ausencia.empleadoCuil, orElse: () => EmpleadoCompleto.empty(cuil: ausencia.empleadoCuil));
+      return _AusenciaCard(ausencia: ausencia, empleado: empleado, onAction: () => _cargarDatos(showLoading: false));
+    }, childCount: _ausenciasVisibles.length));
+  }
+
+  Widget _buildEmptyStateForDay() {
+    return Container(
+      padding: const EdgeInsets.all(48), alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [const Icon(Icons.event_available, size: 60, color: AppColors.textMuted), const SizedBox(height: 16), Text('Sin ausencias registradas para este día', style: TextStyle(color: AppColors.textMuted, fontSize: 16), textAlign: TextAlign.center)],
+      ),
+    );
+  }
+
+  void _agregarAusencia() async {
+    final resultado = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => AusenciaFormScreen(empresaCuit: widget.empresaCuit, empleados: _empleados)));
+    if (resultado == true) _cargarDatos();
+  }
+}
+
+// WIDGET INDEPENDIENTE PARA LA TARJETA DE AUSENCIA
+class _AusenciaCard extends StatelessWidget {
+  final Ausencia ausencia;
+  final EmpleadoCompleto empleado;
+  final VoidCallback onAction;
+
+  const _AusenciaCard({required this.ausencia, required this.empleado, required this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _getStatusColor(ausencia.estado);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.glassFill, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.glassBorder)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (ausencia.motivo != null) ...[
-                  const Text('Motivo:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(ausencia.motivo!),
-                  const SizedBox(height: 8),
-                ],
-                
-                Text('Con goce: ${ausencia.conGoce ? 'Sí' : 'No'}'),
-                if (ausencia.conGoce && ausencia.porcentajeGoce < 100)
-                  Text('Goce: ${ausencia.porcentajeGoce}%'),
-                
-                const SizedBox(height: 16),
-                
-                // Botones de acción
-                if (ausencia.estado == EstadoAusencia.pendiente)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => _rechazarAusencia(ausencia),
-                        icon: const Icon(Icons.cancel, color: Colors.red),
-                        label: const Text('Rechazar', style: TextStyle(color: Colors.red)),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: () => _aprobarAusencia(ausencia),
-                        icon: const Icon(Icons.check_circle),
-                        label: const Text('Aprobar'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+          Row(
+            children: [
+              Icon(_getAusenciaIcon(ausencia.tipo), color: statusColor, size: 24),
+              const SizedBox(width: 12),
+              Expanded(child: Text(empleado.nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
+              Chip(label: Text(ausencia.estado.name.toUpperCase()), backgroundColor: statusColor.withOpacity(0.2), side: BorderSide.none, labelStyle: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold))
+            ],
           ),
+          const Divider(height: 24, color: AppColors.glassBorder),
+          Text('Tipo: ${ausencia.tipo.displayName}', style: const TextStyle(color: AppColors.textSecondary)),
+          Text('Período: ${DateFormat.yMd('es_AR').format(ausencia.fechaDesde)} al ${DateFormat.yMd('es_AR').format(ausencia.fechaHasta)} (${ausencia.diasTotales} días)', style: const TextStyle(color: AppColors.textSecondary)),
+          if (ausencia.motivo?.isNotEmpty ?? false) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Motivo: ${ausencia.motivo!}', style: const TextStyle(color: AppColors.textSecondary))),
+          if (ausencia.estado == EstadoAusencia.pendiente) _buildActionButtons(context),
         ],
       ),
     );
   }
-  
-  void _agregarAusencia() async {
-    final resultado = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AusenciaFormScreen(
-          empleadosFiltro: widget.empleadoCuilFiltro != null 
-              ? [widget.empleadoCuilFiltro!] 
-              : _empleados.map((e) => e.cuil).toList(),
-          empresaCuit: widget.empresaCuit ?? '',
-        ),
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(onPressed: () => _updateStatus(context, EstadoAusencia.rechazado), child: const Text('Rechazar', style: TextStyle(color: AppColors.error))),
+          const SizedBox(width: 8),
+          ElevatedButton(onPressed: () => _updateStatus(context, EstadoAusencia.aprobado), style: ElevatedButton.styleFrom(backgroundColor: AppColors.loanActive, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: const Text('Aprobar')),
+        ],
       ),
     );
-    
-    if (resultado == true) {
-      _cargarDatos();
+  }
+
+  Future<void> _updateStatus(BuildContext context, EstadoAusencia newStatus) async {
+    try {
+      await AusenciasService.actualizarEstadoAusencia(ausencia.id, newStatus);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ausencia ${newStatus.name}'), backgroundColor: newStatus == EstadoAusencia.aprobado ? AppColors.loanActive : AppColors.error));
+      onAction();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
     }
   }
-  
-  Future<void> _aprobarAusencia(Ausencia ausencia) async {
-    await AusenciasService.actualizarEstadoAusencia(
-      ausencia.id,
-      EstadoAusencia.aprobado,
-      aprobadoPor: 'Usuario', // Aquí puedes poner el usuario actual
-    );
-    
-    _cargarDatos();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ausencia aprobada'),
-        backgroundColor: Colors.green,
-      ),
-    );
+
+  Color _getStatusColor(EstadoAusencia estado) {
+    switch (estado) {
+      case EstadoAusencia.aprobado: return AppColors.loanActive;
+      case EstadoAusencia.rechazado: return AppColors.error;
+      case EstadoAusencia.pendiente: return AppColors.accentOrange;
+      default: return AppColors.textMuted;
+    }
   }
-  
-  Future<void> _rechazarAusencia(Ausencia ausencia) async {
-    await AusenciasService.actualizarEstadoAusencia(
-      ausencia.id,
-      EstadoAusencia.rechazado,
-      aprobadoPor: 'Usuario',
-    );
-    
-    _cargarDatos();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ausencia rechazada'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-  
-  void _mostrarError(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: Colors.red),
-    );
+
+  IconData _getAusenciaIcon(TipoAusencia tipo) {
+    switch (tipo) {
+      case TipoAusencia.vacaciones: return Icons.beach_access_outlined;
+      case TipoAusencia.enfermedad: return Icons.sick_outlined;
+      case TipoAusencia.estudio: return Icons.school_outlined;
+      default: return Icons.event_busy_outlined;
+    }
   }
 }

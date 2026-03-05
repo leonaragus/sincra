@@ -23,6 +23,11 @@ class AppColors {
   static const Color error = Color(0xFFef4444); // red-500
   static const Color info = Color(0xFF3b82f6); // blue-500
   
+  // Colores de estado para Préstamos
+  static const Color loanActive = warning;
+  static const Color loanPaid = success;
+  static const Color loanCancelled = textMuted;
+
   // Colores glassmorphism mejorados para mejor visibilidad
   static const Color glassFill = Color.fromRGBO(30, 41, 59, 0.85); // slate-800 con más opacidad
   static const Color glassBorder = Color.fromRGBO(51, 65, 85, 0.95); // slate-600 con más opacidad
