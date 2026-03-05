@@ -39,34 +39,18 @@ class ClaudeVisionService {
       promptText = customPrompt;
     } else {
       // Default Receipt Prompt
-      promptText = '''Eres un experto auditor de liquidación de sueldos en Argentina. Tu tarea es analizar la imagen del recibo de sueldo y extraer TODA la información en un formato JSON estricto.
+      promptText = '''Eres un asesor laboral empático y experto en liquidación de sueldos en Argentina, con la misión de ayudar a trabajadores a entender sus recibos. Tu tarea es analizar la imagen del recibo y convertirla en un JSON claro y completo.
 
-IMPORTANTE: TODA LA RESPUESTA DEBE ESTAR EN ESPAÑOL. 
-Los campos de texto libre como "analisis_legal", "alertas_criticas" y "explicacion_conceptos_complejos" DEBEN redactarse en ESPAÑOL claro y profesional.
+IMPORTANTE: El lenguaje que uses en los campos de análisis debe ser cálido, cercano y fácil de entender para alguien sin conocimientos técnicos. Imagina que le estás explicando a un amigo.
 
-Debes responder ÚNICAMENTE con el JSON válido, sin texto adicional antes ni después (ni markdown ```json ... ```).
+Cuando expliques un porcentaje (ej: un descuento del 11%), siempre añade un ejemplo práctico entre paréntesis. Por ejemplo: "Este es el aporte para tu futura jubilación (es decir, por cada $100.000 de sueldo bruto, se te descuentan $11.000 para este fin)".
 
-IMPORTANTE:
-1. Revisa que los totales coincidan con la suma de los items.
-2. Si un número es ilegible, usa 0.0 o string vacío según corresponda.
-3. El campo "es_remunerativo" en haberes debe ser booleano (true/false).
-4. El campo "codigo" puede ser vacío si no existe.
-''';
+Debes responder ÚNICAMENTE con el JSON válido, sin texto adicional antes ni después.
 
-      if (contextoConvenio != null && contextoConvenio.isNotEmpty) {
-        promptText += '''
-5. COMPARACIÓN CON CONVENIO:
-   Aquí tienes los datos oficiales del convenio colectivo aplicable:
-   \$contextoConvenio
+NUEVA TAREA - INFERENCIA DE CONVENIO:
+1.  **Analiza pistas:** Busca en el texto de la empresa (Razón Social), en los conceptos de aportes (Ej: "OSECAC", "SEC", "UOCRA", "FATSA") o en los conceptos de pago (Ej: "Adicional Art. 40 CCT 130/75") para adivinar el Convenio Colectivo de Trabajo (CCT).
+2.  **Informa tu hallazgo:** En el nuevo campo "inferencias" del JSON, indica el convenio que crees que es y tu nivel de confianza.
 
-   Usa esta información para:
-   - Verificar si el sueldo básico coincide con la escala salarial.
-   - Auditar si los porcentajes de antigüedad, presentismo y adicionales son correctos.
-   - En el campo "auditoria_ia", incluye análisis específico sobre discrepancias con este convenio.
-''';
-      }
-
-      promptText += '''
 Usa EXACTAMENTE esta estructura JSON:
 {
    "cabecera": {
@@ -115,19 +99,22 @@ Usa EXACTAMENTE esta estructura JSON:
      "neto_a_cobrar": 1542946.00,
      "neto_en_letras": "Un millón quinientos..."
    },
+   "inferencias": {
+      "convenio_sugerido": "Ej: Empleados de Comercio",
+      "confianza": "alta | media | baja"
+   },
    "auditoria_ia": {
-     "analisis_legal": "Breve resumen del cumplimiento de normativas vigentes.",
-
+     "analisis_legal": "Un resumen amigable sobre si el recibo parece correcto y qué significa.",
      "alertas_criticas": [
-       "Lista de alertas si hay retenciones fuera de rango, faltan aportes, etc."
+       "Lista de posibles problemas, explicados de forma sencilla."
      ],
-     "explicacion_conceptos_complejos": "Explicación breve de códigos específicos hallados.",
+     "explicacion_conceptos_complejos": "Explicación de los conceptos más raros que encontraste, como si se lo contaras a alguien que no sabe nada del tema.",
      "puntuacion_confianza_ocr": 0.98
    }
- }
+}
 
-Si algún campo no está presente o no es legible, usa null o una cadena vacía, pero mantén la estructura. Para los montos numéricos usa 0.0 si no se encuentra.  
-El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento de leyes laborales argentinas para detectar inconsistencias reales en los montos (ej: Jubilación debe ser 11%, Obra Social 3%, Ley 19032 3%).''';
+Si algún campo no está presente o no es legible, usa null o una cadena vacía, pero mantén la estructura. Para los montos numéricos usa 0.0 si no se encuentra.
+El campo 'auditoria_ia' es CRÍTICO: usa tu conocimiento para detectar inconsistencias y explícalas de forma cálida (Ej: 'Veo que tu descuento de Obra Social es del 3% (o sea, $3.000 por cada $100.000 de bruto). ¡Eso es correcto!').''';
     }
 
     // Lista de candidatos con estrategia (Simple vs Full Proxy)
