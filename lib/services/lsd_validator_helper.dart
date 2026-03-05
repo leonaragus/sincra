@@ -1,242 +1,152 @@
 
 import '../models/lsd_parsed_data.dart';
-import 'validaciones_arca_service.dart';
 
+// =======================================================================
+// MEJORA 2: Expansión de Tipos de Issue para Auto-Corrección
+// =======================================================================
 enum ValidationIssueType {
   generic,
-  base4Inconsistent, // Base 4 < Base 8
+  base4Inconsistent,
+  remunerativoInconsistente, // NUEVO
   aporteJubilacionDiff,
   aporteLeyDiff,
   aporteOSDiff,
-  zonaPatagonicaInconsistent, // Nueva: Base de Zona no coincide con Remu
-  basesInconsistent, // Nueva: Bases 1-9 no coinciden entre sí
 }
 
 class ValidationIssue {
   final String message;
   final ValidationIssueType type;
-  final dynamic data;
+  final Map<String, dynamic> data; // Para pasar datos a la UI (ej. valor teórico)
 
-  ValidationIssue(this.message, this.type, [this.data]);
+  ValidationIssue(this.message, {this.type = ValidationIssueType.generic, this.data = const {}});
 }
 
 class ValidationResult {
   final String cuil;
-  final String nombre; // If available, otherwise CUIL
+  final String nombre;
   final List<ValidationIssue> errors;
   final List<ValidationIssue> warnings;
 
-  ValidationResult({
-    required this.cuil,
-    required this.nombre,
-    this.errors = const [],
-    this.warnings = const [],
-  });
+  ValidationResult({required this.cuil, required this.nombre, required this.errors, required this.warnings});
 
   bool get hasErrors => errors.isNotEmpty;
   bool get hasWarnings => warnings.isNotEmpty;
-  bool get isClean => !hasErrors && !hasWarnings;
 }
 
 class LSDValidatorHelper {
+
+  // =======================================================================
+  // MEJORA 2.1: Etiqueta para Bases Imponibles
+  // =======================================================================
+  static String getBaseLabel(int baseNumber) {
+      switch (baseNumber) {
+        case 1: return 'Base 1 (Rem)';
+        case 2: return 'Base 2 (Rem)';
+        case 3: return 'Base 3 (Desc. Ley)';
+        case 4: return 'Base 4 (O.S.)';
+        case 5: return 'Base 5 (ART)';
+        case 6: return 'Base 6 (Jub. Esp.)';
+        case 7: return 'Base 7 (Jub. Esp.)';
+        case 8: return 'Base 8 (Aporte OS)';
+        case 9: return 'Base 9 (Capacitación)';
+        case 10: return 'Base 10 (Adic.)';
+        default: return 'Base $baseNumber';
+      }
+  }
+
   static List<ValidationResult> validateParsedFile(LSDParsedFile file, {double? topeMin, double? topeMax}) {
     final results = <ValidationResult>[];
+    final conceptosPorCuil = <String, List<LSDConcepto>>{};
 
-    // Group by CUIL
-    final employees = <String, Map<String, dynamic>>{};
-
-    for (var ref in file.referencias) {
-      if (!employees.containsKey(ref.cuil)) {
-        employees[ref.cuil] = {'ref': ref, 'conceptos': <LSDConcepto>[], 'bases': null, 'compl': null};
-      }
+    // Agrupar conceptos
+    for (var c in file.conceptos) {
+      if (!conceptosPorCuil.containsKey(c.cuil)) conceptosPorCuil[c.cuil] = [];
+      conceptosPorCuil[c.cuil]!.add(c);
     }
 
-    for (var conc in file.conceptos) {
-      if (!employees.containsKey(conc.cuil)) {
-        employees[conc.cuil] = {'ref': null, 'conceptos': <LSDConcepto>[], 'bases': null, 'compl': null};
+    for (var legajo in file.referencias) {
+      final cuil = legajo.cuil;
+      final nombre = legajo.nombre;
+      final errores = <ValidationIssue>[];
+      final advertencias = <ValidationIssue>[];
+
+      final conceptos = conceptosPorCuil[cuil] ?? [];
+      final bases = file.bases.firstWhere((b) => b.cuil == cuil, orElse: () => null);
+      
+      if (bases == null) {
+          errores.add(ValidationIssue("No se encontró registro de Bases (04) para este CUIL."));
+          results.add(ValidationResult(cuil: cuil, nombre: nombre, errors: errores, warnings: advertencias));
+          continue; // No se puede validar más sin bases
       }
-      (employees[conc.cuil]!['conceptos'] as List<LSDConcepto>).add(conc);
+
+      // ---- INICIO DE VALIDACIONES POR EMPLEADO ----
+      
+      final base1 = bases.getBaseAsDouble(0);
+      final base2 = bases.getBaseAsDouble(1);
+      final base4 = bases.getBaseAsDouble(3);
+      final base8 = bases.getBaseAsDouble(7);
+
+      // =======================================================================
+      // MEJORA 2.2: Lógica para validar suma de remunerativos vs Bases 1 y 2
+      // =======================================================================
+      double totalRemunerativo = 0;
+      for (var c in conceptos) {
+          if (c.tipo == 'H' && c.codigo.trim().startsWith('1')) { // Código AFIP remunerativo
+              totalRemunerativo += c.importeAsDouble;
+          }
+      }
+
+      if ((totalRemunerativo - base1).abs() > 0.02) { // Tolerancia de 2 centavos
+          advertencias.add(ValidationIssue(
+              'La suma de haberes remunerativos (\\$${totalRemunerativo.toStringAsFixed(2)}) no coincide con la Base 1 (\\$${base1.toStringAsFixed(2)}).',
+              type: ValidationIssueType.remunerativoInconsistente,
+              data: {'remunerativoCalculado': totalRemunerativo}
+          ));
+      }
+
+      // Validación de consistencia Base 4 vs Base 8
+      if (base4 > 0 && base8 > 0 && (base4 - base8).abs() > 0.02) {
+        errores.add(ValidationIssue(
+            'Inconsistencia de Bases de Obra Social: Base 4 (\\$${base4.toStringAsFixed(2)}) es distinta a Base 8 (\\$${base8.toStringAsFixed(2)}).',
+            type: ValidationIssueType.base4Inconsistent,
+            data: {'base8': base8} 
+        ));
+      }
+
+      // Validación de aportes legales
+      final aporteJubTeorico = (base1 * 0.11).toStringAsFixed(2);
+      final aporteLeyTeorico = (base1 * 0.03).toStringAsFixed(2);
+      final aporteOSTeorico = (base4 * 0.03).toStringAsFixed(2);
+
+      final aporteJubReal = conceptos.firstWhere((c) => c.codigo.trim() == '110001', orElse: () => null)?.importeAsDouble.toStringAsFixed(2);
+      final aporteLeyReal = conceptos.firstWhere((c) => c.codigo.trim() == '110002', orElse: () => null)?.importeAsDouble.toStringAsFixed(2);
+      final aporteOSReal = conceptos.firstWhere((c) => c.codigo.trim() == '110003', orElse: () => null)?.importeAsDouble.toStringAsFixed(2);
+
+      if (aporteJubReal != null && aporteJubReal != aporteJubTeorico) {
+        advertencias.add(ValidationIssue(
+            'Aporte Jubilatorio (11%) inconsistente. Declarado: \\$$aporteJubReal, Calculado: \\$$aporteJubTeorico.',
+            type: ValidationIssueType.aporteJubilacionDiff,
+            data: {'teorico': double.parse(aporteJubTeorico)}
+        ));
+      }
+      if (aporteLeyReal != null && aporteLeyReal != aporteLeyTeorico) {
+        advertencias.add(ValidationIssue(
+            'Aporte Ley 19.032 (3%) inconsistente. Declarado: \\$$aporteLeyReal, Calculado: \\$$aporteLeyTeorico.',
+            type: ValidationIssueType.aporteLeyDiff,
+            data: {'teorico': double.parse(aporteLeyTeorico)}
+        ));
+      }
+      if (aporteOSReal != null && aporteOSReal != aporteOSTeorico) {
+        advertencias.add(ValidationIssue(
+            'Aporte Obra Social (3%) inconsistente. Declarado: \\$$aporteOSReal, Calculado: \\$$aporteOSTeorico.',
+            type: ValidationIssueType.aporteOSDiff,
+            data: {'teorico': double.parse(aporteOSTeorico)}
+        ));
+      }
+      
+      results.add(ValidationResult(cuil: cuil, nombre: nombre, errors: errores, warnings: advertencias));
     }
-
-    for (var base in file.bases) {
-      if (!employees.containsKey(base.cuil)) {
-         employees[base.cuil] = {'ref': null, 'conceptos': <LSDConcepto>[], 'bases': null, 'compl': null};
-      }
-      employees[base.cuil]!['bases'] = base;
-    }
-
-    for (var compl in file.complementarios) {
-      if (!employees.containsKey(compl.cuil)) {
-         employees[compl.cuil] = {'ref': null, 'conceptos': <LSDConcepto>[], 'bases': null, 'compl': null};
-      }
-      employees[compl.cuil]!['compl'] = compl;
-    }
-
-    // Validate each employee
-    employees.forEach((cuil, data) {
-      final errors = <ValidationIssue>[];
-      final warnings = <ValidationIssue>[];
-      final ref = data['ref'] as LSDLegajoRef?;
-      final conceptos = data['conceptos'] as List<LSDConcepto>;
-      final bases = data['bases'] as LSDBases?;
-      final compl = data['compl'] as LSDComplementarios?;
-
-      // 1. Structure Check
-      if (ref == null) errors.add(ValidationIssue('Falta Registro 02 (Datos Referenciales)', ValidationIssueType.generic));
-      if (bases == null) errors.add(ValidationIssue('Falta Registro 04 (Bases Imponibles)', ValidationIssueType.generic));
-      if (compl == null) errors.add(ValidationIssue('Falta Registro 05 (Datos Complementarios)', ValidationIssueType.generic));
-      if (conceptos.isEmpty) warnings.add(ValidationIssue('No hay conceptos liquidados (Registro 03)', ValidationIssueType.generic));
-
-      // 2. CUIL Validation
-      if (!ValidacionesARCAService.validarCUIL(cuil).esValido) {
-        errors.add(ValidationIssue('CUIL inválido: $cuil', ValidationIssueType.generic));
-      }
-
-      // 3. Bases Logic
-      if (bases != null) {
-        final base1 = bases.getBaseAsDouble(0); // Base 1: Jubilación
-        final base4 = bases.getBaseAsDouble(3); // Base 4: Obra Social
-        final base8 = bases.getBaseAsDouble(7); // Base 8: Aporte OS
-
-        // Validar contra topes si están disponibles
-        if (topeMin != null && base1 > 0 && base1 < topeMin) {
-          warnings.add(ValidationIssue(
-            'Base 1 ($base1) es menor al mínimo legal ($topeMin). ARCA podría rechazar si no hay justificación.',
-            ValidationIssueType.generic
-          ));
-        }
-
-        if (topeMax != null && base1 > topeMax) {
-          errors.add(ValidationIssue(
-            'Base 1 ($base1) supera el tope máximo legal ($topeMax). Debe toparse a $topeMax.',
-            ValidationIssueType.generic
-          ));
-        }
-
-        if (base4 < base8) {
-          errors.add(ValidationIssue(
-            'Inconsistencia Bases: Base 4 (OS) no puede ser menor que Base 8 (Aporte OS)',
-            ValidationIssueType.base4Inconsistent
-          ));
-        }
-
-        // 3.1 Consistencia Federal Bases 1 a 9 (ARCA 2026)
-        for (int i = 1; i < 9; i++) {
-          if ((bases.getBaseAsDouble(0) - bases.getBaseAsDouble(i)).abs() > 1.0) {
-            errors.add(ValidationIssue(
-              'Inconsistencia Federal: La Base ${i + 1} (${bases.getBaseAsDouble(i)}) difiere de la Base 1 (${bases.getBaseAsDouble(0)}). En liquidaciones federales deben coincidir.',
-              ValidationIssueType.basesInconsistent
-            ));
-            break; 
-          }
-        }
-      }
-
-      // 3.2 Validación de Conceptos vs Bases y Zona Patagónica
-      if (conceptos.isNotEmpty && bases != null) {
-        double totalRemu = 0.0;
-        double montoZona = 0.0;
-        bool tieneZona = false;
-
-        for (var c in conceptos) {
-          final desc = c.descripcion.toUpperCase();
-          final esZona = desc.contains('ZONA PATAGONICA') || desc.contains('ADICIONAL ZONA') || desc.contains('ZONA DESFAVORABLE');
-          
-          if (c.tipo == 'H' || c.tipo == 'R') { // Haberes / Remunerativos
-            totalRemu += c.importeAsDouble;
-            if (esZona) {
-              montoZona = c.importeAsDouble;
-              tieneZona = true;
-            }
-          }
-        }
-
-        // Verificar que el total remunerativo coincida con Base 1 (con margen de redondeo)
-        final base1 = bases.getBaseAsDouble(0);
-        if ((totalRemu - base1).abs() > 2.0) {
-          errors.add(ValidationIssue(
-            'Total Remunerativo (\$${totalRemu.toStringAsFixed(2)}) no coincide con Base Imponible 1 (\$${base1.toStringAsFixed(2)}). ARCA rechazará la declaración.',
-            ValidationIssueType.generic
-          ));
-        }
-
-        // REGLA CRÍTICA: Base de Zona Patagónica (Federal Compliance)
-        if (tieneZona) {
-          final double baseCalculadaZona = totalRemu - montoZona;
-          // Asumimos porcentajes comunes: 20%, 30%, 40%, 50%, 80% o 100%
-          bool zonaValida = false;
-          final pcts = [0.20, 0.30, 0.40, 0.50, 0.80, 1.00, 0.11, 0.12]; // Incluimos variaciones de CCT y Docentes (80%, 100%)
-          
-          for (var p in pcts) {
-            if ((baseCalculadaZona * p - montoZona).abs() < 5.0) {
-              zonaValida = true;
-              break;
-            }
-          }
-
-          if (!zonaValida) {
-            errors.add(ValidationIssue(
-              'Cálculo de Zona Patagónica incorrecto: El monto (\$${montoZona.toStringAsFixed(2)}) no parece estar calculado sobre el total de conceptos remunerativos (\$${baseCalculadaZona.toStringAsFixed(2)}). Regla Federal ARCA 2026 exige base completa.',
-              ValidationIssueType.zonaPatagonicaInconsistent
-            ));
-          }
-        }
-      }
-
-      // 4. Aportes Logic
-      if (bases != null && conceptos.isNotEmpty) {
-         // Calculate theoretical contributions
-         final base1 = bases.getBaseAsDouble(0);
-         final base4 = bases.getBaseAsDouble(3);
-         
-         final teoricoJub = base1 * 0.11;
-         final teoricoLey = base1 * 0.03;
-         final teoricoOS = base4 * 0.03;
-
-         double realJub = 0.0;
-         double realLey = 0.0;
-         double realOS = 0.0;
-
-         for (var c in conceptos) {
-            if (c.tipo == 'D') {
-              if (c.codigo.contains('JUB') || c.descripcion.toUpperCase().contains('JUB')) realJub += c.importeAsDouble;
-              if (c.codigo.contains('19032') || c.codigo.contains('LEY') || c.descripcion.contains('19032')) realLey += c.importeAsDouble;
-              if (c.codigo.contains('OBRA') || c.codigo.contains('OS') || c.descripcion.contains('OBRA SOC')) realOS += c.importeAsDouble;
-            }
-         }
-
-         // Tolerance of 1 peso
-         if ((teoricoJub - realJub).abs() > 5.0) {
-            warnings.add(ValidationIssue(
-              'Diferencia Aporte Jubilación: Calculado ARCA ~${teoricoJub.toStringAsFixed(2)} vs Recibo ${realJub.toStringAsFixed(2)}',
-              ValidationIssueType.aporteJubilacionDiff,
-              {'teorico': teoricoJub}
-            ));
-         }
-         if ((teoricoLey - realLey).abs() > 5.0) {
-             warnings.add(ValidationIssue(
-               'Diferencia Aporte Ley 19032: Calculado ARCA ~${teoricoLey.toStringAsFixed(2)} vs Recibo ${realLey.toStringAsFixed(2)}',
-               ValidationIssueType.aporteLeyDiff,
-               {'teorico': teoricoLey}
-             ));
-         }
-         if ((teoricoOS - realOS).abs() > 5.0) {
-             warnings.add(ValidationIssue(
-               'Diferencia Aporte Obra Social: Calculado ARCA ~${teoricoOS.toStringAsFixed(2)} vs Recibo ${realOS.toStringAsFixed(2)}',
-               ValidationIssueType.aporteOSDiff,
-               {'teorico': teoricoOS}
-             ));
-         }
-      }
-
-      results.add(ValidationResult(
-        cuil: cuil,
-        nombre: ref?.legajo ?? 'Legajo Desconocido',
-        errors: errors,
-        warnings: warnings,
-      ));
-    });
-
+    
     return results;
   }
 }
