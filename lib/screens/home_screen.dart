@@ -1,8 +1,10 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:async';
 import 'empresa_screen.dart';
 import '../services/hybrid_store.dart';
 import 'convenios_screen.dart';
@@ -36,6 +38,9 @@ import '../services/sync_service.dart';
 
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'qr_scanner_screen.dart';
+import '../services/web_auth_service.dart'; // <- Importar el nuevo servicio
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,7 +52,8 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   List<Map<String, String>> _empresas = [];
   Future<void>? _initialSync;
-  bool _isPremium = true; // Por defecto true durante el onboarding
+  bool _isPremium = true;
+  final _webAuthService = WebAuthService(); // <- Instancia del servicio
 
   @override
   void initState() {
@@ -55,6 +61,20 @@ class HomeScreenState extends State<HomeScreen> {
     _checkPremiumStatus();
     _cargarEmpresas();
     _initialSync = _syncAndMaybeShowSnackBar();
+  }
+
+  @override
+  void dispose() {
+    _webAuthService.dispose(); // <- Limpiar el servicio
+    super.dispose();
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.redAccent : AppColors.primary,
+    ));
   }
 
   Future<void> _checkPremiumStatus() async {
@@ -65,7 +85,6 @@ class HomeScreenState extends State<HomeScreen> {
       final now = DateTime.now();
       final difference = now.difference(startDate).inDays;
       
-      // Si pasaron más de 30 días, deja de ser premium (a menos que haya pagado)
       if (difference > 30) {
         if (mounted) setState(() => _isPremium = false);
       }
@@ -218,7 +237,6 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // TODOS los módulos FILTRADOS por plan
   List<Widget> _buildModuleList() {
     return [
       _buildModernCard(
@@ -353,18 +371,16 @@ class HomeScreenState extends State<HomeScreen> {
     ];
   }
 
-  // Módulos arriba, sin scroll
   Widget _buildMainButtons() {
     return Column(
       children: [
-        _buildWebLoginCard(), // Nuevo módulo de acceso web
+        _buildWebLoginCard(),
         const SizedBox(height: 12),
         ..._buildModuleGrid(),
       ],
     );
   }
 
-  // Tarjeta de Acceso Web
   Widget _buildWebLoginCard() {
     return _buildModernCard(
       title: 'Acceso Web / PC',
@@ -376,6 +392,50 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
   
+  // REFACTORIZADO: Usa el WebAuthService
+  Future<void> _handleQrScan() async {
+    final String? channelId = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+    );
+
+    if (channelId != null && channelId.isNotEmpty) {
+      try {
+        await _webAuthService.sendSessionToWeb(channelId);
+        _showSnackBar('¡Vinculación QR exitosa! Revisá tu navegador.');
+      } catch (e) {
+        _showSnackBar('Error al vincular: ${e.toString()}', isError: true);
+      }
+    }
+  }
+
+  // REFACTORIZADO: Usa el WebAuthService
+  Future<void> _handleManualCode() async {
+    // Muestra un dialog mientras se genera el código y se espera.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final code = await _webAuthService.listenForManualCodeRequest(
+        onTokenSent: () {
+          if (mounted) Navigator.pop(context); // Cierra el loader
+          _showSnackBar('Dispositivo vinculado exitosamente.');
+        },
+      );
+      
+      if (mounted) {
+        Navigator.pop(context); // Cierra el loader
+        _mostrarCodigoGenerado(code);
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      _showSnackBar('Error al generar el código: ${e.toString()}', isError: true);
+    }
+  }
+
   void _mostrarOpcionesWebLogin() {
     showModalBottomSheet(
       context: context,
@@ -391,7 +451,6 @@ class HomeScreenState extends State<HomeScreen> {
             const Text('Para ingresar en tu PC, andá a syncra.com.ar/login', style: TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 24),
             
-            // Opción 1: Escanear QR
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
@@ -399,25 +458,14 @@ class HomeScreenState extends State<HomeScreen> {
                 child: const Icon(Icons.qr_code_scanner, color: AppColors.accentBlue),
               ),
               title: const Text('Escanear QR de la pantalla', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              subtitle: const Text('Sincronización automática de todos tus datos', style: TextStyle(color: AppColors.textSecondary)),
-              onTap: () async {
+              subtitle: const Text('La forma más rápida de ingresar', style: TextStyle(color: AppColors.textSecondary)),
+              onTap: () {
                 Navigator.pop(ctx);
-                // Usamos el scanner genérico de la app
-                // Nota: Esto requiere mobile_scanner configurado en un widget reutilizable
-                // Por ahora simulamos la acción exitosa y sync
-                
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Abriendo escáner...')));
-                
-                // Simulación de escaneo exitoso para demostración
-                // En producción: await Navigator.push(context, MaterialPageRoute(builder: (_) => QRScannerScreen()));
-                await Future.delayed(const Duration(seconds: 2));
-                
-                _iniciarSincronizacion();
+                _handleQrScan();
               },
             ),
             const SizedBox(height: 16),
             
-            // Opción 2: Generar Código
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
@@ -425,10 +473,10 @@ class HomeScreenState extends State<HomeScreen> {
                 child: const Icon(Icons.key, color: AppColors.accentOrange),
               ),
               title: const Text('Generar Código de Acceso', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              subtitle: const Text('Ingresá este código manualmente', style: TextStyle(color: AppColors.textSecondary)),
+              subtitle: const Text('Para ingresar manualmente en la web', style: TextStyle(color: AppColors.textSecondary)),
               onTap: () {
                 Navigator.pop(ctx);
-                _mostrarCodigoGenerado();
+                _handleManualCode();
               },
             ),
           ],
@@ -437,50 +485,10 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _iniciarSincronizacion() async {
+  void _mostrarCodigoGenerado(String codigo) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (c) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Sincronizando datos con la nube...', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Empresas, empleados y recibos', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    
-    // Llamada al servicio real de sincronización
-    // ignore: unused_local_variable
-    final exito = await SyncService.sincronizarTodo(forzar: true);
-    
-    if (mounted) {
-      Navigator.pop(context); // Cerrar loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(exito ? '✅ Datos sincronizados correctamente. Ya podés verlos en la Web.' : '⚠️ Error al sincronizar. Verificá tu conexión.'),
-          backgroundColor: exito ? Colors.green : Colors.orange,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-
-  void _mostrarCodigoGenerado() {
-    // Generar código aleatorio de 6 dígitos
-    final codigo = (100000 + DateTime.now().millisecond % 900000).toString();
-    
-    showDialog(
-      context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundLight,
         title: const Text('Tu Código de Acceso', style: TextStyle(color: AppColors.textPrimary)),
@@ -491,15 +499,22 @@ class HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             Text(codigo, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 4, color: AppColors.accentBlue)),
             const SizedBox(height: 8),
-            const Text('Válido por 5 minutos', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            const Text('Válido por 3 minutos', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
           ],
         ),
         actions: [
-          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Listo')),
+          TextButton(
+            onPressed: () {
+              _webAuthService.dispose(); // Cancela la escucha si el usuario cierra manualmente
+              Navigator.pop(ctx);
+            },
+            child: const Text('Cerrar'),
+          ),
         ],
       ),
     );
   }
+
 
   List<Widget> _buildModuleGrid() {
     final modules = _buildModuleList();
@@ -508,11 +523,7 @@ class HomeScreenState extends State<HomeScreen> {
     }
 
     final width = MediaQuery.sizeOf(context).width;
-    final crossAxisCount = width >= 1100
-        ? 3
-        : width >= 760
-            ? 2
-            : 1;
+    final crossAxisCount = width >= 1100 ? 3 : width >= 760 ? 2 : 1;
 
     if (crossAxisCount == 1) {
       return [
@@ -707,7 +718,6 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const Spacer(),
-            // Service Status removed
             IconButton(
               onPressed: () {
                 Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
@@ -927,7 +937,6 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _procesarPagoPlayStore(String plan) {
-    // Aquí se integraría con el paquete in_app_purchase
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Conectando con Google Play Store para el Plan $plan...'),
