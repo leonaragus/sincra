@@ -13,6 +13,24 @@ class CategoriaCCT {
     this.descripcion,
   });
 
+  factory CategoriaCCT.fromJson(Map<String, dynamic> json) {
+    return CategoriaCCT(
+      id: json['id'] as String,
+      nombre: json['nombre'] as String,
+      salarioBase: (json['salarioBase'] as num).toDouble(),
+      descripcion: json['descripcion'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'salarioBase': salarioBase,
+      'descripcion': descripcion,
+    };
+  }
+
   CategoriaCCT copyWith({
     String? id,
     String? nombre,
@@ -41,6 +59,24 @@ class DescuentoCCT {
     this.descripcion,
   });
 
+  factory DescuentoCCT.fromJson(Map<String, dynamic> json) {
+    return DescuentoCCT(
+      id: json['id'] as String,
+      nombre: json['nombre'] as String,
+      porcentaje: (json['porcentaje'] as num).toDouble(),
+      descripcion: json['descripcion'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'porcentaje': porcentaje,
+      'descripcion': descripcion,
+    };
+  }
+
   DescuentoCCT copyWith({
     String? id,
     String? nombre,
@@ -68,6 +104,24 @@ class ZonaCCT {
     required this.adicionalPorcentaje,
     this.descripcion,
   });
+
+  factory ZonaCCT.fromJson(Map<String, dynamic> json) {
+    return ZonaCCT(
+      id: json['id'] as String,
+      nombre: json['nombre'] as String,
+      adicionalPorcentaje: (json['adicionalPorcentaje'] as num).toDouble(),
+      descripcion: json['descripcion'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'adicionalPorcentaje': adicionalPorcentaje,
+      'descripcion': descripcion,
+    };
+  }
 
   ZonaCCT copyWith({
     String? id,
@@ -101,6 +155,7 @@ class CCTCompleto {
   final DateTime fechaVigencia;
   final bool activo;
   final String? pdfUrl;
+  final bool esPersonalizado; // Nuevo campo
 
   const CCTCompleto({
     required this.id,
@@ -119,7 +174,58 @@ class CCTCompleto {
     required this.fechaVigencia,
     this.activo = true,
     this.pdfUrl,
+    this.esPersonalizado = false, // Valor por defecto
   });
+
+  factory CCTCompleto.fromJson(Map<String, dynamic> json) {
+    return CCTCompleto(
+      id: json['id'] as String,
+      numeroCCT: json['numeroCCT'] as String,
+      nombre: json['nombre'] as String,
+      descripcion: json['descripcion'] as String,
+      actividad: json['actividad'] as String?,
+      categorias: (json['categorias'] as List<dynamic>)
+          .map((e) => CategoriaCCT.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      descuentos: (json['descuentos'] as List<dynamic>)
+          .map((e) => DescuentoCCT.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      zonas: (json['zonas'] as List<dynamic>)
+          .map((e) => ZonaCCT.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      adicionalPresentismo: (json['adicionalPresentismo'] as num?)?.toDouble() ?? 0.0,
+      adicionalAntiguedad: (json['adicionalAntiguedad'] as num?)?.toDouble() ?? 0.0,
+      porcentajeAntiguedadAnual: (json['porcentajeAntiguedadAnual'] as num?)?.toDouble() ?? 1.0,
+      horasMensualesDivisor: (json['horasMensualesDivisor'] as num?)?.toDouble() ?? 192.0,
+      esDivisorDias: json['esDivisorDias'] as bool? ?? false,
+      fechaVigencia: DateTime.parse(json['fechaVigencia'] as String),
+      activo: json['activo'] as bool? ?? true,
+      pdfUrl: json['pdfUrl'] as String?,
+      esPersonalizado: json['esPersonalizado'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'numeroCCT': numeroCCT,
+      'nombre': nombre,
+      'descripcion': descripcion,
+      'actividad': actividad,
+      'categorias': categorias.map((e) => e.toJson()).toList(),
+      'descuentos': descuentos.map((e) => e.toJson()).toList(),
+      'zonas': zonas.map((e) => e.toJson()).toList(),
+      'adicionalPresentismo': adicionalPresentismo,
+      'adicionalAntiguedad': adicionalAntiguedad,
+      'porcentajeAntiguedadAnual': porcentajeAntiguedadAnual,
+      'horasMensualesDivisor': horasMensualesDivisor,
+      'esDivisorDias': esDivisorDias,
+      'fechaVigencia': fechaVigencia.toIso8601String(),
+      'activo': activo,
+      'pdfUrl': pdfUrl,
+      'esPersonalizado': esPersonalizado,
+    };
+  }
 
   CCTCompleto copyWith({
     String? id,
@@ -137,6 +243,8 @@ class CCTCompleto {
     bool? esDivisorDias,
     DateTime? fechaVigencia,
     bool? activo,
+    String? pdfUrl,
+    bool? esPersonalizado,
   }) {
     return CCTCompleto(
       id: id ?? this.id,
@@ -154,6 +262,8 @@ class CCTCompleto {
       esDivisorDias: esDivisorDias ?? this.esDivisorDias,
       fechaVigencia: fechaVigencia ?? this.fechaVigencia,
       activo: activo ?? this.activo,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
+      esPersonalizado: esPersonalizado ?? this.esPersonalizado,
     );
   }
 }

@@ -7,7 +7,7 @@ import '../theme/app_colors.dart';
 import '../screens/empresa_screen.dart';
 import '../screens/validador_lsd_screen.dart';
 import '../screens/verificador_recibo_screen.dart';
-import '../screens/liquidador_final_screen.dart';
+import '../screens/centro_liquidacion_screen.dart'; // ¡NUEVA PANTALLA!
 import '../screens/convenios_screen.dart';
 import '../screens/teacher_interface_screen.dart';
 import '../screens/sanidad_interface_screen.dart';
@@ -22,10 +22,6 @@ import '../screens/buscador_categorias_screen.dart';
 import '../screens/dashboard_riesgos_screen.dart';
 
 /// Lista centralizada de todos los módulos disponibles en la aplicación.
-///
-/// Al definir los módulos como una lista de datos, desacoplamos la configuración
-/// de la lógica de la UI. Para agregar, eliminar o reordenar un módulo, solo
-/// es necesario modificar esta lista.
 final List<ModuleInfo> appModules = [
   ModuleInfo(
     title: 'Tu Empresa',
@@ -50,13 +46,13 @@ final List<ModuleInfo> appModules = [
     buildRoute: (context) => const VerificadorReciboScreen(),
   ),
   ModuleInfo(
-    title: 'Liquidador Final',
+    title: 'Centro de Liquidación',
     subtitle: 'Genera las liquidaciones de empleados',
     icon: Icons.calculate,
     iconColor: AppColors.primary,
     isPremium: true,
     isHighlighted: true,
-    buildRoute: (context) => const LiquidadorFinalScreen(),
+    buildRoute: (context) => const CentroLiquidacionScreen(), // ¡CAMBIO REALIZADO!
   ),
   ModuleInfo(
     title: 'Convenios',
