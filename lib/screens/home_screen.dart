@@ -109,19 +109,17 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _cargarEmpresas() async {
-    final data = await HybridStore.get('empresas');
-    if (data != null) {
-      setState(() {
-        _empresas = List<Map<String, String>>.from(data.map((e) => Map<String, String>.from(e)));
-      });
-    }
+    final list = await HybridStore.getEmpresas();
+    setState(() {
+      _empresas = list;
+    });
   }
 
   Future<void> _navegarAEmpresa(Map<String, String>? empresa) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EmpresaScreen(empresa: empresa),
+        builder: (context) => const EmpresaScreen(),
       ),
     );
     if (result == true) {
@@ -143,9 +141,9 @@ class HomeScreenState extends State<HomeScreen> {
         ));
 
     if (confirm == true) {
-        _empresas.removeAt(index);
-        await HybridStore.save('empresas', _empresas);
-        setState(() {});
+      _empresas.removeAt(index);
+      await HybridStore.saveEmpresas(_empresas);
+      setState(() {});
     }
   }
 

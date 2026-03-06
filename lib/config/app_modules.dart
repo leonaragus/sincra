@@ -6,7 +6,7 @@ import '../theme/app_colors.dart';
 // Importa todas las pantallas que se usarán en los módulos.
 import '../screens/empresa_screen.dart';
 import '../screens/validador_lsd_screen.dart';
-import '../screens/verificador_recibo_screen.dart';
+import '../screens/verificador_route.dart';
 import '../screens/centro_liquidacion_screen.dart' deferred as centro; // ¡NUEVA PANTALLA!
 import '../screens/convenios_screen.dart';
 import '../screens/teacher_interface_screen.dart' deferred as teacher;
