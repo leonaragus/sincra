@@ -58,6 +58,7 @@ dependencies:
   image: ^4.3.0
   lottie: ^3.3.0
   uuid: ^4.5.3
+  archive: ^3.4.10
 
 dev_dependencies:
   flutter_test:
