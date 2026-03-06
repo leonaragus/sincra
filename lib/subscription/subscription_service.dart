@@ -1,34 +1,149 @@
 
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'user_roles.dart';
 import 'subscription_plan.dart';
 
+
 class ActiveSubscription {
-  // ... (código existente sin cambios)
   final String planId;
   final DateTime expiresAt;
   final UserRole userRole;
   ActiveSubscription({required this.planId, required this.expiresAt, required this.userRole});
-  SubscriptionPlan get planDetail { return SubscriptionPlan.corporate; }
+
+  SubscriptionPlan get planDetail {
+      final allPlans = [SubscriptionPlan.independent, SubscriptionPlan.accountingFirm, SubscriptionPlan.corporate];
+      try {
+        return allPlans.firstWhere(
+          (p) => p.monthlyId == planId || p.annualId == planId
+        );
+      } catch (e) {
+        // Fallback para planes no encontrados o por defecto
+        return SubscriptionPlan.independent;
+      }
+  }
 }
+
 
 class SubscriptionService {
   static final _supabase = Supabase.instance.client;
-  static const String _trialEndDateKey = 'trial_end_date';
-  static const String _userRoleKey = 'user_role';
 
-  // --- Gestión de la Prueba Gratuita ---
-  static Future<void> startTrial() async { /* ... */ }
-  static Future<bool> isTrialActive() async { /* ... */ return false; }
+  // --- Gestión de la Prueba Gratuita (Blindado en el Servidor) ---
 
-  // --- Gestión de Roles de Usuario ---
-  static Future<void> setUserRole(UserRole role) async { /* ... */ }
-  static Future<UserRole> getUserRole() async { /* ... */ return UserRole.undecided; }
+  /// Inicia el período de prueba para un usuario la primera vez que se registra.
+  /// Escribe la fecha de finalización en la tabla 'profiles' de Supabase.
+  /// Si el campo ya existe, no hace nada. Es a prueba de reinstalaciones.
+  static Future<void> startTrialIfNeeded() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('trial_ends_at')
+          .eq('id', userId)
+          .single();
+
+      if (response['trial_ends_at'] == null) {
+        final trialEndDate = DateTime.now().add(const Duration(days: 20));
+        await _supabase.from('profiles').update({
+          'trial_ends_at': trialEndDate.toIso8601String()
+        }).eq('id', userId);
+        print('Período de prueba iniciado para el usuario $userId. Finaliza el $trialEndDate.');
+      } else {
+        print('El usuario $userId ya tiene un período de prueba registrado.');
+      }
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST116') { // "Not a single row was found"
+         final trialEndDate = DateTime.now().add(const Duration(days: 20));
+         await _supabase.from('profiles').upsert({
+            'id': userId,
+            'trial_ends_at': trialEndDate.toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+         });
+         print('Perfil no encontrado, se creó y se inició el período de prueba para el usuario $userId. Finaliza el $trialEndDate.');
+      } else {
+        print('Error de Supabase al iniciar la prueba: ${e.message}');
+      }
+    }
+    catch (e) {
+      print('Error inesperado al iniciar la prueba: $e');
+    }
+  }
+
+  /// Verifica si el período de prueba del usuario está activo.
+  /// Lee la fecha de finalización desde Supabase, no del dispositivo.
+  static Future<bool> isTrialActive() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return false;
+
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('trial_ends_at')
+          .eq('id', userId)
+          .single();
+
+      final trialEndDateStr = response['trial_ends_at'];
+      if (trialEndDateStr == null) {
+        // Si nunca se inició, se inicia ahora.
+        await startTrialIfNeeded();
+        return true;
+      }
+
+      final trialEndDate = DateTime.parse(trialEndDateStr);
+      return DateTime.now().isBefore(trialEndDate);
+    } catch (e) {
+      print('Error al verificar el estado de la prueba: $e');
+      return false;
+    }
+  }
+
+  // --- Gestión de Roles de Usuario (Blindado en el Servidor) ---
+
+  /// Establece el rol de un usuario en la tabla 'profiles' de Supabase.
+  static Future<void> setUserRole(UserRole role) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      await _supabase.from('profiles').update({
+        'user_role': role.name,
+      }).eq('id', userId);
+    } catch (e) {
+      print('Error al establecer el rol del usuario: $e');
+    }
+  }
+
+  /// Obtiene el rol de un usuario desde la tabla 'profiles' de Supabase.
+  static Future<UserRole> getUserRole() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return UserRole.undecided;
+
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('user_role')
+          .eq('id', userId)
+          .single();
+
+      final roleStr = response['user_role'] as String?;
+      if (roleStr == null) {
+        return UserRole.undecided;
+      }
+      return UserRole.values.firstWhere(
+        (e) => e.name == roleStr,
+        orElse: () => UserRole.undecided,
+      );
+    } catch (e) {
+      print('Error al obtener el rol del usuario: $e');
+      return UserRole.undecided;
+    }
+  }
 
 
-  // --- FUNCIÓN NUEVA: Activa la suscripción después de una compra exitosa ---
+  // --- Gestión de Suscripciones ---
+
   static Future<bool> activateSubscription(PurchaseDetails purchaseDetails) async {
     try {
       final allPlans = [SubscriptionPlan.independent, SubscriptionPlan.accountingFirm, SubscriptionPlan.corporate];
@@ -38,22 +153,16 @@ class SubscriptionService {
 
       final isAnnual = plan.annualId == purchaseDetails.productID;
 
-      // --- Validación de Compra (Importante para seguridad) ---
-      // En una app en producción, deberías enviar purchaseDetails.verificationData a tu propio servidor
-      // para validarlo con la API de Google Play. Esto previene fraudes.
-      // Por ahora, confiamos en la respuesta del cliente, lo cual es suficiente para empezar.
       if (purchaseDetails.verificationData.serverVerificationData.isEmpty) {
           print("Error: La verificación del servidor está vacía. No se puede activar el plan.");
           return false;
       }
 
-      // Calculamos la fecha de expiración
       final purchaseDate = DateTime.now();
       final expiresAt = isAnnual 
           ? DateTime(purchaseDate.year + 1, purchaseDate.month, purchaseDate.day)
           : DateTime(purchaseDate.year, purchaseDate.month + 1, purchaseDate.day);
 
-      // Guardamos en Supabase
       await _saveSubscriptionStatus(
         purchaseDetails.productID,
         expiresAt,
@@ -68,8 +177,39 @@ class SubscriptionService {
     }
   }
 
-  static Future<ActiveSubscription?> getActiveSubscription() async { /* ... (código existente sin cambios) ... */ return null; }
-  static Future<bool> isSubscribed() async { /* ... (código existente sin cambios) ... */ return false; }
+  static Future<ActiveSubscription?> getActiveSubscription() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    try {
+      final response = await _supabase
+          .from('subscriptions')
+          .select()
+          .eq('user_id', userId)
+          .order('expires_at', ascending: false)
+          .limit(1)
+          .single();
+
+      final expiresAt = DateTime.parse(response['expires_at']);
+      if (expiresAt.isBefore(DateTime.now())) {
+        return null; // La suscripción expiró
+      }
+
+      return ActiveSubscription(
+        planId: response['plan_id'],
+        expiresAt: expiresAt,
+        userRole: UserRole.values.firstWhere((e) => e.toString() == response['user_role'], orElse: () => UserRole.professional),
+      );
+    } catch (e) {
+      print('Error al obtener la suscripción activa: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> isSubscribed() async {
+    final subscription = await getActiveSubscription();
+    return subscription != null;
+  }
 
   static Future<void> _saveSubscriptionStatus(String planId, DateTime expiresAt, UserRole role) async {
     final userId = _supabase.auth.currentUser?.id;
@@ -79,9 +219,9 @@ class SubscriptionService {
       'user_id': userId,
       'plan_id': planId,
       'expires_at': expiresAt.toIso8601String(),
-      'user_role': role.toString(),
       'updated_at': DateTime.now().toIso8601String(),
     });
+
     await setUserRole(role);
   }
 }
