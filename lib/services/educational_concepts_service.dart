@@ -1,130 +1,123 @@
-// SERVICIO DE EXPLICACIONES EDUCATIVAS - SYNCRA ACADEMY
-// Base de conocimiento local sobre conceptos de liquidación de sueldos en Argentina.
+import 'package:flutter/material.dart';
 
-class ConceptoEducativo {
-  final String titulo;
-  final String definicionCorta;
-  final String explicacionDetallada;
-  final String? ejemplo;
-  final String categoria; // Remunerativo, No Remunerativo, Descuento, Legales
+/// v3.0 - EL CEREBRO CENTRAL DEL CONOCIMIENTO LABORAL
+/// Unifica todas las explicaciones de conceptos, tanto generales como específicos de CCTs.
+/// Esta es ahora la ÚNICA fuente de verdad para las "traducciones humanas".
+class EducationalConceptsService {
 
-  const ConceptoEducativo({
-    required this.titulo,
-    required this.definicionCorta,
-    required this.explicacionDetallada,
-    this.ejemplo,
-    required this.categoria,
-  });
+  static final Map<String, ConceptExplanation> _explanationsDb = {
+    // --- CONCEPTOS UNIVERSALES ---
+    "jubilacion": ConceptExplanation(
+      title: "Jubilación",
+      icon: Icons.account_balance,
+      explanation: "Es tu aporte mensual para construir tu futura jubilación. Por ley, generalmente es el 11% de tu sueldo bruto (remunerativo).",
+    ),
+    "obra social": ConceptExplanation(
+      title: "Obra Social",
+      icon: Icons.local_hospital,
+      explanation: "Es tu aporte para garantizar tu cobertura de salud y la de tu familia. Usualmente es el 3% de tu sueldo bruto.",
+    ),
+    "ley 19032": ConceptExplanation(
+      title: "Aporte al PAMI (Ley 19.032)",
+      icon: Icons.health_and_safety,
+      explanation: "Es un aporte solidario de todos los trabajadores al PAMI, la obra social de los jubilados. Equivale al 3% de tu sueldo bruto.",
+    ),
+    "antiguedad": ConceptExplanation(
+      title: "Adicional por Antigüedad",
+      icon: Icons.military_tech,
+      explanation: "¡Un premio a tu lealtad! Es un porcentaje que se suma a tu sueldo por cada año que llevas en la empresa. El porcentaje exacto lo define tu convenio.",
+    ),
+    "presentismo": ConceptExplanation(
+      title: "Presentismo o Asistencia Perfecta",
+      icon: Icons.check_circle,
+      explanation: "¡Felicitaciones! Es un premio económico por no haber faltado. Generalmente es un porcentaje fijo de tu básico o una suma fija, según tu convenio.",
+    ),
+    "feriado": ConceptExplanation(
+      title: "Feriado Trabajado",
+      icon: Icons.celebration,
+      explanation: "¡Bien hecho! Si trabajaste un feriado, la ley dice que te lo deben pagar doble. Por eso ves este monto extra.",
+    ),
+    "horas extras": ConceptExplanation(
+      title: "Horas Extras",
+      icon: Icons.add_alarm,
+      explanation: "Es el pago por el tiempo extra que trabajaste. Las que son al 50% valen una vez y media una hora normal, y las del 100% (fines de semana o feriados) valen el doble.",
+    ),
+    "aporte sindical": ConceptExplanation(
+      title: "Cuota Sindical",
+      icon: Icons.groups,
+      explanation: "Si estás afiliado, este es tu aporte al sindicato que te representa y defiende tus derechos. El porcentaje lo define el gremio.",
+    ),
+    "seguro de sepelio": ConceptExplanation(
+      title: "Seguro de Vida o Sepelio",
+      icon: Icons.shield,
+      explanation: "Es un pequeño aporte que muchos convenios incluyen para darte a vos y tu familia una cobertura esencial en los momentos más difíciles.",
+    ),
+
+    // --- CONCEPTOS DE EGRESO (LIQUIDACIÓN FINAL) ---
+    "indemniz": ConceptExplanation(
+      title: "Indemnización",
+      icon: Icons.rocket_launch,
+      explanation: "🌟 Este es el pago fuerte de tu salida. Entra 'limpia' a tu bolsillo, sin descuentos de jubilación ni obra social.",
+    ),
+     "vac no goz": ConceptExplanation(
+      title: "Vacaciones No Gozadas",
+      icon: Icons.beach_access,
+      explanation: "🏖️ La ley es clara: las vacaciones que te quedaban pendientes y no te tomaste, te las tienen que pagar en efectivo al irte.",
+    ),
+
+    // --- CONCEPTOS ESPECÍFICOS DE CCTs ---
+    // Camioneros (CCT 40/89)
+    "pernoctada": ConceptExplanation(
+        title: "Pernoctada",
+        icon: Icons.hotel,
+        explanation: "Es el pago por las noches que pasaste fuera de casa por tu trabajo. ¡Bien merecido!",
+    ),
+    "viatico": ConceptExplanation(
+        title: "Viáticos",
+        icon: Icons.restaurant_menu,
+        explanation: "Cubre los gastos extra de comida que tenés mientras estás en ruta. Puede ser un monto fijo 'especial' o calculado por 'km recorrido'.",
+    ),
+    "km rec": ConceptExplanation(
+        title: "Pago por Kilómetro Recorrido",
+        icon: Icons.directions_car,
+        explanation: "Es el corazón de tu sueldo de conductor. Notarás que puede aparecer dos veces: una parte suma a tu sueldo (remunerativo) y otra va directo a tu bolsillo (no remunerativo) para optimizar impuestos. Ambas suman.",
+    ),
+    // Gastronómicos (UTHGRA)
+    "complemento de servicio": ConceptExplanation(
+      title: "Complemento de Servicio",
+      icon: Icons.room_service,
+      explanation: "Es un adicional específico de tu convenio que busca compensar diferentes aspectos de tu tarea diaria."
+    ),
+    "alimentacion": ConceptExplanation(
+      title: "Adicional por Alimentación",
+      icon: Icons.fastfood,
+      explanation: "Es un monto que te da el empleador para cubrir el costo de tu comida durante la jornada laboral."
+    ),
+  };
+
+  static ConceptExplanation? findExplanation(String concepto) {
+    final conceptoLower = concepto.toLowerCase();
+    String? bestKey;
+    int highestMatch = 0;
+
+    // Lógica de búsqueda mejorada para encontrar la mejor coincidencia
+    _explanationsDb.forEach((key, value) {
+      if (conceptoLower.contains(key) && key.length > highestMatch) {
+        bestKey = key;
+        highestMatch = key.length;
+      }
+    });
+
+    return bestKey != null ? _explanationsDb[bestKey] : null;
+  }
+
+  static List<ConceptExplanation> getAllConcepts() => _explanationsDb.values.toList();
 }
 
-class EducationalConceptsService {
-  static const String contactoAcademia = "549381666666"; // Número de WhatsApp de Elevar
-  static const String nombreAcademia = "Elevar Formación Técnica";
+class ConceptExplanation {
+  final String title;
+  final IconData icon;
+  final String explanation;
 
-  static const List<ConceptoEducativo> conceptos = [
-    // --- REMUNERATIVOS ---
-    ConceptoEducativo(
-      titulo: "Sueldo Básico",
-      definicionCorta: "Es la remuneración base establecida por tu convenio colectivo.",
-      explicacionDetallada: "Es el punto de partida de tu sueldo. Este monto se define en las paritarias de tu gremio (Comercio, Sanidad, UOCRA, etc.) y varía según tu categoría y antigüedad. Sobre este monto se calculan la mayoría de los adicionales y los descuentos.",
-      categoria: "Remunerativo",
-      ejemplo: "Si sos Empleado de Comercio Maestranza A, tu básico hoy ronda los \$1.050.000 (aprox).",
-    ),
-    ConceptoEducativo(
-      titulo: "Antigüedad",
-      definicionCorta: "Un plus por cada año que llevas trabajando en la empresa.",
-      explicacionDetallada: "Es un porcentaje que se suma a tu básico por cada año de servicio. El porcentaje varía según el convenio: en Comercio es 1% por año, en Sanidad 2%, en Docentes varía mucho más. Es un derecho adquirido que premia tu permanencia.",
-      categoria: "Remunerativo",
-    ),
-    ConceptoEducativo(
-      titulo: "Presentismo / Asistencia",
-      definicionCorta: "Premio por no faltar ni llegar tarde.",
-      explicacionDetallada: "Es un incentivo para cumplir con el horario y la asistencia. Ojo: en muchos convenios, con una sola falta injustificada podés perder el total de este premio. En Comercio es la doceava parte del básico (8.33%).",
-      categoria: "Remunerativo",
-    ),
-    ConceptoEducativo(
-      titulo: "SAC (Aguinaldo)",
-      definicionCorta: "Sueldo Anual Complementario (el famoso medio aguinaldo).",
-      explicacionDetallada: "Se paga en dos cuotas: junio y diciembre. Es el 50% de la mayor remuneración mensual devengada por todo concepto dentro de los semestres que culminan en los meses de junio y diciembre de cada año.",
-      categoria: "Remunerativo",
-      ejemplo: "Si tu mejor sueldo del semestre fue \$600.000, tu aguinaldo bruto será de \$300.000.",
-    ),
-    ConceptoEducativo(
-      titulo: "Horas Extras 50% y 100%",
-      definicionCorta: "Pago adicional por trabajar fuera de tu horario habitual.",
-      explicacionDetallada: "Las horas al 50% se pagan cuando te quedas más tiempo de lunes a viernes (o sábados hasta las 13hs). Las del 100% (dobles) son para sábados después de las 13hs, domingos y feriados.",
-      categoria: "Remunerativo",
-    ),
-    ConceptoEducativo(
-      titulo: "Vacaciones Gozadas",
-      definicionCorta: "Pago de los días de descanso anual obligatorio.",
-      explicacionDetallada: "Se calculan dividiendo el sueldo bruto por 25 (el 'plus vacacional'). Por eso, un día de vacaciones vale un poco más que un día de trabajo normal (que se divide por 30).",
-      categoria: "Remunerativo",
-    ),
-    ConceptoEducativo(
-      titulo: "Adicional por Título",
-      definicionCorta: "Plus por poseer títulos secundarios, terciarios o universitarios.",
-      explicacionDetallada: "Muchos convenios (como Docentes o Administración Pública) pagan un extra fijo o porcentual si tenés un título relacionado con tu tarea.",
-      categoria: "Remunerativo",
-    ),
-
-    // --- DESCUENTOS DE LEY ---
-    ConceptoEducativo(
-      titulo: "Jubilación (SIPA)",
-      definicionCorta: "Aporte para tu futuro retiro (11%).",
-      explicacionDetallada: "Es un descuento obligatorio del 11% sobre todos tus conceptos remunerativos. Va destinado al Sistema Integrado Previsional Argentino para financiar las jubilaciones actuales y futuras.",
-      categoria: "Descuento",
-    ),
-    ConceptoEducativo(
-      titulo: "Obra Social",
-      definicionCorta: "Aporte para tu cobertura de salud (3%).",
-      explicacionDetallada: "Es el 3% de tu sueldo bruto destinado a la Obra Social de tu actividad (OSECAC, OSPRERA, etc.) para que tengas cobertura médica. Vos ponés el 3% y tu empleador pone otro 6%.",
-      categoria: "Descuento",
-    ),
-    ConceptoEducativo(
-      titulo: "Ley 19.032 (PAMI)",
-      definicionCorta: "Aporte al Instituto de Jubilados (3%).",
-      explicacionDetallada: "Es otro 3% obligatorio que financia al PAMI. Aunque tengas obra social privada o prepaga, este aporte es solidario y obligatorio para todos los trabajadores registrados.",
-      categoria: "Descuento",
-    ),
-    ConceptoEducativo(
-      titulo: "Cuota Sindical / Aporte Solidario",
-      definicionCorta: "Aporte al gremio que te representa.",
-      explicacionDetallada: "Varía según el gremio (generalmente entre 2% y 2.5%). Si estás afiliado es obligatorio. Si no lo estás, a veces existe el 'Aporte Solidario' por el uso del convenio colectivo.",
-      categoria: "Descuento",
-    ),
-    ConceptoEducativo(
-      titulo: "Impuesto a las Ganancias",
-      definicionCorta: "Impuesto nacional sobre tus ingresos (4ta categoría).",
-      explicacionDetallada: "Es un impuesto progresivo que se aplica a los sueldos que superan el mínimo no imponible. Se calcula anualmente pero se retiene mensualmente.",
-      categoria: "Descuento",
-    ),
-
-    // --- NO REMUNERATIVOS ---
-    ConceptoEducativo(
-      titulo: "Conceptos No Remunerativos",
-      definicionCorta: "Pagos que van 'al bolsillo' pero no suman para jubilación.",
-      explicacionDetallada: "Son sumas acordadas en paritarias que el empleador te paga pero sobre las cuales NO se hacen descuentos de jubilación (aunque sí suelen pagar Obra Social). Importante: generalmente NO se toman en cuenta para calcular el aguinaldo ni indemnizaciones, salvo excepciones.",
-      categoria: "No Remunerativo",
-    ),
-    ConceptoEducativo(
-      titulo: "Viáticos",
-      definicionCorta: "Compensación por gastos de traslado y comida.",
-      explicacionDetallada: "Suelen ser no remunerativos cuando se rinden con comprobantes, aunque algunos convenios fijan montos fijos sin rendición que pueden ser remunerativos.",
-      categoria: "No Remunerativo",
-    ),
-    ConceptoEducativo(
-      titulo: "Asignaciones Familiares",
-      definicionCorta: "Pagos de ANSES por hijos, escolaridad, etc.",
-      explicacionDetallada: "No son sueldo propiamente dicho, sino una prestación de seguridad social. No tienen descuentos y se pagan según el tramo de ingresos en el que te encuentres.",
-      categoria: "No Remunerativo",
-    ),
-  ];
-
-  static List<ConceptoEducativo> buscar(String query) {
-    return conceptos.where((c) => 
-      c.titulo.toLowerCase().contains(query.toLowerCase()) || 
-      c.definicionCorta.toLowerCase().contains(query.toLowerCase())
-    ).toList();
-  }
+  ConceptExplanation({required this.title, required this.icon, required this.explanation});
 }
