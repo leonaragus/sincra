@@ -309,7 +309,7 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.pastelMint.withValues(alpha: 0.3),
+                  color: AppColors.pastelMint.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.glassBorder),
                 ),
@@ -378,7 +378,7 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.pastelBlue.withValues(alpha: 0.2),
+        color: AppColors.pastelBlue.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.glassBorder),
       ),

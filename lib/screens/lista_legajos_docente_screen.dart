@@ -81,7 +81,7 @@ class _ListaLegajosDocenteScreenState extends State<ListaLegajosDocenteScreen> {
         title: Text('Legajos — ${widget.razonSocial ?? widget.cuit}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
-            icon: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.pastelBlue.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.pastelBlue)), child: const Icon(Icons.add, color: AppColors.pastelBlue)),
+            icon: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.pastelBlue.withOpacity(0.2), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.pastelBlue)), child: const Icon(Icons.add, color: AppColors.pastelBlue)),
             tooltip: 'Agregar legajo',
             onPressed: _irANuevoLegajo,
           ),
@@ -173,7 +173,7 @@ class _ListaLegajosDocenteScreenState extends State<ListaLegajosDocenteScreen> {
                                   decoration: BoxDecoration(color: AppColors.glassFillStrong, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.glassBorder)),
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    leading: CircleAvatar(backgroundColor: AppColors.pastelBlue.withValues(alpha: 0.2), child: Text((l['nombre']?.toString().substring(0, 1) ?? '?').toUpperCase(), style: const TextStyle(color: AppColors.pastelBlue, fontWeight: FontWeight.bold))),
+                                    leading: CircleAvatar(backgroundColor: AppColors.pastelBlue.withOpacity(0.2), child: Text((l['nombre']?.toString().substring(0, 1) ?? '?').toUpperCase(), style: const TextStyle(color: AppColors.pastelBlue, fontWeight: FontWeight.bold))),
                                     title: Text(l['nombre']?.toString() ?? 'Sin nombre', style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
                                     subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                       if (cuilF.isNotEmpty) Text('CUIL: $cuilF', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),

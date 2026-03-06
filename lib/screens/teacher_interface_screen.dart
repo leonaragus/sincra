@@ -215,9 +215,9 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.pastelBlue.withValues(alpha: 0.2),
+        color: AppColors.pastelBlue.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.5), width: 1),
+        border: Border.all(color: AppColors.pastelBlue.withOpacity(0.5), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

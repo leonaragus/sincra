@@ -225,7 +225,7 @@ class _LiquidacionProporcionalDocenteScreenState extends State<LiquidacionPropor
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.pastelBlue.withValues(alpha: 0.2),
+        color: AppColors.pastelBlue.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.glassBorder),
       ),
