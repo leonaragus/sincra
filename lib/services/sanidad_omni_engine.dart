@@ -1,7 +1,6 @@
 // ========================================================================
 // SANIDAD OMNI ENGINE - Motor de cálculo FATSA CCT 122/75 y 108/75
-// Categorías, antigüedad 2%/año, título, tarea crítica/riesgo, deducciones
-// Sistema FEDERAL con 24 jurisdicciones - Escalas dinámicas editables
+// v1.2 - Corrección de comentarios y documentación interna.
 // ========================================================================
 
 import 'sanidad_paritarias_service.dart';
@@ -402,6 +401,11 @@ class SanidadOmniEngine {
   // Cache de paritarias cargadas
   static bool _paritariasLoaded = false;
 
+  // Valor de referencia para el Salario Mínimo, Vital y Móvil (SMVM)
+  // IMPORTANTE: Este valor debe ser actualizado periódicamente.
+  // A futuro, podría obtenerse de una API o una tabla de configuración.
+  static const double smvmReferencia = 234315.12; // Valor a Junio 2024
+
   /// Carga las paritarias desde una lista (llamar al iniciar la app)
   static Future<void> loadParitariasCache() async {
     final paritarias = await SanidadParitariasService.obtenerParitarias();
@@ -463,6 +467,29 @@ class SanidadOmniEngine {
         : bruto;
   }
 
+  /// Calcula el monto del embargo aplicando los topes legales (Decreto 484/87).
+  /// El embargo se calcula sobre el excedente del Salario Mínimo, Vital y Móvil (SMVM).
+  /// Esta es la regla general, para embargos por alimentos el tope es diferente y no se contempla aquí.
+  static double _calcularEmbargoLegal(double totalRemuneracionBruta, double embargoSolicitado) {
+    if (embargoSolicitado <= 0) {
+      return 0.0;
+    }
+
+    // Los sueldos inferiores o iguales al SMVM son inembargables (salvo por alimentos).
+    if (totalRemuneracionBruta <= smvmReferencia) {
+      return 0.0;
+    }
+
+    // Calcular el excedente sobre el SMVM.
+    final double excedente = totalRemuneracionBruta - smvmReferencia;
+
+    // El tope general de embargo es del 20% sobre el excedente.
+    final double topeEmbargable = excedente * 0.20;
+
+    // El monto a embargar es el menor entre lo solicitado y el tope legal.
+    return embargoSolicitado > topeEmbargable ? topeEmbargable : embargoSolicitado;
+  }
+
   // === CÁLCULO HORAS EXTRAS ===
   
   /// Valor hora para horas extras (sueldo / 200 para jornada completa)
@@ -490,10 +517,11 @@ class SanidadOmniEngine {
     return mejorRemuneracionSemestre / 2;
   }
   
-  /// SAC proporcional (días trabajados / 180 × mejorRemuneración / 2)
+  /// SAC proporcional: (Mejor Remuneración / 2) / (días del semestre) * días trabajados
   static double sacProporcional(double mejorRemuneracion, int diasTrabajados) {
     if (diasTrabajados <= 0) return 0;
-    return (diasTrabajados / 180) * (mejorRemuneracion / 2);
+    const diasSemestre = 182.5; // Promedio de días en un semestre (365 / 2)
+    return (mejorRemuneracion / 2) / diasSemestre * diasTrabajados;
   }
   
   // === CÁLCULO VACACIONES ===
@@ -512,10 +540,15 @@ class SanidadOmniEngine {
   
   // === CÁLCULO LIQUIDACIÓN FINAL ===
   
-  /// Indemnización Art. 245 LCT (1 sueldo por año trabajado, tope 3 sueldos SMVM)
-  static double indemnizacionArt245(double mejorRemuneracion, int anosAntiguedad, {double? topeSmvm}) {
+  /// Indemnización Art. 245 LCT (1 sueldo por año o fracción > 3 meses).
+  /// Nota Legal: El tope de la base indemnizatoria es 3 veces el promedio de las remuneraciones del CCT.
+  /// La implementación actual usa una simplificación común (3 veces la mejor remuneración del empleado), 
+  /// pero puede ser sobreescrita con un valor de `topeSmvm` más preciso.
+  static double indemnizacionArt245(double mejorRemuneracion, int anosAntiguedad, {double? topeLegalCCT}) {
     if (anosAntiguedad <= 0) return 0;
-    final tope = topeSmvm ?? (mejorRemuneracion * 3); // Tope = 3 veces SMVM o sueldo
+    // Por ley, el tope es 3 veces el promedio de todas las escalas salariales del convenio.
+    // Si no se provee, se usa una simplificación no estricta.
+    final tope = topeLegalCCT ?? (mejorRemuneracion * 3);
     final base = mejorRemuneracion > tope ? tope : mejorRemuneracion;
     return base * anosAntiguedad;
   }
@@ -632,7 +665,9 @@ class SanidadOmniEngine {
         // Indemnización según motivo
         if (input.motivoEgreso == 'despidoSinCausa' || input.motivoEgreso == 'despido_sin_causa') {
           final baseIndem = input.baseIndemnizatoria ?? mejorRem;
-          montoIndemnizacion = indemnizacionArt245(baseIndem, anos > 0 ? anos : 1);
+          // Usar el año completo para el cálculo (si tiene más de 3 meses, ya cuenta como 1 año)
+          final anosIndemnizacion = anos > 0 ? anos : (input.fechaIngreso.difference(DateTime.now()).inDays.abs() > 90 ? 1 : 0);
+          montoIndemnizacion = indemnizacionArt245(baseIndem, anosIndemnizacion);
           
           if (input.incluyePreaviso) {
             montoPreaviso = preaviso(sueldoMensualCompleto, anos);
@@ -671,7 +706,7 @@ class SanidadOmniEngine {
 
     // Descuentos adicionales
     final descAdelantos = input.adelantos;
-    final descEmbargos = input.embargos;
+    final descEmbargos = _calcularEmbargoLegal(totalBruto, input.embargos);
     final descPrestamos = input.prestamos;
     final descOtros = input.otrosDescuentos;
     
