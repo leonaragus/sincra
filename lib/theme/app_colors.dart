@@ -55,6 +55,9 @@ class AppColors {
   static const Color accentGreen = Color(0xFF22c55e); // green-500
   static const Color accentRed = Color(0xFFef4444); // red-500
   
+  static const Color accentGold = accentYellow;
+  static const Color accentPurple = Color(0xFF7C3AED); // purple-600
+  static const Color danger = error;
   // Gradientes mejorados
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,

@@ -16,7 +16,7 @@ class ParametrosLegalesService {
   /// Sincroniza las paritarias desde Supabase a local
   static Future<Map<String, dynamic>> sincronizarParitarias() async {
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
     
     DateTime? ultimaFecha;
     final prefs = await SharedPreferences.getInstance();

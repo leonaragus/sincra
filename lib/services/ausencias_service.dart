@@ -22,7 +22,7 @@ class AusenciasService {
   }) async {
     try {
       final connectivity = await Connectivity().checkConnectivity();
-      final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+      final isOnline = connectivity != ConnectivityResult.none;
 
       if (isOnline) {
         final res = await Supabase.instance.client
@@ -57,7 +57,7 @@ class AusenciasService {
     // ... (la implementación original se mantiene sin cambios)
     try {
       final connectivity = await Connectivity().checkConnectivity();
-      final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+      final isOnline = connectivity != ConnectivityResult.none;
       if (isOnline) {
         var query = Supabase.instance.client.from('ausencias').select().eq('empleado_cuil', cuil);
         if (empresaCuit != null) {
@@ -85,7 +85,7 @@ class AusenciasService {
     // ... (la implementación original se mantiene sin cambios)
      await _agregarACache(ausencia);
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
     if (isOnline) {
       try {
         await Supabase.instance.client.from('ausencias').upsert(ausencia.toMap());

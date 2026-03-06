@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
-import 'package:sincra_app/theme/app_colors.dart';
-import 'package:sincra_app/subscription/pricing_screen.dart';
-import 'package:sincra_app/subscription/subscription_service.dart';
+import '../theme/app_colors.dart';
+import 'pricing_screen.dart';
+import 'subscription_service.dart';
 import 'package:intl/intl.dart';
 
 class SubscriptionStatusScreen extends StatefulWidget {

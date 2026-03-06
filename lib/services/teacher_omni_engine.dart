@@ -391,7 +391,7 @@ class LiquidacionOmniResult {
       horasCatedra: (json['horasCatedra'] as num).toDouble(),
       ajusteEquiparacionLey13047: (json['ajusteEquiparacionLey13047'] as num).toDouble(),
       fondoCompensador: (json['fondoCompensador'] as num).toDouble(),
-      adicionalGarantiaSalarial: (json['adicionalGarantiaSarial'] as num).toDouble(),
+      adicionalGarantiaSalarial: (json['adicionalGarantiaSalarial'] as num).toDouble(),
       conceptosPropios: (json['conceptosPropios'] as List).map((c) => ConceptoPropioOmni.fromJson(c)).toList(),
       detallePuntosYValorIndice: json['detallePuntosYValorIndice'],
       desgloseBaseBonificable: json['desgloseBaseBonificable'],

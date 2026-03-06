@@ -56,13 +56,30 @@ class ReportesService {
 
   /// Lógica de Top Empleados extraída para ser reutilizable.
   static List<Map<String, dynamic>> _calcularTopEmpleados(List<EmpleadoCompleto> empleados, {int limit = 5}) {
-    empleados.sort((a, b) => b.antiguedadAnios.compareTo(a.antiguedadAnios));
-    return empleados.take(limit).map((e) => {
-      'nombre': e.nombreCompleto,
-      'categoria': e.categoria,
-      'antiguedad': e.antiguedadAnios,
-      'provincia': e.provincia,
-    }).toList();
+    final List<Map<String, dynamic>> top = [];
+    for (final e in empleados) {
+      final item = {
+        'nombre': e.nombreCompleto,
+        'categoria': e.categoria,
+        'antiguedad': e.antiguedadAnios,
+        'provincia': e.provincia,
+      };
+      if (top.length < limit) {
+        top.add(item);
+      } else {
+        int minIdx = 0;
+        for (int i = 1; i < top.length; i++) {
+          if ((top[i]['antiguedad'] as int) < (top[minIdx]['antiguedad'] as int)) {
+            minIdx = i;
+          }
+        }
+        if (e.antiguedadAnios > (top[minIdx]['antiguedad'] as int)) {
+          top[minIdx] = item;
+        }
+      }
+    }
+    top.sort((a, b) => (b['antiguedad'] as int).compareTo(a['antiguedad'] as int));
+    return top;
   }
 
   // --- Métodos antiguos (se mantienen por posible retrocompatibilidad) ---
@@ -83,15 +100,17 @@ class ReportesService {
           .from('f931_historial')
           .select('periodo_mes, periodo_anio, total_remuneraciones')
           .gte('periodo_anio', hace12Meses.year)
-          .order('periodo_anio', ascending: true)
-          .order('periodo_mes', ascending: true);
+          .order('periodo_anio', ascending: false)
+          .order('periodo_mes', ascending: false)
+          .limit(12);
       
       if (empresaCuit != null) {
         query = query.eq('empresa_cuit', empresaCuit);
       }
 
       final res = await query;
-      return (res as List).cast<Map<String, dynamic>>();
+      final list = (res as List).cast<Map<String, dynamic>>();
+      return list.reversed.toList();
     } catch (e) {
       print('Error obteniendo evolución: $e');
       return [];

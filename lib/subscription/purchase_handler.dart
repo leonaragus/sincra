@@ -1,8 +1,8 @@
 
 import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:sincra_app/subscription/subscription_plan.dart';
-import 'package:sincra_app/subscription/subscription_service.dart'; // Importamos el servicio
+import 'subscription_plan.dart';
+import 'subscription_service.dart'; // Importamos el servicio
 
 class PurchaseHandler {
   final InAppPurchase _iap = InAppPurchase.instance;

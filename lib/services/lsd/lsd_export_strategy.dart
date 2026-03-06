@@ -1,7 +1,6 @@
 
 import 'dart:typed_data';
 
-import 'package:gemini_code_assist/services/sanidad_omni_engine.dart';
 
 /// Contrato (interfaz abstracta) para una Estrategia de Exportación de LSD.
 ///

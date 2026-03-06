@@ -29,6 +29,10 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
 
   // Datos del dashboard
   Map<String, dynamic> _dashboardData = {};
+  List<MapEntry<String, int>> _provinciasSorted = [];
+  List<MapEntry<String, int>> _categoriasSorted = [];
+  int _categoriasTotal = 0;
+  List<FlSpot> _evolucionSpots = [];
 
   final _kpiNumberFormat = NumberFormat('#,##0', 'es_AR');
 
@@ -61,16 +65,21 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
 
       setState(() {
         _dashboardData = data;
+        _cargando = false;
+         final provMap = (data['kpis']?['por_provincia'] as Map?)?.cast<String, int>() ?? {};
+         final catMap = (data['kpis']?['por_categoria'] as Map?)?.cast<String, int>() ?? {};
+         _provinciasSorted = provMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+         _categoriasSorted = catMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+         _categoriasTotal = _categoriasSorted.fold(0, (sum, e) => sum + e.value);
+         final evol = (data['evolucion'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+         _evolucionSpots = evol.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value['total_remuneraciones'] as num?)?.toDouble() ?? 0.0)).toList();
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
+        _cargando = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() => _cargando = false);
-      }
     }
   }
 
@@ -154,7 +163,7 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
   Widget _buildHeader() {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
         child: Container(
           padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 16),
           decoration: const BoxDecoration(
@@ -244,7 +253,7 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
   }
 
   Widget _buildGraficoEvolucion(Color color) {
-    if (_evolucion.isEmpty) return const SizedBox.shrink();
+    if (_evolucionSpots.isEmpty) return const SizedBox.shrink();
     
     return _buildGraficoContainer(
       'Evolución Masa Salarial (12 Meses)',
@@ -252,7 +261,12 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
         height: 250,
         child: LineChart(
           LineChartData(
-            gridData: FlGridData(show: true, checkToShowVerticalLine: (v) => true, getDrawingVerticalLine: (v) => FlLine(color: AppColors.glassBorder.withOpacity(0.5), strokeWidth: 1), getDrawingHorizontalLine: (v) => FlLine(color: AppColors.glassBorder.withOpacity(0.5), strokeWidth: 1)),
+            gridData: FlGridData(
+              show: true,
+              checkToShowVerticalLine: (v) => v % 3 == 0,
+              getDrawingVerticalLine: (v) => FlLine(color: AppColors.glassBorder.withOpacity(0.5), strokeWidth: 1),
+              getDrawingHorizontalLine: (v) => FlLine(color: AppColors.glassBorder.withOpacity(0.5), strokeWidth: 1),
+            ),
             titlesData: FlTitlesData(
               bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, interval: 3, getTitlesWidget: (v, m) => _bottomTitleWidgets(v, m, _evolucion))),
               leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 50, getTitlesWidget: _leftTitleWidgets)),
@@ -262,10 +276,10 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
             borderData: FlBorderData(show: false),
             lineBarsData: [
               LineChartBarData(
-                spots: _evolucion.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value['total_remuneraciones'] as num?)?.toDouble() ?? 0.0)).toList(),
-                isCurved: true,
+                spots: _evolucionSpots,
+                isCurved: false,
                 color: color,
-                barWidth: 4,
+                barWidth: 3,
                 isStrokeCapRound: true,
                 dotData: const FlDotData(show: false),
                 belowBarData: BarAreaData(show: true, color: color.withOpacity(0.2)),
@@ -278,7 +292,7 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
   }
 
   Widget _buildGraficoBarras(List<Color> colors) {
-    final provincias = _porProvincia.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final provincias = _provinciasSorted;
     if (provincias.isEmpty) return const SizedBox.shrink();
 
     return _buildGraficoContainer(
@@ -306,9 +320,9 @@ class _DashboardGerencialScreenState extends State<DashboardGerencialScreen> {
   }
 
   Widget _buildGraficoTorta(List<Color> colors) {
-    final categorias = _porCategoria.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final categorias = _categoriasSorted;
     if (categorias.isEmpty) return const SizedBox.shrink();
-    final total = categorias.fold(0, (sum, e) => sum + e.value);
+    final total = _categoriasTotal;
 
     return _buildGraficoContainer(
       'Distribución por Categoría',

@@ -82,7 +82,7 @@ class CCTCloudService {
   /// Sincroniza CCT desde Supabase (actualizados por robot BAT)
   static Future<Map<String, dynamic>> sincronizarCCT() async {
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
     
     final prefs = await SharedPreferences.getInstance();
     final lastSyncStr = prefs.getString(_lastSyncKey);
@@ -149,7 +149,7 @@ class CCTCloudService {
     String? ejecutadoPor,
   }) async {
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
     
     if (!isOnline) {
       return {
@@ -298,7 +298,7 @@ class CCTCloudService {
   static Future<CCTMaster?> obtenerCCT(String codigo) async {
     try {
       final connectivity = await Connectivity().checkConnectivity();
-      final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+      final isOnline = connectivity != ConnectivityResult.none;
       
       if (isOnline) {
         final res = await Supabase.instance.client

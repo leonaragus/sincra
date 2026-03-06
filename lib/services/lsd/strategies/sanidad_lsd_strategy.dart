@@ -12,7 +12,7 @@ import '../lsd_export_strategy.dart';
 import '../../lsd_mapping_service.dart';
 
 // Códigos internos Sanidad (mapeo AFIP/ARCA)
-class _SanidadLsdCodigos {
+class SanidadLsdCodigos {
   static const String sueldoBasico = 'SUELDO_BAS';
   static const String antiguedad = 'ANTIGUEDAD';
   static const String titulo = 'TITULO';
@@ -238,25 +238,25 @@ class SanidadLsdExportStrategy implements LsdExportStrategy<LiquidacionSanidadRe
           if (monto > 0) conceptos.add({'codigo': codigo, 'desc': desc, 'importe': monto, 'tipo': 'N'});
       }
 
-      addHaber(_SanidadLsdCodigos.sueldoBasico, 'Sueldo Basico', liquidacion.sueldoBasico);
-      addHaber(_SanidadLsdCodigos.antiguedad, 'Antiguedad', liquidacion.adicionalAntiguedad);
-      addHaber(_SanidadLsdCodigos.titulo, 'Adicional Titulo', liquidacion.adicionalTitulo);
-      addHaber(_SanidadLsdCodigos.tareaCritica, 'Tarea Critica/Riesgo', liquidacion.adicionalTareaCriticaRiesgo);
-      addHaber(_SanidadLsdCodigos.zonaPatagonica, 'Plus Zona Desfavorable (Patagonia)', liquidacion.adicionalZonaPatagonica);
-      addHaber(_SanidadLsdCodigos.nocturnidad, 'Horas Nocturnas', liquidacion.nocturnidad);
-      addHaber(_SanidadLsdCodigos.falloCaja, 'Fallo de Caja', liquidacion.falloCaja);
-      addHaber(_SanidadLsdCodigos.horasExtras50, 'Horas Extras 50%', liquidacion.horasExtras50Monto);
-      addHaber(_SanidadLsdCodigos.horasExtras100, 'Horas Extras 100%', liquidacion.horasExtras100Monto);
+      addHaber(SanidadLsdCodigos.sueldoBasico, 'Sueldo Basico', liquidacion.sueldoBasico);
+      addHaber(SanidadLsdCodigos.antiguedad, 'Antiguedad', liquidacion.adicionalAntiguedad);
+      addHaber(SanidadLsdCodigos.titulo, 'Adicional Titulo', liquidacion.adicionalTitulo);
+      addHaber(SanidadLsdCodigos.tareaCritica, 'Tarea Critica/Riesgo', liquidacion.adicionalTareaCriticaRiesgo);
+      addHaber(SanidadLsdCodigos.zonaPatagonica, 'Plus Zona Desfavorable (Patagonia)', liquidacion.adicionalZonaPatagonica);
+      addHaber(SanidadLsdCodigos.nocturnidad, 'Horas Nocturnas', liquidacion.nocturnidad);
+      addHaber(SanidadLsdCodigos.falloCaja, 'Fallo de Caja', liquidacion.falloCaja);
+      addHaber(SanidadLsdCodigos.horasExtras50, 'Horas Extras 50%', liquidacion.horasExtras50Monto);
+      addHaber(SanidadLsdCodigos.horasExtras100, 'Horas Extras 100%', liquidacion.horasExtras100Monto);
 
       if (liquidacion.sac > 0) {
-          final codigoSac = liquidacion.diasSACCalculados >= 180 ? _SanidadLsdCodigos.sac : _SanidadLsdCodigos.sacProp;
+          final codigoSac = liquidacion.diasSACCalculados >= 180 ? SanidadLsdCodigos.sac : SanidadLsdCodigos.sacProp;
           final descSac = liquidacion.diasSACCalculados >= 180 ? 'SAC - Aguinaldo' : 'SAC Proporcional (${liquidacion.diasSACCalculados} dias)';
           addHaber(codigoSac, descSac, liquidacion.sac);
       }
 
-      addHaber(_SanidadLsdCodigos.vacaciones, 'Vacaciones (${liquidacion.diasVacacionesCalculados} dias)', liquidacion.vacaciones);
-      addHaber(_SanidadLsdCodigos.plusVacacional, 'Plus Vacacional', liquidacion.plusVacacional);
-      addHaber(_SanidadLsdCodigos.vacNoGozadas, 'Vacaciones No Gozadas', liquidacion.vacacionesNoGozadas);
+      addHaber(SanidadLsdCodigos.vacaciones, 'Vacaciones (${liquidacion.diasVacacionesCalculados} dias)', liquidacion.vacaciones);
+      addHaber(SanidadLsdCodigos.plusVacacional, 'Plus Vacacional', liquidacion.plusVacacional);
+      addHaber(SanidadLsdCodigos.vacNoGozadas, 'Vacaciones No Gozadas', liquidacion.vacacionesNoGozadas);
       if (liquidacion.sacSobreVacaciones > 0) addHaber('SAC_S_VAC', 'SAC sobre Vacaciones', liquidacion.sacSobreVacaciones);
       if (liquidacion.sacSobrePreaviso > 0) addHaber('SAC_S_PRE', 'SAC sobre Preaviso', liquidacion.sacSobrePreaviso);
 
@@ -269,20 +269,20 @@ class SanidadLsdExportStrategy implements LsdExportStrategy<LiquidacionSanidadRe
           }
       }
 
-      addNoRemunerativo(_SanidadLsdCodigos.indemnizacion, 'Indemnizacion Art. 245 LCT', liquidacion.indemnizacionArt245);
-      addNoRemunerativo(_SanidadLsdCodigos.preaviso, 'Preaviso', liquidacion.preaviso);
-      addNoRemunerativo(_SanidadLsdCodigos.integracionMes, 'Integracion Mes Despido', liquidacion.integracionMes);
+      addNoRemunerativo(SanidadLsdCodigos.indemnizacion, 'Indemnizacion Art. 245 LCT', liquidacion.indemnizacionArt245);
+      addNoRemunerativo(SanidadLsdCodigos.preaviso, 'Preaviso', liquidacion.preaviso);
+      addNoRemunerativo(SanidadLsdCodigos.integracionMes, 'Integracion Mes Despido', liquidacion.integracionMes);
 
-      addDescuento(_SanidadLsdCodigos.jubilacion, 'Jubilacion', liquidacion.aporteJubilacion);
-      addDescuento(_SanidadLsdCodigos.ley19032, 'Ley 19.032 (PAMI)', liquidacion.aporteLey19032);
-      addDescuento(_SanidadLsdCodigos.obraSocial, 'Obra Social', liquidacion.aporteObraSocial);
-      addDescuento(_SanidadLsdCodigos.cuotaSindical, 'Cuota Sindical ATSA', liquidacion.cuotaSindicalAtsa);
-      addDescuento(_SanidadLsdCodigos.seguroSepelio, 'Seguro de Sepelio', liquidacion.seguroSepelio);
-      addDescuento(_SanidadLsdCodigos.aporteSolidario, 'Aporte Solidario FATSA', liquidacion.aporteSolidarioFatsa);
+      addDescuento(SanidadLsdCodigos.jubilacion, 'Jubilacion', liquidacion.aporteJubilacion);
+      addDescuento(SanidadLsdCodigos.ley19032, 'Ley 19.032 (PAMI)', liquidacion.aporteLey19032);
+      addDescuento(SanidadLsdCodigos.obraSocial, 'Obra Social', liquidacion.aporteObraSocial);
+      addDescuento(SanidadLsdCodigos.cuotaSindical, 'Cuota Sindical ATSA', liquidacion.cuotaSindicalAtsa);
+      addDescuento(SanidadLsdCodigos.seguroSepelio, 'Seguro de Sepelio', liquidacion.seguroSepelio);
+      addDescuento(SanidadLsdCodigos.aporteSolidario, 'Aporte Solidario FATSA', liquidacion.aporteSolidarioFatsa);
 
-      addDescuento(_SanidadLsdCodigos.adelantos, 'Adelantos', liquidacion.adelantos);
-      addDescuento(_SanidadLsdCodigos.embargos, 'Embargos', liquidacion.embargos);
-      addDescuento(_SanidadLsdCodigos.prestamos, 'Prestamos', liquidacion.prestamos);
+      addDescuento(SanidadLsdCodigos.adelantos, 'Adelantos', liquidacion.adelantos);
+      addDescuento(SanidadLsdCodigos.embargos, 'Embargos', liquidacion.embargos);
+      addDescuento(SanidadLsdCodigos.prestamos, 'Prestamos', liquidacion.prestamos);
       if (liquidacion.otrosDescuentos > 0) addDescuento('OTROS_DESC', 'Otros Descuentos', liquidacion.otrosDescuentos);
 
       for (final c in liquidacion.conceptosPropios) {
@@ -300,14 +300,14 @@ class SanidadLsdExportStrategy implements LsdExportStrategy<LiquidacionSanidadRe
   String _generarInstructivo(List<LiquidacionSanidadResult> liquidaciones) {
       final codigosUsados = <String>{};
       for (final liq in liquidaciones) {
-          if (liq.sueldoBasico > 0) codigosUsados.add(_SanidadLsdCodigos.sueldoBasico);
-          if (liq.adicionalAntiguedad > 0) codigosUsados.add(_SanidadLsdCodigos.antiguedad);
-          if (liq.nocturnidad > 0) codigosUsados.add(_SanidadLsdCodigos.nocturnidad);
-          if (liq.falloCaja > 0) codigosUsados.add(_SanidadLsdCodigos.falloCaja);
-          if (liq.adicionalTareaCriticaRiesgo > 0) codigosUsados.add(_SanidadLsdCodigos.tareaCritica);
-          if (liq.aporteJubilacion > 0) codigosUsados.add(_SanidadLsdCodigos.jubilacion);
-          if (liq.aporteObraSocial > 0) codigosUsados.add(_SanidadLsdCodigos.obraSocial);
-          if (liq.aporteLey19032 > 0) codigosUsados.add(_SanidadLsdCodigos.ley19032);
+          if (liq.sueldoBasico > 0) codigosUsados.add(SanidadLsdCodigos.sueldoBasico);
+          if (liq.adicionalAntiguedad > 0) codigosUsados.add(SanidadLsdCodigos.antiguedad);
+          if (liq.nocturnidad > 0) codigosUsados.add(SanidadLsdCodigos.nocturnidad);
+          if (liq.falloCaja > 0) codigosUsados.add(SanidadLsdCodigos.falloCaja);
+          if (liq.adicionalTareaCriticaRiesgo > 0) codigosUsados.add(SanidadLsdCodigos.tareaCritica);
+          if (liq.aporteJubilacion > 0) codigosUsados.add(SanidadLsdCodigos.jubilacion);
+          if (liq.aporteObraSocial > 0) codigosUsados.add(SanidadLsdCodigos.obraSocial);
+          if (liq.aporteLey19032 > 0) codigosUsados.add(SanidadLsdCodigos.ley19032);
           for (final c in liq.conceptosPropios) {
               final cod = c['codigo']?.toString() ?? '';
               if (cod.isNotEmpty) codigosUsados.add(cod.length > 10 ? cod.substring(0, 10) : cod);

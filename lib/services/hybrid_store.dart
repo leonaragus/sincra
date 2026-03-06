@@ -43,16 +43,19 @@ class HybridStore {
 
   static void _pushToSupabase(String type, String key, String jsonData) {
     _runAsync(() async {
-      final list = await Connectivity().checkConnectivity();
-      if (list.isEmpty || list.every((c) => c == ConnectivityResult.none)) return;
+      final conn = await Connectivity().checkConnectivity();
+      if (conn == ConnectivityResult.none) return;
       try {
         final client = Supabase.instance.client;
+        final uid = client.auth.currentUser?.id;
+        if (uid == null) return;
         await client.from(SupabaseConfig.tableEntities).upsert({
           'type': type,
           'key': key,
+          'user_id': uid,
           'data': jsonDecode(jsonData),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
-        }, onConflict: 'type,key');
+        }, onConflict: 'type,key,user_id');
       } catch (_) {}
     });
   }
@@ -66,10 +69,13 @@ class HybridStore {
 
   /// Pull desde Supabase y merge a local (ej. al abrir app o al estar online). Solo escribe en local, no re-push.
   static Future<void> pullFromSupabase() async {
-    final list = await Connectivity().checkConnectivity();
-    if (list.isEmpty || list.every((c) => c == ConnectivityResult.none)) return;
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) return;
     try {
-      final res = await Supabase.instance.client.from(SupabaseConfig.tableEntities).select();
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id;
+      if (uid == null) return;
+      final res = await client.from(SupabaseConfig.tableEntities).select().eq('user_id', uid);
       for (final r in res as List) {
         final m = r as Map;
         final type = m['type']?.toString() ?? '';

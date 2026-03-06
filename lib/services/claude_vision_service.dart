@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:sincra_app/models/recibo_model.dart';
-import 'package:sincra_app/services/cct_database_service.dart';
-import 'package:sincra_app/services/educational_concepts_service.dart';
+import '../models/recibo_model.dart';
+import 'cct_database_service.dart';
+import 'educational_concepts_service.dart';
 
 // Importamos el servicio de suscripción
-import 'package:sincra_app/subscription/subscription_service.dart';
+import '../subscription/subscription_service.dart';
 
 class AuditResult {
   final bool isError;
@@ -136,9 +136,9 @@ class ClaudeVisionService {
       return AuditResult(isError: false, message: "OK");
     } else {
       if (infoCCT.id == "judicial" && pReal > pEsperadoMax) {
-         return AuditResult(isError: true, message: "Tu descuento jubilatorio es del ${pReal.toStringAsFixed(1)}% sobre la base imponible (\$${baseDeCalculalo.toStringAsFixed(2)}), superior a la ley general. Sabemos que el Poder Judicial tiene un régimen especial, por lo que este valor podría ser correcto, pero es nuestra obligación marcarlo.");
+         return AuditResult(isError: true, message: "Tu descuento jubilatorio es del ${pReal.toStringAsFixed(1)}% sobre la base imponible (\$${baseDeCalculo.toStringAsFixed(2)}), superior a la ley general. Sabemos que el Poder Judicial tiene un régimen especial, por lo que este valor podría ser correcto, pero es nuestra obligación marcarlo.");
       }
-      String mensaje = "El descuento es del ${pReal.toStringAsFixed(1)}% sobre la base de \$${baseDeCalculalo.toStringAsFixed(2)}. Se esperaba entre ${pEsperadoMin}% y ${pEsperadoMax}%.";
+      String mensaje = "El descuento es del ${pReal.toStringAsFixed(1)}% sobre la base de \$${baseDeCalculo.toStringAsFixed(2)}. Se esperaba entre ${pEsperadoMin}% y ${pEsperadoMax}%.";
       return AuditResult(isError: true, message: mensaje);
     }
   }

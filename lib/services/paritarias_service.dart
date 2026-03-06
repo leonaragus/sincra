@@ -55,7 +55,7 @@ class ParitariasService {
   /// Sincroniza las paritarias desde Supabase y las guarda en local
   static Future<Map<String, dynamic>> sincronizarParitarias() async {
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
 
     final prefs = await SharedPreferences.getInstance();
     final lastSyncStr = prefs.getString(_lastSyncKey);

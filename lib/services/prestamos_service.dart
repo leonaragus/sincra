@@ -60,7 +60,7 @@ class PrestamosService {
   static Future<List<Prestamo>> obtenerPrestamosPorEmpresa(String empresaCuit) async {
     try {
       final connectivity = await Connectivity().checkConnectivity();
-      final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+      final isOnline = connectivity != ConnectivityResult.none;
 
       if (isOnline) {
         final res = await Supabase.instance.client
@@ -88,7 +88,7 @@ class PrestamosService {
     await _agregarACache(prestamo);
     
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
 
     if (isOnline) {
       try {

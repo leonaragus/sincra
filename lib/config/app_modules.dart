@@ -7,13 +7,13 @@ import '../theme/app_colors.dart';
 import '../screens/empresa_screen.dart';
 import '../screens/validador_lsd_screen.dart';
 import '../screens/verificador_recibo_screen.dart';
-import '../screens/centro_liquidacion_screen.dart'; // ¡NUEVA PANTALLA!
+import '../screens/centro_liquidacion_screen.dart' deferred as centro; // ¡NUEVA PANTALLA!
 import '../screens/convenios_screen.dart';
-import '../screens/teacher_interface_screen.dart';
-import '../screens/sanidad_interface_screen.dart';
+import '../screens/teacher_interface_screen.dart' deferred as teacher;
+import '../screens/sanidad_interface_screen.dart' deferred as sanidad;
 import '../screens/gestion_empleados_screen.dart';
-import '../screens/liquidacion_masiva_screen.dart';
-import '../screens/dashboard_gerencial_screen.dart';
+import '../screens/liquidacion_masiva_screen.dart' deferred as masiva;
+import '../screens/dashboard_gerencial_screen.dart' deferred as dashboard;
 import '../screens/gestion_conceptos_screen.dart';
 import '../screens/gestion_ausencias_screen.dart';
 import '../screens/gestion_prestamos_screen.dart';
@@ -22,6 +22,26 @@ import '../screens/buscador_categorias_screen.dart';
 import '../screens/dashboard_riesgos_screen.dart';
 
 /// Lista centralizada de todos los módulos disponibles en la aplicación.
+class _DeferredRoute extends StatelessWidget {
+  final Future<void> Function() loader;
+  final Widget Function() builder;
+  const _DeferredRoute({required this.loader, required this.builder});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: loader(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return builder();
+      },
+    );
+  }
+}
 final List<ModuleInfo> appModules = [
   ModuleInfo(
     title: 'Tu Empresa',
@@ -52,7 +72,10 @@ final List<ModuleInfo> appModules = [
     iconColor: AppColors.primary,
     isPremium: true,
     isHighlighted: true,
-    buildRoute: (context) => const CentroLiquidacionScreen(), // ¡CAMBIO REALIZADO!
+    buildRoute: (context) => _DeferredRoute(
+      loader: centro.loadLibrary,
+      builder: () => const centro.CentroLiquidacionScreen(),
+    ),
   ),
   ModuleInfo(
     title: 'Convenios',
@@ -68,7 +91,10 @@ final List<ModuleInfo> appModules = [
     icon: Icons.school,
     iconColor: AppColors.accentEmerald,
     isPremium: true,
-    buildRoute: (context) => const TeacherInterfaceScreen(),
+    buildRoute: (context) => _DeferredRoute(
+      loader: teacher.loadLibrary,
+      builder: () => const teacher.TeacherInterfaceScreen(),
+    ),
   ),
   ModuleInfo(
     title: 'Liquidación Sanidad 2026',
@@ -76,7 +102,10 @@ final List<ModuleInfo> appModules = [
     icon: Icons.local_hospital,
     iconColor: AppColors.accentPink,
     isPremium: true,
-    buildRoute: (context) => const SanidadInterfaceScreen(),
+    buildRoute: (context) => _DeferredRoute(
+      loader: sanidad.loadLibrary,
+      builder: () => const sanidad.SanidadInterfaceScreen(),
+    ),
   ),
   ModuleInfo(
     title: 'Gestión de Empleados',
@@ -93,7 +122,10 @@ final List<ModuleInfo> appModules = [
     iconColor: AppColors.accentOrange,
     isPremium: true,
     isHighlighted: true,
-    buildRoute: (context) => const LiquidacionMasivaScreen(),
+    buildRoute: (context) => _DeferredRoute(
+      loader: masiva.loadLibrary,
+      builder: () => const masiva.LiquidacionMasivaScreen(),
+    ),
   ),
   ModuleInfo(
     title: 'Dashboard Gerencial',
@@ -101,7 +133,10 @@ final List<ModuleInfo> appModules = [
     icon: Icons.dashboard,
     iconColor: const Color(0xFF9333EA),
     isPremium: true,
-    buildRoute: (context) => const DashboardGerencialScreen(),
+    buildRoute: (context) => _DeferredRoute(
+      loader: dashboard.loadLibrary,
+      builder: () => const dashboard.DashboardGerencialScreen(),
+    ),
   ),
   ModuleInfo(
     title: 'Conceptos Recurrentes',

@@ -1,0 +1,18 @@
+## key.properties (ejemplo) — NO subir este archivo con contraseñas reales
+# Copiá este archivo a: android/key.properties (sin .sample) y completá los valores locales.
+# Este archivo está ignorado por .gitignore (android/key.properties).
+#
+# storeFile: ruta relativa al proyecto del keystore JKS (por ejemplo, android/app/syncra_release.jks)
+# storePassword: contraseña del keystore
+# keyAlias: alias de la clave
+# keyPassword: contraseña de la clave
+#
+# Importante:
+# - Guardá estos secretos SOLO localmente o en variables de entorno en CI.
+# - NO los publiques ni los subas al repositorio.
+#
+# Ejemplo:
+storeFile=android/app/syncra_release.jks
+storePassword=REEMPLAZAR_CON_TU_PASSWORD
+keyAlias=syncraarg
+keyPassword=REEMPLAZAR_CON_TU_PASSWORD

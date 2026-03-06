@@ -1,11 +1,11 @@
 
 import 'package:flutter/material.dart';
-import 'package:sincra_app/screens/what_is_syncra_screen.dart';
-import 'package:sincra_app/subscription/pricing_screen.dart';
-import 'package:sincra_app/subscription/role_selection_dialog.dart';
-import 'package:sincra_app/subscription/subscription_service.dart';
-import 'package:sincra_app/subscription/user_roles.dart';
-import 'package:sincra_app/subscription/subscription_status_screen.dart';
+import 'what_is_syncra_screen.dart';
+import '../subscription/pricing_screen.dart';
+import '../subscription/role_selection_dialog.dart';
+import '../subscription/subscription_service.dart';
+import '../subscription/user_roles.dart';
+import '../subscription/subscription_status_screen.dart';
 import 'dart:async';
 import 'empresa_screen.dart';
 import '../services/hybrid_store.dart';
@@ -69,7 +69,7 @@ class HomeScreenState extends State<HomeScreen> {
       final selectedRole = await showDialog<UserRole>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const RoleSelectionDialog(),
+        builder: (_) => RoleSelectionDialog(onRoleSelected: () {}),
       );
       
       if (selectedRole != null) {
@@ -197,7 +197,7 @@ class HomeScreenState extends State<HomeScreen> {
                           _buildEmpresasSection(),
                           const SizedBox(height: 24),
                         ],
-                        _buildModuleGrid(userRole),
+                        _buildModuleGrid(userRole, isTrialActive),
                         const SizedBox(height: 24),
                         if (isTrialActive || isSubscribed)
                           _buildWebLoginCard(),
@@ -212,6 +212,7 @@ class HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
   SliverAppBar _buildAppBar(BuildContext context, UserRole userRole, bool isTrialActive) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -249,7 +250,83 @@ class HomeScreenState extends State<HomeScreen> {
   Drawer _buildDrawer() { /* ... código sin cambios ... */ return Drawer(); }
   Widget _buildHeader(UserRole userRole, bool isTrialActive) { /* ... código sin cambios ... */ return Container(); }
   Widget _buildEmpresasSection() { /* ... código sin cambios ... */ return Container(); }
-  Widget _buildModuleGrid(UserRole userRole) { /* ... código sin cambios ... */ return Container(); }
+  Widget _buildModuleGrid(UserRole userRole, bool isTrialActive) {
+    final modules = appModules;
+    final width = MediaQuery.of(context).size.width;
+    final cross = width >= 1000 ? 4 : width >= 700 ? 3 : 2;
+    return GridView.builder(
+      itemCount: modules.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cross,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.25,
+      ),
+      itemBuilder: (context, i) {
+        final m = modules[i];
+        final hasAccess = !m.isPremium || userRole == UserRole.professional || (isTrialActive && userRole != UserRole.information);
+        return InkWell(
+          onTap: hasAccess
+              ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => m.buildRoute(context)))
+              : _showUpgradeDialog,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundLight,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(m.icon, color: m.iconColor, size: 28),
+                const SizedBox(height: 12),
+                Text(m.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                const SizedBox(height: 6),
+                Text(m.subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                const Spacer(),
+                if (!hasAccess)
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentYellow.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text('Premium', style: TextStyle(color: AppColors.accentYellow, fontSize: 12)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
   Widget _buildWebLoginCard() { /* ... código sin cambios ... */ return Container(); }
 
+  void _showUpgradeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Función Premium'),
+          content: const Text('Para usar este módulo necesitás una suscripción.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const PricingScreen()));
+              },
+              child: const Text('Ver Planes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

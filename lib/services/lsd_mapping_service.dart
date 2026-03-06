@@ -1,6 +1,6 @@
 
 import 'teacher_lsd_export.dart';
-import 'sanidad_lsd_export.dart';
+import 'lsd/strategies/sanidad_lsd_strategy.dart';
 
 /// Códigos para liquidación general (Convenios CCT)
 class GeneralesLsdCodigos {

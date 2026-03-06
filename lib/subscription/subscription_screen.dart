@@ -103,7 +103,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const SizedBox(height: 16),
             _BenefitItem(
               icon: Icons.auto_awesome,
-              text: 'Análisis con IA (Claude): $_claudeCallsLeft / 2 restantes',
+              text: _claudeCallsLeft == -1
+                  ? 'Análisis con IA (Claude): ilimitado'
+                  : 'Análisis con IA (Claude): $_claudeCallsLeft restantes',
               iconColor: AppColors.accentPurple,
             ),
             const _BenefitItem(

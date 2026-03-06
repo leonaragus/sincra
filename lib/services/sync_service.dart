@@ -31,10 +31,8 @@ class SyncService {
   /// Realiza una sincronización completa bidireccional
   /// Retorna true si fue exitosa
   static Future<bool> sincronizarTodo({bool forzar = false}) async {
-    final connectivity = await Connectivity().checkConnectivity();
-    if (connectivity.isEmpty || connectivity.every((c) => c == ConnectivityResult.none)) {
-      return false; // Offline
-    }
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) return false;
 
     try {
       final user = Supabase.instance.client.auth.currentUser;

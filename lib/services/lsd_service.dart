@@ -1,10 +1,11 @@
 
 import 'dart:typed_data';
+import 'dart:convert';
 
-import 'package:gemini_code_assist/services/lsd/lsd_export_strategy.dart';
-import 'package:gemini_code_assist/services/lsd/strategies/sanidad_lsd_strategy.dart';
-import 'package:gemini_code_assist/services/sanidad_omni_engine.dart';
-import 'package:gemini_code_assist/utils/file_saver.dart';
+import 'lsd/lsd_export_strategy.dart';
+import 'lsd/strategies/sanidad_lsd_strategy.dart';
+import 'sanidad_omni_engine.dart';
+import '../utils/file_saver.dart';
 
 /// LsdService - Orquestador de Estrategias de Exportación de LSD
 ///

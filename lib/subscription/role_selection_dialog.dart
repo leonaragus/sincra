@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
-import 'package:sincra_app/subscription/subscription_service.dart';
-import 'package:sincra_app/subscription/user_roles.dart';
-import 'package:sincra_app/theme/app_colors.dart';
+import 'subscription_service.dart';
+import 'user_roles.dart';
+import '../theme/app_colors.dart';
 
 class RoleSelectionDialog extends StatelessWidget {
   final VoidCallback onRoleSelected; // Callback para refrescar la UI principal
@@ -11,14 +11,14 @@ class RoleSelectionDialog extends StatelessWidget {
 
   Future<void> _selectRole(BuildContext context, UserRole role) async {
     await SubscriptionService.setUserRole(role);
-    Navigator.of(context).pop(); // Cierra el diálogo
+    Navigator.of(context).pop(role); // devuelve el rol seleccionado
     onRoleSelected(); // Llama al callback
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Impide que el usuario cierre el diálogo con el botón "atrás"
+    return WillPopScope(
+      onWillPop: () async => false,
       child: Dialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

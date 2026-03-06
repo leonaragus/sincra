@@ -2,10 +2,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:sincra_app/subscription/purchase_handler.dart';
-import 'package:sincra_app/subscription/subscription_plan.dart';
-import 'package:sincra_app/theme/app_colors.dart';
-import 'package:sincra_app/utils/formatters.dart';
+import 'purchase_handler.dart';
+import 'subscription_plan.dart';
+import '../theme/app_colors.dart';
+import '../utils/formatters.dart';
 
 class PricingScreen extends StatefulWidget {
   const PricingScreen({super.key});

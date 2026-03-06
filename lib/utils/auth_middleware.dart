@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/subscription_service.dart';
+import '../subscription/subscription_service.dart';
 
 /// Middleware para proteger rutas basado en suscripción
 class AuthMiddleware {
@@ -78,20 +78,16 @@ class AuthMiddleware {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return null;
     
-    final plan = await SubscriptionService.getCurrentUserPlan();
-    final isTrial = await SubscriptionService.isInTrialPeriod();
+    final active = await SubscriptionService.getActiveSubscription();
+    final isTrial = await SubscriptionService.isTrialActive();
     final trialDaysRemaining = await SubscriptionService.getTrialDaysRemaining();
     
     return {
       'user': user,
-      'plan': plan,
+      'plan': active?.planDetail.name,
       'is_trial': isTrial,
       'trial_days_remaining': trialDaysRemaining,
-      'plan_name': plan != null
-          ? (plan['plan_type'] is String
-              ? (SubscriptionService.subscriptionPlans[plan['plan_type'] as String]?['name'] ?? 'Free')
-              : 'Free')
-          : 'Free',
+      'plan_name': active?.planDetail.name ?? 'Free',
     };
   }
 }

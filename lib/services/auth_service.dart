@@ -1,9 +1,9 @@
 
 import 'package:flutter/material.dart';
-import 'package:sincra_app/screens/home_screen.dart';
-import 'package:sincra_app/screens/login_screen.dart';
+import '../screens/home_screen.dart';
+import '../screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:sincra_app/subscription/subscription_service.dart'; // ¡Importante!
+import '../subscription/subscription_service.dart'; // ¡Importante!
 
 class AuthService {
   static final _supabase = Supabase.instance.client;

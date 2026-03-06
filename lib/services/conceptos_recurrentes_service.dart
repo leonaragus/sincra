@@ -26,8 +26,8 @@ class ConceptosRecurrentesService {
     final cacheKey = '$_cacheKeyPrefix$empresaCuit';
 
     // Prioridad 1: Obtener datos frescos de Supabase si hay conexión.
-    final connectivityList = await Connectivity().checkConnectivity();
-    final isOnline = connectivityList.isNotEmpty && connectivityList.first != ConnectivityResult.none;
+    final connectivity = await Connectivity().checkConnectivity();
+    final isOnline = connectivity != ConnectivityResult.none;
 
     if (isOnline) {
       try {

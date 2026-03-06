@@ -174,11 +174,8 @@ class EmpleadosService {
   /// Push de empleado a Supabase (background, no bloquea)
   static void _pushToSupabase(EmpleadoCompleto empleado) {
     _runAsync(() async {
-      final connectivityList = await Connectivity().checkConnectivity();
-      if (connectivityList.isEmpty || 
-          connectivityList.every((c) => c == ConnectivityResult.none)) {
-        return;
-      }
+      final conn = await Connectivity().checkConnectivity();
+      if (conn == ConnectivityResult.none) return;
       
       try {
         final client = Supabase.instance.client;
@@ -194,11 +191,8 @@ class EmpleadosService {
   
   /// Pull desde Supabase (sync manual o al abrir app)
   static Future<void> sincronizarDesdeSupabase({String? empresaCuit}) async {
-    final connectivityList = await Connectivity().checkConnectivity();
-    if (connectivityList.isEmpty || 
-        connectivityList.every((c) => c == ConnectivityResult.none)) {
-      return;
-    }
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) return;
     
     try {
       final client = Supabase.instance.client;

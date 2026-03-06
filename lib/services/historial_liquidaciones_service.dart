@@ -19,7 +19,7 @@ class HistorialLiquidacionesService {
     
     // Intentar guardar en Supabase
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
     
     if (isOnline) {
       try {
@@ -45,7 +45,7 @@ class HistorialLiquidacionesService {
     
     // Intentar guardar en Supabase
     final connectivity = await Connectivity().checkConnectivity();
-    final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+    final isOnline = connectivity != ConnectivityResult.none;
     
     if (isOnline) {
       try {
@@ -71,7 +71,7 @@ class HistorialLiquidacionesService {
   }) async {
     try {
       final connectivity = await Connectivity().checkConnectivity();
-      final isOnline = connectivity.isNotEmpty && connectivity.first != ConnectivityResult.none;
+      final isOnline = connectivity != ConnectivityResult.none;
       
       if (isOnline) {
         dynamic query = Supabase.instance.client

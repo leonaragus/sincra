@@ -211,6 +211,88 @@ class SubscriptionService {
     return subscription != null;
   }
 
+  static Future<int> getTrialDaysRemaining() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('trial_ends_at')
+          .eq('id', userId)
+          .single();
+      final endStr = response['trial_ends_at'];
+      if (endStr == null) return 0;
+      final end = DateTime.parse(endStr);
+      final now = DateTime.now();
+      if (now.isAfter(end)) return 0;
+      return end.difference(now).inDays;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<int> _getMonthlyClaudeUsageCount() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+    try {
+      final response = await _supabase
+          .from('ocr_usage_logs')
+          .select('id')
+          .eq('user_id', userId)
+          .gte('created_at', startOfMonth)
+          .count();
+      return response.count;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<bool> canUseClaude() async {
+    final used = await _getMonthlyClaudeUsageCount();
+    final active = await getActiveSubscription();
+    if (active != null) {
+      final plan = active.planDetail;
+      if (plan.unlimitedClaudeCalls) return true;
+      return used < plan.claudeCallsPerMonth;
+    }
+    final trialActive = await isTrialActive();
+    if (trialActive) {
+      return used < SubscriptionPlan.freeTrial.trialClaudeCallsLimit;
+    }
+    return false;
+  }
+
+  static Future<void> recordClaudeCall() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      await _supabase.from('ocr_usage_logs').insert({
+        'user_id': userId,
+        'created_at': DateTime.now().toIso8601String(),
+        'scan_type': 'claude_vision',
+      });
+    } catch (_) {}
+  }
+
+  static Future<int> getClaudeCallsRemaining() async {
+    final used = await _getMonthlyClaudeUsageCount();
+    final active = await getActiveSubscription();
+    if (active != null) {
+      final plan = active.planDetail;
+      if (plan.unlimitedClaudeCalls) return -1;
+      final limit = plan.claudeCallsPerMonth;
+      final remaining = limit - used;
+      return remaining > 0 ? remaining : 0;
+    }
+    final trialActive = await isTrialActive();
+    if (!trialActive) return 0;
+    final limit = SubscriptionPlan.freeTrial.trialClaudeCallsLimit;
+    final remaining = limit - used;
+    return remaining > 0 ? remaining : 0;
+  }
+
   static Future<void> _saveSubscriptionStatus(String planId, DateTime expiresAt, UserRole role) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuario no autenticado.');

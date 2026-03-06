@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:sincra_app/theme/app_colors.dart';
+import '../theme/app_colors.dart';
 
 class WhatIsSyncraScreen extends StatelessWidget {
   const WhatIsSyncraScreen({super.key});
