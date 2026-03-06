@@ -75,7 +75,8 @@ class EmpresaScreenState extends State<EmpresaScreen> {
     
     // Inicializar datos básicos
     if (widget.razonSocial != null) {
-      _razonSocialController.text = widget.razonSocial!;\n      _domicilioController.text = widget.domicilio ?? '';
+      _razonSocialController.text = widget.razonSocial!;
+      _domicilioController.text = widget.domicilio ?? '';
       _logoPath = widget.logoPath == 'No disponible' ? null : widget.logoPath;
       _firmaPath = widget.firmaPath == 'No disponible' ? null : widget.firmaPath;
       

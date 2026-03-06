@@ -20,6 +20,7 @@ import '../screens/gestion_prestamos_screen.dart';
 import '../screens/cct_scan_screen.dart';
 import '../screens/buscador_categorias_screen.dart';
 import '../screens/dashboard_riesgos_screen.dart';
+import '../services/hybrid_store.dart';
 
 /// Lista centralizada de todos los módulos disponibles en la aplicación.
 class _DeferredRoute extends StatelessWidget {
@@ -144,7 +145,9 @@ final List<ModuleInfo> appModules = [
     icon: Icons.receipt_long,
     iconColor: AppColors.accentEmerald,
     isPremium: true,
-    buildRoute: (context) => const GestionConceptosScreen(),
+    buildRoute: (context) => _EmpresaAwareRoute(
+      builder: (cuit) => GestionConceptosScreen(empresaCuit: cuit),
+    ),
   ),
   ModuleInfo(
     title: 'Ausencias y Licencias',
@@ -152,7 +155,9 @@ final List<ModuleInfo> appModules = [
     icon: Icons.event_busy,
     iconColor: const Color(0xFF14B8A6),
     isPremium: true,
-    buildRoute: (context) => const GestionAusenciasScreen(),
+    buildRoute: (context) => _EmpresaAwareRoute(
+      builder: (cuit) => GestionAusenciasScreen(empresaCuit: cuit),
+    ),
   ),
   ModuleInfo(
     title: 'Préstamos',
@@ -160,7 +165,9 @@ final List<ModuleInfo> appModules = [
     icon: Icons.attach_money,
     iconColor: const Color(0xFF6366F1),
     isPremium: true,
-    buildRoute: (context) => const GestionPrestamosScreen(),
+    buildRoute: (context) => _EmpresaAwareRoute(
+      builder: (cuit) => GestionPrestamosScreen(empresaCuit: cuit),
+    ),
   ),
   ModuleInfo(
     title: 'Biblioteca CCT',
@@ -188,3 +195,26 @@ final List<ModuleInfo> appModules = [
     buildRoute: (context) => const DashboardRiesgosScreen(),
   ),
 ];
+
+class _EmpresaAwareRoute extends StatelessWidget {
+  final Widget Function(String empresaCuit) builder;
+  const _EmpresaAwareRoute({required this.builder});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, String>>>(
+      future: HybridStore.getEmpresas(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        final empresas = snapshot.data ?? const [];
+        if (empresas.isEmpty) {
+          return const EmpresaScreen();
+        }
+        final cuit = (empresas.first['cuit'] ?? '').replaceAll(RegExp(r'[^\d]'), '');
+        return builder(cuit);
+      },
+    );
+  }
+}

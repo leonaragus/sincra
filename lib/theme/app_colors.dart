@@ -54,6 +54,7 @@ class AppColors {
   static const Color accentOrange = Color(0xFFf97316); // orange-500
   static const Color accentGreen = Color(0xFF22c55e); // green-500
   static const Color accentRed = Color(0xFFef4444); // red-500
+  static const Color pastelGreen = Color(0xFFd1fae5); // green-200 (compatibilidad)
   
   static const Color accentGold = accentYellow;
   static const Color accentPurple = Color(0xFF7C3AED); // purple-600

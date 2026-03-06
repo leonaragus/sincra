@@ -287,7 +287,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
   }
 
   void _showHelpDialog(BuildContext context, String conceptTitle) {
-    final concept = EducationalConceptsService.getConceptByTitle(conceptTitle);
+    final concept = EducationalConceptsService.findExplanation(conceptTitle);
     if (concept == null) {
       // Fallback for concepts not yet in the service
        if (conceptTitle == 'Sueldo Neto') {
@@ -326,10 +326,10 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
           children: [
             Icon(Icons.help_outline, color: AppColors.primary.withOpacity(0.8)),
             const SizedBox(width: 10),
-            Expanded(child: Text(concept.titulo, style: GoogleFonts.inter(fontWeight: FontWeight.bold))),
+            Expanded(child: Text(concept.title, style: GoogleFonts.inter(fontWeight: FontWeight.bold))),
           ],
         ),
-        content: Text(concept.explicacionDetallada, style: GoogleFonts.inter(height: 1.4)),
+        content: Text(concept.explanation, style: GoogleFonts.inter(height: 1.4)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

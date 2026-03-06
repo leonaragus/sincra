@@ -306,4 +306,10 @@ class SubscriptionService {
 
     await setUserRole(role);
   }
+
+  static Future<void> initialize() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    await startTrialIfNeeded();
+  }
 }

@@ -62,6 +62,45 @@ class ConceptosRecurrentesService {
     }
   }
 
+  static ConceptoRecurrente crearDesdePlantilla(String empleadoCuil, String codigoPlantilla) {
+    final p = PlantillasConceptos.comunes.firstWhere(
+      (e) => (e['codigo']?.toString() ?? '').toUpperCase() == codigoPlantilla.toUpperCase(),
+      orElse: () => {
+        'codigo': codigoPlantilla,
+        'nombre': codigoPlantilla,
+        'descripcion': '',
+        'tipo': 'fijo',
+        'categoria': 'no_remunerativo',
+        'subcategoria': null,
+        'valor_sugerido': 0.0,
+      },
+    );
+    final ahora = DateTime.now();
+    return ConceptoRecurrente(
+      id: _uuid.v4(),
+      empleadoCuil: empleadoCuil,
+      codigo: p['codigo']?.toString() ?? codigoPlantilla,
+      nombre: p['nombre']?.toString() ?? codigoPlantilla,
+      descripcion: p['descripcion']?.toString() ?? '',
+      tipo: p['tipo']?.toString() ?? 'fijo',
+      valor: (p['valor_sugerido'] as num?)?.toDouble() ?? 0.0,
+      categoria: p['categoria']?.toString() ?? 'no_remunerativo',
+      subcategoria: p['subcategoria']?.toString(),
+      activoDesde: ahora,
+      activoHasta: null,
+      activo: true,
+    );
+  }
+
+  static Future<void> agregarConcepto(ConceptoRecurrente concepto) async {
+    await guardarConceptosMasivamente(conceptos: [concepto], empresaCuit: '');
+  }
+
+  static Future<void> actualizarConcepto(ConceptoRecurrente concepto) async {
+    concepto.updatedAt = DateTime.now();
+    await guardarConceptosMasivamente(conceptos: [concepto], empresaCuit: '');
+  }
+
   /// **NUEVO:** Guarda una lista de conceptos recurrentes (para asignación masiva).
   static Future<void> guardarConceptosMasivamente({
     required List<ConceptoRecurrente> conceptos,

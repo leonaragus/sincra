@@ -8,7 +8,7 @@
 
 import 'package:decimal/decimal.dart';
 
-import '../utils/validadores.dart';
+import '../core/validation_utils.dart';
 import 'caja_previsional_strategy.dart';
 
 /// Tope previsional ARCA/AFIP Enero 2026 (aprox. $2.500.000). Ningún aporte se calcula sobre el excedente.
