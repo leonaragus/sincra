@@ -157,9 +157,14 @@ class _GestionAusenciasScreenState extends State<GestionAusenciasScreen> {
   Widget _buildStatsCard() {
     final ausenciasMesActual = _todasLasAusencias.where((a) => a.fechaDesde.month == _focusedDay.month && a.fechaDesde.year == _focusedDay.year).toList();
     final totalAusencias = ausenciasMesActual.length;
-    final tipoMasComun = ausenciasMesActual.isNotEmpty ? 
-      (groupBy(ausenciasMesActual, (Ausencia a) => a.tipo)..map((k, v) => MapEntry(k, v.length))).entries.sortedBy<num>((e) => e.value).last.key.displayName
-      : 'N/A';
+    final tipoMasComun = ausenciasMesActual.isNotEmpty
+        ? (groupBy(ausenciasMesActual, (Ausencia a) => a.tipo))
+            .entries
+            .sortedBy<num>((e) => e.value.length)
+            .last
+            .key
+            .displayName
+        : 'N/A';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -224,7 +229,7 @@ class _GestionAusenciasScreenState extends State<GestionAusenciasScreen> {
   }
 
   Widget _buildListHeader() {
-    final formattedDate = DateFormat('EEEE d 'de' MMMM', 'es_AR').format(_selectedDay ?? _focusedDay);
+    final formattedDate = DateFormat("EEEE d 'de' MMMM", 'es_AR').format(_selectedDay ?? _focusedDay);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: Text(formattedDate, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -272,7 +277,7 @@ class _GestionAusenciasScreenState extends State<GestionAusenciasScreen> {
     switch (tipo) {
       case TipoAusencia.vacaciones: return Colors.blue;
       case TipoAusencia.enfermedad: return Colors.red;
-      case TipoAusencia.estudio: return Colors.purple;
+      case TipoAusencia.examen: return Colors.purple;
       case TipoAusencia.licenciaEspecial: return Colors.orange;
       default: return Colors.grey;
     }
@@ -353,7 +358,7 @@ class _AusenciaCard extends StatelessWidget {
     switch (tipo) {
       case TipoAusencia.vacaciones: return Icons.beach_access;
       case TipoAusencia.enfermedad: return Icons.sick;
-      case TipoAusencia.estudio: return Icons.school;
+      case TipoAusencia.examen: return Icons.school;
       default: return Icons.event_busy;
     }
   }
@@ -379,7 +384,7 @@ class _AusenciaFormModalState extends State<_AusenciaFormModal> {
 
   // Form data
   String? _empleadoCuil;
-  TipoAusencia _tipo = TipoAusencia.inasistenciaJustificada;
+  TipoAusencia _tipo = TipoAusencia.otra;
   DateTime _fechaDesde = DateTime.now();
   DateTime _fechaHasta = DateTime.now();
   final _motivoController = TextEditingController();

@@ -7,7 +7,7 @@ import '../models/empresa.dart';
 import '../data/cct_argentina_completo.dart';
 import '../models/cct_completo.dart';
 import '../theme/app_colors.dart';
-import '../core/validation_utils.dart';
+import '../utils/validadores.dart';
 import '../data/rnos_docentes_data.dart';
 import 'dart:ui';
 import '../utils/app_help.dart';

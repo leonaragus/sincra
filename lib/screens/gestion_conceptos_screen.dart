@@ -5,7 +5,6 @@
 // =======================================================================
 
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:intl/intl.dart';
 import '../models/empleado_completo.dart';
 import '../models/concepto_recurrente.dart';
@@ -13,7 +12,6 @@ import '../services/empleados_service.dart';
 import '../services/conceptos_recurrentes_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/glass_card.dart';
-import '../data/plantillas_conceptos.dart';
 
 class GestionConceptosScreen extends StatefulWidget {
   final String empresaCuit;
@@ -146,7 +144,6 @@ class _GestionConceptosScreenState extends State<GestionConceptosScreen> {
         final nuevoConcepto = ConceptoRecurrente(
           id: '', // Será generado por el servicio
           empleadoCuil: cuil,
-          empresaCuit: widget.empresaCuit,
           codigo: plantilla.codigo,
           nombre: plantilla.nombre,
           descripcion: plantilla.descripcion,

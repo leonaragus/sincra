@@ -370,7 +370,7 @@ class _GestionEmpleadosScreenState extends State<GestionEmpleadosScreen> {
       onSelected: (value) {
         if (value == 'editar') _editarEmpleado(empleado);
         if (value == 'prestamos') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => GestionPrestamosScreen(empresaCuit: widget.empresaCuit, empleadoCuilFiltro: empleado.cuil)));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => GestionPrestamosScreen(empresaCuit: widget.empresaCuit ?? (empleado.empresaCuit ?? ''), empleadoCuilFiltro: empleado.cuil)));
         }
       },
       icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
