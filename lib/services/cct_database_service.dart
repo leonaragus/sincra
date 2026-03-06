@@ -40,3 +40,16 @@ class CctDatabaseService {
     return 1128755.6; // Ejemplo de tope para el cálculo
   }
 }
+
+class InfoCCT {
+  final String id;
+  final String nombre;
+  final String confianza;
+  InfoCCT({required this.id, required this.nombre, required this.confianza});
+}
+
+class ReglaRetencion {
+  final double min;
+  final double max;
+  ReglaRetencion({required this.min, required this.max});
+}

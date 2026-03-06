@@ -17,13 +17,12 @@ class AuditResult {
 }
 
 class ClaudeVisionService {
-  
   static const String _minimalPrompt = '''
   Tu única tarea es analizar la imagen de un recibo de sueldo argentino y extraer el texto.
   Responde únicamente con un JSON con esta estructura compacta: {"empleado_cuil": "...", "conceptos": [["cod", "desc", "unid", 1.0, 0.0]], "neto": 1.0}
   ''';
 
-  static Future<ReciboModel> analyzeAndAuditReceipt(Uint8List imageBytes, CctDatabaseService cctService) async {
+  static Future<ReciboModel> analyzeAndAuditReceipt(Uint8List imageBytes) async {
     // --- CONTROL DE SUSCRIPCIÓN ---
     final bool canUse = await SubscriptionService.canUseClaude();
     if (!canUse) {
@@ -39,11 +38,9 @@ class ClaudeVisionService {
     final rawJsonResponse = await _invokeClaudeHaiku(base64Image);
 
     // Si la llamada fue exitosa, registramos el uso.
-    await SubscriptionService.recordClaudeCall();
-
     final reciboBase = _parseRawResponseToModel(rawJsonResponse, rawJsonResponse);
-    return _auditarReciboCompleto(reciboBase, cctService);
-  }
+    return _auditarReciboCompleto(reciboBase, CctDatabaseService());
+    final reciboBase = _parseRawResponseToModel(rawJsonResponse, rawJsonResponse);
 
   static ReciboModel _auditarReciboCompleto(ReciboModel recibo, CctDatabaseService cctService) {
     List<AlertaIa> alertas = [];
@@ -179,5 +176,11 @@ class ClaudeVisionService {
         inferencias: InferenciasRecibo(convenioSugerido: 'comercio', confianza: 'Baja', healthScore: 0),
         auditoriaIa: AuditoriaIa(analisisGeneral: '', alertas: [], explicacionesItems: [])
     );
+  }
+
+  static Future<ReciboModel> extractRawModel(Uint8List imageBytes) async {
+    final base64Image = base64Encode(imageBytes);
+    final raw = await _invokeClaudeHaiku(base64Image);
+    return _parseRawResponseToModel(raw, raw);
   }
 }

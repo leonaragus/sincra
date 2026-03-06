@@ -1,11 +1,100 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:syncra_arg/models/recibo_escaneado.dart';
+import '../models/recibo_model.dart';
 
 class PdfReportService {
+  Future<void> createAndSharePdf(ReciboModel model) async {
+    final doc = pw.Document();
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Header(
+                level: 0,
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Elevar Formación Técnica', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                        pw.Text('Expertos en Liquidación de Sueldos', style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                      ],
+                    ),
+                    pw.Text('INFORME DE VERIFICACIÓN', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF3b82f6))),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey400),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Resumen del Análisis', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                    pw.Divider(),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Convenio Aplicado: ${model.inferencias.convenioSugerido}'),
+                        pw.Text('Fecha: ${DateTime.now().toIso8601String().substring(0, 10)}'),
+                      ],
+                    ),
+                    pw.SizedBox(height: 5),
+                    pw.Text('Total Neto Detectado: \$${model.totales.netoACobrar.toStringAsFixed(2)}'),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              if (model.auditoriaIa.alertas.isNotEmpty) ...[
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  color: PdfColors.red50,
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Alertas', style: pw.TextStyle(color: PdfColors.red900, fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                      pw.SizedBox(height: 5),
+                      ...model.auditoriaIa.alertas.map((e) => pw.Bullet(text: '${e.titulo}: ${e.descripcion}', style: pw.TextStyle(color: PdfColors.red900))),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 15),
+              ],
+              pw.Text('Detalles Técnicos', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              ...[
+                'Bruto: \$${model.totales.totalBruto.toStringAsFixed(2)}',
+                'Retenciones: \$${model.totales.totalRetenciones.toStringAsFixed(2)}',
+                'Neto: \$${model.totales.netoACobrar.toStringAsFixed(2)}',
+              ].map((e) => pw.Bullet(text: e, bulletSize: 2)),
+              pw.Spacer(),
+              pw.Divider(color: PdfColors.blue800, thickness: 2),
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('¿Querés aprender a liquidar sueldos como un experto?', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Sumate a Elevar Formación Técnica'),
+                    pw.Text('Capacitación profesional para el mundo real', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save(), name: 'informe_liquidacion_elevar.pdf');
+  }
   static Future<void> generateAndDownloadReport({
-    required ReciboEscaneado recibo,
+    required ReciboModel recibo,
     required List<String> detalles,
     required List<String> itemsRevisar,
     required List<String> alertasGraves,
@@ -73,8 +162,7 @@ class PdfReportService {
                       ],
                     ),
                     pw.SizedBox(height: 5),
-                    pw.Text(
-                        'Total Neto Detectado: \$${recibo.sueldoNeto.toStringAsFixed(2)}'),
+                    pw.Text('Total Neto Detectado: \$${recibo.totales.netoACobrar.toStringAsFixed(2)}'),
                   ],
                 ),
               ),
