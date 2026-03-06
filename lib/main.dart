@@ -1,3 +1,4 @@
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,7 +7,7 @@ import 'screens/verificador_recibo_screen.dart';
 import 'screens/web_login_screen.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
-import 'package:url_strategy/url_strategy.dart'; // Import agregado
+import 'package:url_strategy/url_strategy.dart'; 
 
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
@@ -15,8 +16,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 
+// Import del nuevo servicio de suscripción
+import 'subscription/subscription_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializa el contador de la prueba gratuita
+  await SubscriptionService.initialize();
+
   setPathUrlStrategy(); 
 
   try {
@@ -26,7 +34,6 @@ void main() async {
   }
 
   // Inicializar Supabase con configuración hardcodeada (segura para anon key)
-  // Esto permite que funcione sin .env en producción/web
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
@@ -52,9 +59,9 @@ class MyApp extends StatelessWidget {
     
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light, // Tema claro
-      darkTheme: AppTheme.dark, // Tema oscuro
-      themeMode: themeProvider.themeMode, // Modo dinámico
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeProvider.themeMode,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -69,15 +76,16 @@ class MyApp extends StatelessWidget {
         '/web-login': (context) => const WebLoginScreen(),
       },
       onGenerateRoute: (settings) {
-        // Simple auth guard
+        // NOTE: Se define `isAdminBypass` para evitar errores de compilación.
+        // Se recomienda implementar una lógica de roles de usuario adecuada.
+        const bool isAdminBypass = false; 
+
         final user = Supabase.instance.client.auth.currentUser;
         
-        // Si no hay usuario, no es bypass y no estamos yendo al login, redirigir al login
         if (user == null && !isAdminBypass && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
         
-        // Manejo manual de rutas protegidas
         if (settings.name == '/home') {
            return MaterialPageRoute(builder: (_) => const HomeScreen());
         }

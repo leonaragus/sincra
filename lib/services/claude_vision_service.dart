@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -6,15 +7,15 @@ import 'package:sincra_app/models/recibo_model.dart';
 import 'package:sincra_app/services/cct_database_service.dart';
 import 'package:sincra_app/services/educational_concepts_service.dart';
 
+// Importamos el servicio de suscripción
+import 'package:sincra_app/subscription/subscription_service.dart';
+
 class AuditResult {
   final bool isError;
   final String message;
   AuditResult({required this.isError, required this.message});
 }
 
-/// === MOTOR DE AUDITORÍA v8.0 - "EL MOTOR CONSCIENTE DEL TOPE" ===
-/// Esta es la versión definitiva que entiende la base imponible topeada.
-/// La lógica de auditoría se ha corregido para reflejar la ley argentina.
 class ClaudeVisionService {
   
   static const String _minimalPrompt = '''
@@ -23,11 +24,24 @@ class ClaudeVisionService {
   ''';
 
   static Future<ReciboModel> analyzeAndAuditReceipt(Uint8List imageBytes, CctDatabaseService cctService) async {
-    // 1. La IA extrae el texto crudo de la imagen del recibo.
-    final rawJsonResponse = await _invokeClaudeHaiku(imageBytes);
-    // 2. El texto se convierte en un modelo de datos estructurado.
+    // --- CONTROL DE SUSCRIPCIÓN ---
+    final bool canUse = await SubscriptionService.canUseClaude();
+    if (!canUse) {
+      final remainingDays = await SubscriptionService.getTrialDaysRemaining();
+      if (remainingDays <= 0) {
+        throw Exception('Tu período de prueba ha terminado. Suscríbete para seguir usando el análisis con IA.');
+      } else {
+        throw Exception('Alcanzaste el límite de 2 análisis con IA durante la prueba gratuita.');
+      }
+    }
+
+    final base64Image = base64Encode(imageBytes);
+    final rawJsonResponse = await _invokeClaudeHaiku(base64Image);
+
+    // Si la llamada fue exitosa, registramos el uso.
+    await SubscriptionService.recordClaudeCall();
+
     final reciboBase = _parseRawResponseToModel(rawJsonResponse, rawJsonResponse);
-    // 3. El motor v8.0 audita el modelo, aplicando la lógica de topes.
     return _auditarReciboCompleto(reciboBase, cctService);
   }
 
@@ -53,7 +67,7 @@ class ClaudeVisionService {
         final auditResult = _auditarRetencion(retencion, recibo.totales.totalBruto, topeVigente, infoCCT, cctService);
         if (auditResult.isError) {
             alertas.add(AlertaIa(titulo: "🟡 Revisar ${retencion.descripcion}", descripcion: auditResult.message, severidad: 'media'));
-            healthScore -= 25; // Penalización más severa si falla la auditoría clave
+            healthScore -= 25;
             topeValidado = false;
         }
     }
@@ -121,24 +135,20 @@ class ClaudeVisionService {
     if (pReal >= pEsperadoMin - 0.2 && pReal <= pEsperadoMax + 0.2) {
       return AuditResult(isError: false, message: "OK");
     } else {
-      // Si el régimen es especial (como el judicial), el porcentaje puede ser más alto
       if (infoCCT.id == "judicial" && pReal > pEsperadoMax) {
-         return AuditResult(isError: true, message: "Tu descuento jubilatorio es del ${pReal.toStringAsFixed(1)}% sobre la base imponible (\$${baseDeCalculo.toStringAsFixed(2)}), superior a la ley general. Sabemos que el Poder Judicial tiene un régimen especial, por lo que este valor podría ser correcto, pero es nuestra obligación marcarlo.");
+         return AuditResult(isError: true, message: "Tu descuento jubilatorio es del ${pReal.toStringAsFixed(1)}% sobre la base imponible (\$${baseDeCalculalo.toStringAsFixed(2)}), superior a la ley general. Sabemos que el Poder Judicial tiene un régimen especial, por lo que este valor podría ser correcto, pero es nuestra obligación marcarlo.");
       }
-      String mensaje = "El descuento es del ${pReal.toStringAsFixed(1)}% sobre la base de \$${baseDeCalculo.toStringAsFixed(2)}. Se esperaba entre ${pEsperadoMin}% y ${pEsperadoMax}%.";
+      String mensaje = "El descuento es del ${pReal.toStringAsFixed(1)}% sobre la base de \$${baseDeCalculalo.toStringAsFixed(2)}. Se esperaba entre ${pEsperadoMin}% y ${pEsperadoMax}%.";
       return AuditResult(isError: true, message: mensaje);
     }
   }
   
   static Future<String> _invokeClaudeHaiku(String base64Image) async {
-    // En un caso real, aquí se llamaría a la API de Claude con la imagen.
     // Por ahora, devolvemos un JSON vacío para que _parseRawResponseToModel use el mock.
     return ""; 
   }
 
   static ReciboModel _parseRawResponseToModel(String rawJson, String rawText) { 
-    // Mock data para desarrollo y pruebas sin necesidad de una imagen real.
-    // Este es un ejemplo genérico de un recibo de Empleado de Comercio.
     return ReciboModel(
         textoCrudo: rawText,
         cabecera: CabeceraRecibo(
