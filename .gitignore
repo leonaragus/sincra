@@ -1,38 +1,27 @@
-# Flutter/Dart specific
+# Archivos de compilación y dependencias de Dart/Flutter
 .dart_tool/
-# pubspec.lock is kept for CI reproducibility
-#.packages
-flutter_export_environment.sh
-.flutter-plugins
-.flutter-plugins-dependencies
-
-# IDE specific
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Build outputs
+.packages
+.pub-cache/
 build/
-android/app/build/
-ios/build/
-macos/build/
-linux/build/
-windows/build/
-web/build/
 
-.firebase/
+# Archivos de configuración de IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
 
-# OS specific
+# Archivos de sistema operativo
 .DS_Store
 Thumbs.db
 
-# Node modules (if any)
-node_modules/
-
 # Logs
-*.lognode_modules/
-node_modules/
+*.log
 
-.env
+# Archivos sensibles de firma de Android
+/android/key.properties
+/android/app/upload-keystore.jks
+*.jks
+
+# Archivos de configuración local
+/lib/config/app_config.dart
