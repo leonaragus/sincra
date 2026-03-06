@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
-import '../screens/login_screen.dart';
+import '../screens/web_login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../subscription/subscription_service.dart'; // ¡Importante!
 
@@ -24,7 +24,7 @@ class AuthService {
         // Podría necesitar confirmación por email, etc.
         _showSnackBar(context, 'Registro exitoso. Por favor, revisá tu email para confirmar tu cuenta.');
         Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LoginScreen()));
+            MaterialPageRoute(builder: (_) => const WebLoginScreen()));
       }
     } on AuthException catch (e) {
       _showSnackBar(context, e.message);
@@ -55,7 +55,7 @@ class AuthService {
     try {
       await _supabase.auth.signOut();
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const WebLoginScreen()),
         (route) => false, // Elimina todas las rutas anteriores
       );
     } on AuthException catch (e) {

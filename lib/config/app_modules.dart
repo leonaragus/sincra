@@ -17,7 +17,7 @@ import '../screens/dashboard_gerencial_screen.dart' deferred as dashboard;
 import '../screens/gestion_conceptos_screen.dart';
 import '../screens/gestion_ausencias_screen.dart';
 import '../screens/gestion_prestamos_screen.dart';
-import '../screens/biblioteca_cct_screen.dart';
+import '../screens/cct_scan_screen.dart';
 import '../screens/buscador_categorias_screen.dart';
 import '../screens/dashboard_riesgos_screen.dart';
 
@@ -74,7 +74,7 @@ final List<ModuleInfo> appModules = [
     isHighlighted: true,
     buildRoute: (context) => _DeferredRoute(
       loader: centro.loadLibrary,
-      builder: () => const centro.CentroLiquidacionScreen(),
+      builder: () => centro.CentroLiquidacionScreen(),
     ),
   ),
   ModuleInfo(
@@ -93,7 +93,7 @@ final List<ModuleInfo> appModules = [
     isPremium: true,
     buildRoute: (context) => _DeferredRoute(
       loader: teacher.loadLibrary,
-      builder: () => const teacher.TeacherInterfaceScreen(),
+      builder: () => teacher.TeacherInterfaceScreen(),
     ),
   ),
   ModuleInfo(
@@ -104,7 +104,7 @@ final List<ModuleInfo> appModules = [
     isPremium: true,
     buildRoute: (context) => _DeferredRoute(
       loader: sanidad.loadLibrary,
-      builder: () => const sanidad.SanidadInterfaceScreen(),
+      builder: () => sanidad.SanidadInterfaceScreen(),
     ),
   ),
   ModuleInfo(
@@ -124,7 +124,7 @@ final List<ModuleInfo> appModules = [
     isHighlighted: true,
     buildRoute: (context) => _DeferredRoute(
       loader: masiva.loadLibrary,
-      builder: () => const masiva.LiquidacionMasivaScreen(),
+      builder: () => masiva.LiquidacionMasivaScreen(),
     ),
   ),
   ModuleInfo(
@@ -135,7 +135,7 @@ final List<ModuleInfo> appModules = [
     isPremium: true,
     buildRoute: (context) => _DeferredRoute(
       loader: dashboard.loadLibrary,
-      builder: () => const dashboard.DashboardGerencialScreen(),
+      builder: () => dashboard.DashboardGerencialScreen(),
     ),
   ),
   ModuleInfo(
@@ -168,7 +168,7 @@ final List<ModuleInfo> appModules = [
     icon: Icons.library_books,
     iconColor: const Color(0xFF92400E),
     isPremium: true,
-    buildRoute: (context) => const BibliotecaCCTScreen(),
+    buildRoute: (context) => const CctScanScreen(),
   ),
   ModuleInfo(
     title: 'Buscador de Categorías',
