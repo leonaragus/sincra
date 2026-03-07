@@ -40,7 +40,7 @@ class ClaudeVisionService {
     // Si la llamada fue exitosa, registramos el uso.
     final reciboBase = _parseRawResponseToModel(rawJsonResponse, rawJsonResponse);
     return _auditarReciboCompleto(reciboBase, CctDatabaseService());
-    final reciboBase = _parseRawResponseToModel(rawJsonResponse, rawJsonResponse);
+  }
 
   static ReciboModel _auditarReciboCompleto(ReciboModel recibo, CctDatabaseService cctService) {
     List<AlertaIa> alertas = [];

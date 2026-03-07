@@ -113,6 +113,16 @@ class LSDGenerator {
     return _encodeFixed(s);
   }
 
+  static void validarLongitud195(String contenido) {
+    final lineas = contenido.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    for (int i = 0; i < lineas.length; i++) {
+      final linea = lineas[i].replaceAll('\r', '');
+      if (linea.length != 195) {
+        throw StateError('Línea ${i + 1}: Longitud incorrecta (${linea.length} caracteres, debe ser 195)');
+      }
+    }
+  }
+
   static Uint8List validarYObtenerBytesLSD({
     required String contenido,
     int longitudEsperada = 195,

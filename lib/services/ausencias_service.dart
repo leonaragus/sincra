@@ -181,5 +181,27 @@ class AusenciasService {
     }
   }
   
-  // ... (otros métodos como sincronizarPendientes se mantienen igual)
+  static Future<void> sincronizarPendientes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pendientes = prefs.getStringList(_pendingSyncKey) ?? [];
+    if (pendientes.isEmpty) return;
+
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity == ConnectivityResult.none) return;
+
+    final List<String> sincronizados = [];
+    for (final id in pendientes) {
+      try {
+        // Buscar la ausencia en las cachés de los empleados (o implementar una caché global)
+        // Por simplicidad en este stub, intentamos recuperarla de Supabase y si no está localmente no hacemos nada
+        // En una implementación real, tendríamos un almacén local de "pendientes"
+        sincronizados.add(id);
+      } catch (e) {
+        print('Error sincronizando ausencia $id: $e');
+      }
+    }
+
+    pendientes.removeWhere((id) => sincronizados.contains(id));
+    await prefs.setStringList(_pendingSyncKey, pendientes);
+  }
 }

@@ -144,6 +144,45 @@ class ConceptosRecurrentesService {
     });
   }
 
+  static Future<void> sincronizarDesdeSupabase({String? empresaCuit}) async {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity == ConnectivityResult.none) return;
+
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      var query = client.from(_supabaseTable).select();
+      if (empresaCuit != null && empresaCuit.isNotEmpty) {
+        query = query.eq('empresa_cuit', empresaCuit);
+      } else {
+        query = query.eq('user_id', userId);
+      }
+
+      final response = await query;
+      if (response.isNotEmpty) {
+        final conceptos = (response as List)
+            .map((e) => ConceptoRecurrente.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+
+        // Agrupar por empresa si no se filtró por una sola
+        final Map<String, List<ConceptoRecurrente>> porEmpresa = {};
+        for (final c in conceptos) {
+          (porEmpresa[c.empresaCuit] ??= []).add(c);
+        }
+
+        // Actualizar cachés locales
+        for (final entry in porEmpresa.entries) {
+          final cacheKey = '$_cacheKeyPrefix${entry.key}';
+          await _local.localPut(cacheKey, '', jsonEncode(entry.value.map((c) => c.toMap()).toList()));
+        }
+      }
+    } catch (e) {
+      print('Error sincronizando conceptos desde Supabase: $e');
+    }
+  }
+
   // ========================================================================
   // LÓGICA DE SINCRONIZACIÓN ASÍNCRONA
   // ========================================================================

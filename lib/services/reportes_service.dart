@@ -1,6 +1,7 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'empleados_service.dart';
+import '../models/empleado_completo.dart';
 
 class ReportesService {
 

@@ -7,6 +7,7 @@
 class ConceptoRecurrente {
   String id; // UUID
   String empleadoCuil;
+  String empresaCuit; // Empresa a la que pertenece
   
   // Identificación del concepto
   String codigo; // "VALE_COMIDA", "EMBARGO_001", "SEGURO_VIDA"
@@ -46,6 +47,7 @@ class ConceptoRecurrente {
   ConceptoRecurrente({
     required this.id,
     required this.empleadoCuil,
+    this.empresaCuit = '',
     required this.codigo,
     required this.nombre,
     this.descripcion = '',
@@ -104,6 +106,7 @@ class ConceptoRecurrente {
     return {
       'id': id,
       'empleado_cuil': empleadoCuil,
+      'empresa_cuit': empresaCuit,
       'codigo': codigo,
       'nombre': nombre,
       'descripcion': descripcion,
@@ -128,6 +131,7 @@ class ConceptoRecurrente {
     return ConceptoRecurrente(
       id: map['id']?.toString() ?? '',
       empleadoCuil: map['empleado_cuil']?.toString() ?? '',
+      empresaCuit: map['empresa_cuit']?.toString() ?? '',
       codigo: map['codigo']?.toString() ?? '',
       nombre: map['nombre']?.toString() ?? '',
       descripcion: map['descripcion']?.toString() ?? '',
@@ -159,6 +163,7 @@ class ConceptoRecurrente {
   ConceptoRecurrente copyWith({
     String? id,
     String? empleadoCuil,
+    String? empresaCuit,
     String? codigo,
     String? nombre,
     String? descripcion,
@@ -180,6 +185,7 @@ class ConceptoRecurrente {
     return ConceptoRecurrente(
       id: id ?? this.id,
       empleadoCuil: empleadoCuil ?? this.empleadoCuil,
+      empresaCuit: empresaCuit ?? this.empresaCuit,
       codigo: codigo ?? this.codigo,
       nombre: nombre ?? this.nombre,
       descripcion: descripcion ?? this.descripcion,
