@@ -296,6 +296,12 @@ Future<TeacherArcaPackResult> generarPackCompletoARCA2026({
   if (liquidacion.itemAula > 0) codigosUsados.add(TeacherLsdCodigos.itemAula);
   if (liquidacion.estadoDocente > 0) codigosUsados.add(TeacherLsdCodigos.estadoDocente);
   if (liquidacion.presentismo > 0) codigosUsados.add(TeacherLsdCodigos.presentismo);
+  if (liquidacion.sac > 0) codigosUsados.add(TeacherLsdCodigos.sac);
+  if (liquidacion.vacaciones > 0) codigosUsados.add(TeacherLsdCodigos.vacaciones);
+  if (liquidacion.vacacionesNoGozadas > 0) codigosUsados.add(TeacherLsdCodigos.vacNoGozadas);
+  if (liquidacion.indemnizacionArt245 > 0) codigosUsados.add(TeacherLsdCodigos.indemniz245);
+  if (liquidacion.preaviso > 0) codigosUsados.add(TeacherLsdCodigos.preavisoIndem);
+
   for (final c in liquidacion.conceptosPropios) {
     if (c.monto > 0) {
       codigosUsados.add(c.codigo.length > 10 ? c.codigo.substring(0, 10) : c.codigo);
@@ -304,6 +310,7 @@ Future<TeacherArcaPackResult> generarPackCompletoARCA2026({
   if (liquidacion.aporteJubilacion > 0) codigosUsados.add(TeacherLsdCodigos.jubilacion);
   if (liquidacion.aporteObraSocial > 0) codigosUsados.add(TeacherLsdCodigos.obraSocial);
   if (liquidacion.aportePami > 0) codigosUsados.add(TeacherLsdCodigos.ley19032);
+  if (liquidacion.impuestoGanancias > 0) codigosUsados.add(TeacherLsdCodigos.retGanancias);
   
   final instructivo = LsdMappingService.generarInstructivo(codigosUsados.toSet().toList());
   final insBytes = utf8.encode(_normalizarEol(instructivo));

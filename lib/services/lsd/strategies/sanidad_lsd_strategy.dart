@@ -11,36 +11,6 @@ import '../../../utils/file_saver.dart';
 import '../lsd_export_strategy.dart';
 import '../../lsd_mapping_service.dart';
 
-// Códigos internos Sanidad (mapeo AFIP/ARCA)
-class SanidadLsdCodigos {
-  static const String sueldoBasico = 'SUELDO_BAS';
-  static const String antiguedad = 'ANTIGUEDAD';
-  static const String titulo = 'TITULO';
-  static const String tareaCritica = 'TAREA_CRIT';
-  static const String zonaPatagonica = 'PLUS_ZONA';
-  static const String nocturnidad = 'NOCTURNID';
-  static const String falloCaja = 'FALLO_CAJA';
-  static const String horasExtras50 = 'HORAS_EX50';
-  static const String horasExtras100 = 'HORAS_EX100';
-  static const String sac = 'SAC';
-  static const String sacProp = 'SAC_PROP';
-  static const String vacaciones = 'VACACIONES';
-  static const String plusVacacional = 'PLUS_VAC';
-  static const String vacNoGozadas = 'VAC_NO_GOZ';
-  static const String indemnizacion = 'INDEMN_245';
-  static const String preaviso = 'PREAVISO';
-  static const String integracionMes = 'INTEG_MES';
-  static const String jubilacion = 'JUBILACION';
-  static const String ley19032 = 'LEY19032';
-  static const String obraSocial = 'OBRA_SOC';
-  static const String cuotaSindical = 'CUOTA_SIND';
-  static const String seguroSepelio = 'SEGURO_SEP';
-  static const String aporteSolidario = 'APORTE_SOL';
-  static const String adelantos = 'ADELANTOS';
-  static const String embargos = 'EMBARGOS';
-  static const String prestamos = 'PRESTAMOS';
-}
-
 /// Implementación de la estrategia de exportación de LSD para el convenio de Sanidad.
 ///
 /// Esta clase encapsula la lógica que estaba originalmente en `sanidad_lsd_export.dart`,
@@ -222,7 +192,7 @@ class SanidadLsdExportStrategy implements LsdExportStrategy<LiquidacionSanidadRe
     sb.write(LSDGenerator.eolLsd);
 
     final out = sb.toString();
-    LSDGenerator.validarLongitud195(out);
+    LSDFormatEngine.validarLongitud195(out);
     return out;
   }
 
@@ -300,17 +270,12 @@ class SanidadLsdExportStrategy implements LsdExportStrategy<LiquidacionSanidadRe
   String _generarInstructivo(List<LiquidacionSanidadResult> liquidaciones) {
       final codigosUsados = <String>{};
       for (final liq in liquidaciones) {
-          if (liq.sueldoBasico > 0) codigosUsados.add(SanidadLsdCodigos.sueldoBasico);
-          if (liq.adicionalAntiguedad > 0) codigosUsados.add(SanidadLsdCodigos.antiguedad);
-          if (liq.nocturnidad > 0) codigosUsados.add(SanidadLsdCodigos.nocturnidad);
-          if (liq.falloCaja > 0) codigosUsados.add(SanidadLsdCodigos.falloCaja);
-          if (liq.adicionalTareaCriticaRiesgo > 0) codigosUsados.add(SanidadLsdCodigos.tareaCritica);
-          if (liq.aporteJubilacion > 0) codigosUsados.add(SanidadLsdCodigos.jubilacion);
-          if (liq.aporteObraSocial > 0) codigosUsados.add(SanidadLsdCodigos.obraSocial);
-          if (liq.aporteLey19032 > 0) codigosUsados.add(SanidadLsdCodigos.ley19032);
-          for (final c in liq.conceptosPropios) {
-              final cod = c['codigo']?.toString() ?? '';
-              if (cod.isNotEmpty) codigosUsados.add(cod.length > 10 ? cod.substring(0, 10) : cod);
+          final conceptos = _mapearConceptos(liq);
+          for (final c in conceptos) {
+              final cod = (c['codigo'] as String).trim().toUpperCase();
+              if (cod.isNotEmpty) {
+                codigosUsados.add(cod.length > 10 ? cod.substring(0, 10) : cod);
+              }
           }
       }
       return LsdMappingService.generarInstructivo(codigosUsados.toList());

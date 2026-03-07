@@ -1,6 +1,36 @@
 
 import 'teacher_lsd_export.dart';
-import 'lsd/strategies/sanidad_lsd_strategy.dart';
+
+// Códigos internos Sanidad (mapeo AFIP/ARCA) - Duplicado para evitar import circular si fuera necesario, 
+// pero aquí lo usamos para asegurar que LsdMappingService tenga acceso a los códigos.
+class SanidadLsdCodigos {
+  static const String sueldoBasico = 'SUELDO_BAS';
+  static const String antiguedad = 'ANTIGUEDAD';
+  static const String titulo = 'TITULO';
+  static const String tareaCritica = 'TAREA_CRIT';
+  static const String zonaPatagonica = 'PLUS_ZONA';
+  static const String nocturnidad = 'NOCTURNID';
+  static const String falloCaja = 'FALLO_CAJA';
+  static const String horasExtras50 = 'HORAS_EX50';
+  static const String horasExtras100 = 'HORAS_EX100';
+  static const String sac = 'SAC';
+  static const String sacProp = 'SAC_PROP';
+  static const String vacaciones = 'VACACIONES';
+  static const String plusVacacional = 'PLUS_VAC';
+  static const String vacNoGozadas = 'VAC_NO_GOZ';
+  static const String indemnizacion = 'INDEMN_245';
+  static const String preaviso = 'PREAVISO';
+  static const String integracionMes = 'INTEG_MES';
+  static const String jubilacion = 'JUBILACION';
+  static const String ley19032 = 'LEY19032';
+  static const String obraSocial = 'OBRA_SOC';
+  static const String cuotaSindical = 'CUOTA_SIND';
+  static const String seguroSepelio = 'SEGURO_SEP';
+  static const String aporteSolidario = 'APORTE_SOL';
+  static const String adelantos = 'ADELANTOS';
+  static const String embargos = 'EMBARGOS';
+  static const String prestamos = 'PRESTAMOS';
+}
 
 /// Códigos para liquidación general (Convenios CCT)
 class GeneralesLsdCodigos {
@@ -166,6 +196,31 @@ class LsdMappingService {
       'desc': 'Horas Extras 100%', 
       'sub': 'Remunerativo'
     },
+    SanidadLsdCodigos.sacProp: {
+      'afip': '120000', 
+      'desc': 'SAC Proporcional', 
+      'sub': 'Remunerativo'
+    },
+    SanidadLsdCodigos.plusVacacional: {
+      'afip': '150000', 
+      'desc': 'Plus Vacacional', 
+      'sub': 'Remunerativo'
+    },
+    SanidadLsdCodigos.vacNoGozadas: {
+      'afip': '150000', 
+      'desc': 'Vacaciones No Gozadas', 
+      'sub': 'No Remunerativo' // Suele ser no remunerativo en liquidaciones finales
+    },
+    SanidadLsdCodigos.preaviso: {
+      'afip': '510001', 
+      'desc': 'Indemnización Preaviso', 
+      'sub': 'No Remunerativo'
+    },
+    SanidadLsdCodigos.integracionMes: {
+      'afip': '510001', 
+      'desc': 'Integración Mes Despido', 
+      'sub': 'No Remunerativo'
+    },
     SanidadLsdCodigos.seguroSepelio: {
       'afip': '810008', 
       'desc': 'Seguro Sepelio', 
@@ -174,6 +229,36 @@ class LsdMappingService {
     SanidadLsdCodigos.aporteSolidario: {
       'afip': '810008', 
       'desc': 'Aporte Solidario FATSA', 
+      'sub': 'Descuentos'
+    },
+    SanidadLsdCodigos.adelantos: {
+      'afip': '810008', 
+      'desc': 'Adelantos', 
+      'sub': 'Descuentos'
+    },
+    SanidadLsdCodigos.embargos: {
+      'afip': '810008', 
+      'desc': 'Embargos', 
+      'sub': 'Descuentos'
+    },
+    SanidadLsdCodigos.prestamos: {
+      'afip': '810008', 
+      'desc': 'Préstamos', 
+      'sub': 'Descuentos'
+    },
+    'SAC_S_VAC': {
+      'afip': '120000', 
+      'desc': 'SAC sobre Vacaciones', 
+      'sub': 'Remunerativo'
+    },
+    'SAC_S_PRE': {
+      'afip': '120000', 
+      'desc': 'SAC sobre Preaviso', 
+      'sub': 'Remunerativo'
+    },
+    'OTROS_DESC': {
+      'afip': '810008', 
+      'desc': 'Otros Descuentos', 
       'sub': 'Descuentos'
     },
     // === COMUNES DESCUENTOS ===
@@ -227,11 +312,17 @@ class LsdMappingService {
       // Buscar sugerencia exacta o por coincidencia parcial
       Map<String, String>? sugerencia = _mapeoSugerido[codigo];
       
-      // Si no encuentra exacto, busca genéricos
+      // Si no encuentra exacto, busca genéricos por palabras clave
       if (sugerencia == null) {
-        if (codigo.contains('ADIC')) sugerencia = _mapeoSugerido[TeacherLsdCodigos.antiguedad];
-        else if (codigo.contains('NO_REM')) sugerencia = _mapeoSugerido[TeacherLsdCodigos.fonid];
-        else if (codigo.contains('DESC')) sugerencia = _mapeoSugerido['CUOTA_SIND'];
+        final up = codigo.toUpperCase();
+        if (up.contains('ADIC') || up.contains('ANTIG')) sugerencia = _mapeoSugerido[TeacherLsdCodigos.antiguedad];
+        else if (up.contains('NO_REM') || up.contains('FONID')) sugerencia = _mapeoSugerido[TeacherLsdCodigos.fonid];
+        else if (up.contains('DESC') || up.contains('SIND') || up.contains('CUOTA')) sugerencia = _mapeoSugerido['CUOTA_SIND'];
+        else if (up.contains('EXTR') || up.contains('EX50')) sugerencia = _mapeoSugerido[GeneralesLsdCodigos.horasExtras50];
+        else if (up.contains('VAC')) sugerencia = _mapeoSugerido[GeneralesLsdCodigos.vacaciones];
+        else if (up.contains('SAC') || up.contains('AGUIN')) sugerencia = _mapeoSugerido['SAC'];
+        else if (up.contains('JUB')) sugerencia = _mapeoSugerido[GeneralesLsdCodigos.jubilacion];
+        else if (up.contains('OBRA') || up.contains('SOC')) sugerencia = _mapeoSugerido[GeneralesLsdCodigos.obraSocial];
       }
 
       final afipCode = sugerencia?['afip'] ?? 'Consultar Contador';
