@@ -1,7 +1,7 @@
-import '../core/validation_utils.dart';
-
 /// Utilidades de validación para la aplicación, ahora usando el núcleo de validación centralizado.
 library validadores;
+
+import '../core/validation_utils.dart';
 
 /// Valida un CUIT o CUIL y retorna un mensaje de error descriptivo si es inválido.
 ///

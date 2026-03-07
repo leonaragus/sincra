@@ -112,6 +112,8 @@ class EducationalConceptsService {
   }
 
   static List<ConceptExplanation> getAllConcepts() => _explanationsDb.values.toList();
+
+  static String get contactoAcademia => "https://academia.syncra.app";
 }
 
 class ConceptExplanation {

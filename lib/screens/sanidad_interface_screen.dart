@@ -9,24 +9,166 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/cct_model.dart';
-import '../models/sanidad_empleado_model.dart';
-import '../models/sanidad_empresa_model.dart';
-import '../models/sanidad_liquidacion_model.dart';
 import '../models/ocr_confirm_result.dart';
 import '../models/teacher_types.dart'; // Para Jurisdiccion
 
-import '../services/sanidad_engine.dart';
+import '../services/sanidad_omni_engine.dart';
+import '../services/pdf_service.dart';
 import '../services/sanidad_company_service.dart';
 import '../services/sanidad_empleado_service.dart';
 import '../services/lsd_mapping_service.dart';
 import '../services/sanidad_lsd_export.dart';
 import '../services/contabilidad_service.dart';
-import '../services/sanidad_pdf_recibo.dart';
 import '../services/sanidad_paritarias_service.dart';
 import '../services/sanidad_excel_export.dart';
 import '../services/sanidad_history_service.dart';
 import '../services/sanidad_retroactivo_service.dart';
 import '../utils/validaciones_arca.dart';
+
+// --- Modelos Locales ---
+class SanidadEmpresa {
+  final String cuit;
+  final String razonSocial;
+  final String? domicilio;
+  final String? cctId;
+  final String? actividad;
+  final Jurisdiccion? jurisdiccion;
+
+  const SanidadEmpresa({
+    required this.cuit,
+    required this.razonSocial,
+    this.domicilio,
+    this.cctId,
+    this.actividad,
+    this.jurisdiccion,
+  });
+
+  SanidadEmpresa copyWith({
+    String? cuit,
+    String? razonSocial,
+    String? domicilio,
+    String? cctId,
+    String? actividad,
+    Jurisdiccion? jurisdiccion,
+  }) {
+    return SanidadEmpresa(
+      cuit: cuit ?? this.cuit,
+      razonSocial: razonSocial ?? this.razonSocial,
+      domicilio: domicilio ?? this.domicilio,
+      cctId: cctId ?? this.cctId,
+      actividad: actividad ?? this.actividad,
+      jurisdiccion: jurisdiccion ?? this.jurisdiccion,
+    );
+  }
+
+  factory SanidadEmpresa.fromMap(Map<String, dynamic> map) {
+    return SanidadEmpresa(
+      cuit: map['cuit']?.toString() ?? '',
+      razonSocial: map['razonSocial']?.toString() ?? '',
+      domicilio: map['domicilio']?.toString(),
+      cctId: map['cctId']?.toString(),
+      actividad: map['actividad']?.toString(),
+      jurisdiccion: map['jurisdiccion'] != null 
+          ? Jurisdiccion.values.firstWhere((j) => j.name == map['jurisdiccion'], orElse: () => Jurisdiccion.buenosAires)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'cuit': cuit,
+    'razonSocial': razonSocial,
+    'domicilio': domicilio,
+    'cctId': cctId,
+    'actividad': actividad,
+    'jurisdiccion': jurisdiccion?.name,
+  };
+}
+
+class SanidadEmpleado {
+  final String cuit;
+  final String nombre;
+  final String? puesto;
+  final DateTime fechaIngreso;
+  final CategoriaSanidad categoria;
+  final NivelTituloSanidad nivelTitulo;
+  final bool tareaCriticaRiesgo;
+  final bool cuotaSindicalAtsa;
+  final bool manejoEfectivoCaja;
+  final int horasNocturnas;
+  final String? codigoRnos;
+  final int cantidadFamiliares;
+  final String? cbu;
+  final String? domicilio;
+  final String? localidad;
+  final String? codigoPostal;
+  final String? codigoModalidad;
+  final String? codigoSituacion;
+
+  const SanidadEmpleado({
+    required this.cuit,
+    required this.nombre,
+    this.puesto,
+    required this.fechaIngreso,
+    required this.categoria,
+    this.nivelTitulo = NivelTituloSanidad.sinTitulo,
+    this.tareaCriticaRiesgo = false,
+    this.cuotaSindicalAtsa = false,
+    this.manejoEfectivoCaja = false,
+    this.horasNocturnas = 0,
+    this.codigoRnos,
+    this.cantidadFamiliares = 0,
+    this.cbu,
+    this.domicilio,
+    this.localidad,
+    this.codigoPostal,
+    this.codigoModalidad,
+    this.codigoSituacion,
+  });
+
+  factory SanidadEmpleado.fromMap(Map<String, dynamic> map) {
+    return SanidadEmpleado(
+      cuit: map['cuil']?.toString() ?? map['cuit']?.toString() ?? '',
+      nombre: map['nombre']?.toString() ?? '',
+      puesto: map['puesto']?.toString(),
+      fechaIngreso: map['fechaIngreso'] != null ? DateTime.parse(map['fechaIngreso']) : DateTime.now(),
+      categoria: CategoriaSanidad.values.firstWhere((e) => e.name == map['categoria'], orElse: () => CategoriaSanidad.servicios),
+      nivelTitulo: NivelTituloSanidad.values.firstWhere((e) => e.name == map['nivelTitulo'], orElse: () => NivelTituloSanidad.sinTitulo),
+      tareaCriticaRiesgo: map['tareaCriticaRiesgo'] == true,
+      cuotaSindicalAtsa: map['cuotaSindicalAtsa'] == true,
+      manejoEfectivoCaja: map['manejoEfectivoCaja'] == true,
+      horasNocturnas: map['horasNocturnas'] ?? 0,
+      codigoRnos: map['codigoRnos']?.toString(),
+      cantidadFamiliares: map['cantidadFamiliares'] ?? 0,
+      cbu: map['cbu']?.toString(),
+      domicilio: map['domicilio']?.toString(),
+      localidad: map['localidad']?.toString(),
+      codigoPostal: map['codigoPostal']?.toString(),
+      codigoModalidad: map['codigoModalidad']?.toString(),
+      codigoSituacion: map['codigoSituacion']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'cuil': cuit,
+    'nombre': nombre,
+    'puesto': puesto,
+    'fechaIngreso': fechaIngreso.toIso8601String(),
+    'categoria': categoria.name,
+    'nivelTitulo': nivelTitulo.name,
+    'tareaCriticaRiesgo': tareaCriticaRiesgo,
+    'cuotaSindicalAtsa': cuotaSindicalAtsa,
+    'manejoEfectivoCaja': manejoEfectivoCaja,
+    'horasNocturnas': horasNocturnas,
+    'codigoRnos': codigoRnos,
+    'cantidadFamiliares': cantidadFamiliares,
+    'cbu': cbu,
+    'domicilio': domicilio,
+    'localidad': localidad,
+    'codigoPostal': codigoPostal,
+    'codigoModalidad': codigoModalidad,
+    'codigoSituacion': codigoSituacion,
+  };
+}
 
 import '../providers/cct_provider.dart';
 import '../theme/app_colors.dart';
@@ -49,6 +191,9 @@ class SanidadInterfaceScreen extends StatefulWidget {
 }
 
 class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
+  // --- Servicios ---
+  final _pdfService = PdfService();
+
   // --- Estado del Asistente y UI ---
   _WizardStep _currentStep = _WizardStep.welcome;
   String _wizardTitle = "Liquidador Sanidad (CCT 122/75)";
@@ -1251,10 +1396,27 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   Future<void> _generarRecibo() async {
      if (_resultado == null || _empresa == null) return;
     try {
-      final bytes = await SanidadPdfRecibo.generarRecibo(_resultado!, _empresa!);
-      final nombreArchivo = 'recibo_sanidad_${_empleado?.cuit ?? 'empleado'}.pdf';
-      await saveFile(fileName: nombreArchivo, bytes: bytes, mimeType: 'application/pdf');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recibo generado: $nombreArchivo'), backgroundColor: Colors.green));
+      final path = await _pdfService.generarReciboPdf(
+        liquidacion: _resultado!,
+        empresaData: {
+          'cuit': _empresa!.cuit,
+          'razonSocial': _empresa!.razonSocial,
+          'domicilio': _empresa!.domicilio ?? '',
+        },
+        empleadoData: {
+          'nombre': _resultado!.input.nombre,
+          'cuil': _resultado!.input.cuil,
+          'categoriaId': _resultado!.input.categoria.name,
+          'sueldoBasico': _resultado!.sueldoBasico,
+          'periodo': _resultado!.periodo,
+          'fechaPago': _resultado!.fechaPago,
+          'fechaIngreso': _resultado!.input.fechaIngreso.toIso8601String(),
+          'codigoRnos': _resultado!.input.codigoRnos,
+        },
+      );
+      if (path != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Recibo generado: $path'), backgroundColor: Colors.green));
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red));
     }

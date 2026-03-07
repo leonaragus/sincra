@@ -50,9 +50,9 @@ class ClaudeVisionService {
     final allConcepts = [...recibo.liquidacionDetallada.haberes, ...recibo.liquidacionDetallada.retenciones];
     final descripcionesFull = allConcepts.map((c) => c.descripcion.toLowerCase()).join(' ');
 
-    final infoCCT = cctService.identificarCCT(descripcionesFull, recibo.cabecera.categoriaProfesional);
+    final infoCCT = cctService.identificarCCT(descripcionesFull, recibo.cabecera.categoriaProfesional ?? '');
     final isLiquidacionFinal = descripcionesFull.contains('indemni');
-    final topeVigente = cctService.obtenerTopePrevisional(recibo.cabecera.periodoAbonado);
+    final topeVigente = cctService.obtenerTopePrevisional(recibo.cabecera.periodoAbonado ?? '');
 
     final conceptosAuditados = <String>['jubilaci', 'obra social', 'ley 19032'];
     final retencionesClave = recibo.liquidacionDetallada.retenciones.where((r) => conceptosAuditados.any((key) => r.descripcion.toLowerCase().contains(key))).toList();
@@ -148,13 +148,13 @@ class ClaudeVisionService {
   static ReciboModel _parseRawResponseToModel(String rawJson, String rawText) { 
     return ReciboModel(
         textoCrudo: rawText,
-        cabecera: CabeceraRecibo(
+        cabecera: const CabeceraRecibo(
             periodoAbonado: '2024-05',
-            nombreCompleto: 'Perez, Juan',
-            cuil: '20-30123456-7',
+            empleadoNombre: 'Perez, Juan',
+            empleadoCuil: '20-30123456-7',
             categoriaProfesional: 'Administrativo A'
         ),
-        liquidacionDetallada: LiquidacionDetallada(
+        liquidacionDetallada: const LiquidacionDetallada(
             haberes: [
                 ConceptoRecibo(descripcion: 'BASICO', monto: 756000.00),
                 ConceptoRecibo(descripcion: 'ASISTENCIA Y PUNTUALIDAD', monto: 63000.00),
@@ -168,13 +168,13 @@ class ClaudeVisionService {
                 ConceptoRecibo(descripcion: 'SINDICATO EMPLEADOS DE COMERCIO', monto: -17199.00),
             ]
         ),
-        totales: TotalesRecibo(
+        totales: const TotalesRecibo(
             totalBruto: 864000.00, 
             totalRetenciones: 168133.20,
             netoACobrar: 695866.80
         ),
-        inferencias: InferenciasRecibo(convenioSugerido: 'comercio', confianza: 'Baja', healthScore: 0),
-        auditoriaIa: AuditoriaIa(analisisGeneral: '', alertas: [], explicacionesItems: [])
+        inferencias: const InferenciasRecibo(convenioSugerido: 'comercio', confianza: 'Baja', healthScore: 0),
+        auditoriaIa: const AuditoriaIa(analisisGeneral: '', alertas: [], explicacionesItems: [])
     );
   }
 

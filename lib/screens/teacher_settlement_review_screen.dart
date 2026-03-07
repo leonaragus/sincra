@@ -322,8 +322,10 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
       parametros: [],
     );
     final cargo = legajo['cargo']?.toString().trim() ?? '';
+    final CargoDocente? cargoObj = (cargo.isNotEmpty) ? NomencladorFederal2026.itemPorTipo(cargo)?.tipo : null;
     final empr = Empleado(
       nombre: legajo['nombre']?.toString() ?? '',
+      cuil: (legajo['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''),
       categoria: cargo.isEmpty ? 'SAC - $_periodoTexto' : '$cargo - SAC - $_periodoTexto',
       sueldoBasico: bruto,
       periodo: _periodoTexto,
@@ -407,6 +409,7 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
 
       final reg2Ref = LSDGenerator.generateRegistro2DatosReferenciales(
         cuilEmpleado: cuil,
+        legajo: legajo['legajo']?.toString() ?? '1',
         diasBase: 30,
       );
 
@@ -445,6 +448,7 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
       final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
         cuilEmpleado: cuil,
         codigoRnos: '115404',
+        cantidadFamiliares: int.tryParse(legajo['cantidadFamiliares']?.toString() ?? '0') ?? 0,
       );
       sb.write(latin1.decode(reg5));
       sb.write(LSDGenerator.eolLsd);

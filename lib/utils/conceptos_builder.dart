@@ -61,7 +61,7 @@ class ConceptosBuilder {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -150,26 +150,38 @@ class ConceptosBuilder {
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                conceptos.length.toString(),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            conceptos.length.toString(),
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
-          ],
+          ),
         ),
-        const SizedBox(height: 8),
-        ...conceptos.entries.map((entry) => _buildConceptoRow(entry.key, entry.value, color, context)),
       ],
-    );
+    ),
+    const SizedBox(height: 8),
+    Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.1), width: 1),
+      ),
+      child: Column(
+        children: conceptos.entries.map((entry) {
+          return _buildConceptoRow(entry.key, entry.value, color, context);
+        }).toList(),
+      ),
+    ),
+  ],
+);
   }
 
   static Widget _buildConceptoRow(String concepto, double monto, Color color, BuildContext context) {

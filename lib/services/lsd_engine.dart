@@ -97,6 +97,20 @@ class LSDGenerator {
     final s = '2' + cuil + lg + db;
     return _encodeFixed(s);
   }
+
+  /// Obtiene el código AFIP sugerido para un concepto basado en su descripción.
+  static String obtenerCodigoInternoConcepto(String descripcion) {
+    final d = descripcion.toLowerCase();
+    if (d.contains('jubilaci')) return '810001';
+    if (d.contains('pami') || d.contains('19032')) return '810002';
+    if (d.contains('obra social')) return '810003';
+    if (d.contains('sindicato') || d.contains('cuota')) return '810004';
+    if (d.contains('sac') || d.contains('aguinaldo')) return '120000';
+    if (d.contains('vacaciones')) return '150000';
+    if (d.contains('bono')) return '110000';
+    return '110000'; // Por defecto: Sueldo/Haberes
+  }
+
   static Uint8List generateRegistro3Conceptos({
     required String cuilEmpleado,
     required String codigoConcepto,

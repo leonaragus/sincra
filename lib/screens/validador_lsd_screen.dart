@@ -355,10 +355,24 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
       double haberes = 0;
       double deducciones = 0;
 
-      // Usamos códigos AFIP para mayor precisión
-      final jubConcept = conceptosEmpleado.firstWhere((c) => c.codigo.trim() == '110001', orElse: () => null);
-      final leyConcept = conceptosEmpleado.firstWhere((c) => c.codigo.trim() == '110002', orElse: () => null);
-      final osConcept = conceptosEmpleado.firstWhere((c) => c.codigo.trim() == '110003', orElse: () => null);
+      LSDConcepto? jubConcept;
+      try {
+        jubConcept = conceptosEmpleado.firstWhere((c) => c.codigo.trim() == '110001');
+      } catch (_) {
+        jubConcept = null;
+      }
+      LSDConcepto? leyConcept;
+      try {
+        leyConcept = conceptosEmpleado.firstWhere((c) => c.codigo.trim() == '110002');
+      } catch (_) {
+        leyConcept = null;
+      }
+      LSDConcepto? osConcept;
+      try {
+        osConcept = conceptosEmpleado.firstWhere((c) => c.codigo.trim() == '110003');
+      } catch (_) {
+        osConcept = null;
+      }
 
       totalSUSS += (jubConcept?.importeAsDouble ?? 0.0) + (leyConcept?.importeAsDouble ?? 0.0);
       totalOS += osConcept?.importeAsDouble ?? 0.0;
@@ -387,9 +401,9 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildGlobalStat('Empleados', totalEmpleados.toString(), Icons.people),
-                _buildGlobalStat('Neto a Pagar', '\\$${totalNeto.toStringAsFixed(2)}', Icons.wallet),
-                _buildGlobalStat('Aportes SUSS', '\\$${totalSUSS.toStringAsFixed(2)}', Icons.security),
-                _buildGlobalStat('Aportes O.S.', '\\$${totalOS.toStringAsFixed(2)}', Icons.local_hospital),
+                _buildGlobalStat('Neto a Pagar', '\$${totalNeto.toStringAsFixed(2)}', Icons.wallet),
+                _buildGlobalStat('Aportes SUSS', '\$${totalSUSS.toStringAsFixed(2)}', Icons.security),
+                _buildGlobalStat('Aportes O.S.', '\$${totalOS.toStringAsFixed(2)}', Icons.local_hospital),
               ],
             )
           ],
@@ -539,7 +553,7 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(desc, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[800])),\
+                Text(desc, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[800])),
               ],
             ),
           ),
@@ -552,7 +566,7 @@ class _ValidadorLSDScreenState extends State<ValidadorLSDScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color),
       ),
@@ -777,7 +791,7 @@ class _EmployeeDetailDialogState extends State<_EmployeeDetailDialog> with Singl
 
        if (bestMatchIndex != -1) {
           setState(() => _conceptosControllers[bestMatchIndex]['importe']!.text = teorico.toStringAsFixed(2));
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Corrección aplicada: Concepto ajustado a \\$${teorico.toStringAsFixed(2)}. Guarde para confirmar.'), backgroundColor: Colors.blue));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Corrección aplicada: Concepto ajustado a \$${teorico.toStringAsFixed(2)}. Guarde para confirmar.'), backgroundColor: Colors.blue));
        } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se encontró el concepto de descuento para aplicar el ajuste.'), backgroundColor: Colors.orange));
        }
@@ -922,9 +936,9 @@ class _EmployeeDetailDialogState extends State<_EmployeeDetailDialog> with Singl
                 width: 200,
                 child: TextField(
                   controller: _basesControllers[index],
-                  decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), prefixText: '\\$ '),
+                  decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), prefixText: '\$ '),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\\d*\\.?\\d{0,2}'))], // MEJORA 4
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))], // MEJORA 4
                 ),
               );
             }),
@@ -979,9 +993,9 @@ class _EmployeeDetailDialogState extends State<_EmployeeDetailDialog> with Singl
               width: 150,
               child: TextField(
                 controller: ctrls['importe'],
-                decoration: const InputDecoration(labelText: 'Importe', border: OutlineInputBorder(), prefixText: '\\$ '),
+                decoration: const InputDecoration(labelText: 'Importe', border: OutlineInputBorder(), prefixText: '\$ '),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\\d*\\.?\\d{0,2}'))], // MEJORA 4
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))], // MEJORA 4
               ),
             ),
             const SizedBox(width: 16),

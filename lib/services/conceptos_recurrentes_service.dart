@@ -136,7 +136,7 @@ class ConceptosRecurrentesService {
 
     // Eliminar de Supabase en segundo plano.
     _runAsync(() async {
-      await Supabase.instance.client.from(_supabaseTable).delete().in_('id', ids);
+      await Supabase.instance.client.from(_supabaseTable).delete().filter('id', 'in', ids);
       print('Se han eliminado ${ids.length} conceptos masivamente de Supabase.');
 
       // Forzar la actualización de la caché.

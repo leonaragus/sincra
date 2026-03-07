@@ -44,8 +44,8 @@ class PdfService {
       totalNoRemunerativo = liquidacion.totalNoRemunerativo;
       sueldoNeto = liquidacion.netoACobrar;
       baseImponible = liquidacion.baseImponibleTopeada;
-      horas50 = liquidacion.input.horasExtras50;
-      horas100 = liquidacion.input.horasExtras100;
+      horas50 = liquidacion.input.horasExtras50.toInt();
+      horas100 = liquidacion.input.horasExtras100.toInt();
 
     } else {
       // TODO: Añadir bloques `else if (liquidacion is LiquidacionComercioResult)`
@@ -57,7 +57,16 @@ class PdfService {
     final firmaBytes = await readImageBytes(firmaPath);
 
     // Simular objetos Empresa y Empleado para el generador de PDF
-    final empresa = Empresa(cuit: empresaData['cuit']!, razonSocial: empresaData['razonSocial']!, domicilio: empresaData['domicilio']!);
+    final empresa = Empresa(
+      cuit: empresaData['cuit']!, 
+      razonSocial: empresaData['razonSocial']!, 
+      domicilio: empresaData['domicilio']!,
+      convenioId: '', // Default para mock
+      convenioNombre: '', // Default para mock
+      convenioPersonalizado: false,
+      categorias: [],
+      parametros: [],
+    );
     final empleado = Empleado.fromMap(empleadoData);
 
     // Generar el archivo PDF en memoria
@@ -70,7 +79,7 @@ class PdfService {
       totalNoRemunerativo: totalNoRemunerativo,
       sueldoNeto: sueldoNeto,
       baseImponibleTopeada: baseImponible,
-      sueldoBasico: (liquidacion is LiquidacionSanidadResult) ? liquidacion.sueldoBasico : 0,
+      sueldoBasico: (liquidacion is LiquidacionSanidadResult) ? (liquidacion as LiquidacionSanidadResult).sueldoBasico : 0.0,
       cantidadHorasExtras50: horas50,
       cantidadHorasExtras100: horas100,
       logoBytes: logoBytes,

@@ -10,16 +10,15 @@ class OcrService {
   late OcrResult result;
 
   /// Permite al usuario elegir una imagen de la cámara o galería.
-  Future<Uint8List?> obtenerImagen() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image == null) return null;
-    return await image.readAsBytes();
+  Future<XFile?> obtenerImagen() async {
+    return await _picker.pickImage(source: ImageSource.gallery);
   }
 
   /// Procesa la imagen usando el servicio de Claude Vision.
   /// Acepta un booleano [conAuditoria] para determinar si se debe ejecutar el análisis completo.
-  Future<OcrResult> procesarImagen(Uint8List imagen, {bool conAuditoria = false}) async {
+  Future<OcrResult> procesarImagen(XFile file, {bool conAuditoria = false, String? contextoConvenio}) async {
     try {
+      final imagen = await file.readAsBytes();
       ReciboModel reciboModel;
       String textoCrudo;
 

@@ -164,7 +164,7 @@ class _PricingScreenState extends State<PricingScreen> {
           // Overlay de carga durante el proceso de compra
           if (_isPurchaseInProgress)
             Container(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -181,6 +181,10 @@ class _PricingScreenState extends State<PricingScreen> {
         ],
       ),
     );
+  }
+
+  String formatCurrency(double amount) {
+    return '\$${AppNumberFormatter.format(amount)}';
   }
 
   Widget _buildPlanCard({

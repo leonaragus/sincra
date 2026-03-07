@@ -1,23 +1,16 @@
 
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/cct_completo.dart';
-import '../models/empleado.dart';
 import '../services/convenios_service.dart';
-import '../services/hybrid_store.dart';
-import '../services/liquidacion_service.dart';
 import '../services/lsd_service.dart';
 import '../services/pdf_service.dart';
 import '../services/sanidad_omni_engine.dart';
+import '../utils/image_bytes_reader.dart';
 
 class LiquidacionViewModel extends ChangeNotifier {
-  final LiquidacionService _liquidacionService = LiquidacionService();
   final PdfService _pdfService = PdfService();
   final LsdService _lsdService = LsdService();
-  final ConveniosService _conveniosService = ConveniosService();
-  final SanidadOmniEngine _sanidadEngine = SanidadOmniEngine();
 
   List<Map<String, dynamic>> _empresas = [];
   List<Map<String, dynamic>> get empresas => _empresas;
@@ -99,7 +92,7 @@ class LiquidacionViewModel extends ChangeNotifier {
 
     final convenioId = empleado['convenioId']?.toString();
     if (convenioId != null) {
-      _convenioEmpleado = await _conveniosService.getConvenioById(convenioId);
+      _convenioEmpleado = await ConveniosService.getConvenioById(convenioId);
     }
 
     if (_convenioEmpleado != null && _convenioEmpleado!.categorias.isNotEmpty) {
@@ -127,7 +120,7 @@ class LiquidacionViewModel extends ChangeNotifier {
 
       if (convenioId.contains('122/75') || convenioId.contains('108/75')) {
         final input = _crearInputSanidad();
-        _liquidacion = _sanidadEngine.calcularLiquidacion(input);
+        _liquidacion = SanidadOmniEngine.liquidar(input, periodo: periodo, fechaPago: fechaPago);
       } else {
         _setError('El convenio $convenioId aún no está soportado para el cálculo.');
         _liquidacion = null;
@@ -167,12 +160,16 @@ class LiquidacionViewModel extends ChangeNotifier {
         liquidaciones: [liq],
         convenioId: _empleadoSeleccionado!['convenioId'],
         empresaData: _empresaSeleccionada!,
-        generadorReciboPDF: (dynamic innerLiq) {
-          return _pdfService.generarReciboPdf(
+        generadorReciboPDF: (dynamic innerLiq) async {
+          final path = await _pdfService.generarReciboPdf(
             liquidacion: innerLiq,
             empresaData: _empresaSeleccionada!,
             empleadoData: _empleadoSeleccionado!,
-          ).then((path) => path != null ? readBytesFromFile(path) : throw Exception('No se pudo generar el PDF para el ZIP.'));
+          );
+          if (path == null) throw Exception('No se pudo generar el PDF para el ZIP.');
+          final bytes = await readBytesFromFile(path);
+          if (bytes == null) throw Exception('No se pudieron leer los bytes del archivo PDF.');
+          return bytes;
         },
       );
     }, 'Pack ARCA (.zip)');
@@ -198,26 +195,27 @@ class LiquidacionViewModel extends ChangeNotifier {
     _setLoading(false);
   }
 
-  SanidadLiquidacionInput _crearInputSanidad() {
-    return SanidadLiquidacionInput(
+  SanidadEmpleadoInput _crearInputSanidad() {
+    return SanidadEmpleadoInput(
         cuil: _empleadoSeleccionado!['cuil'],
         nombre: _empleadoSeleccionado!['nombre'],
         fechaIngreso: DateTime.parse(_empleadoSeleccionado!['fechaIngreso']),
         categoria: CategoriaSanidad.values.firstWhere(
           (e) => e.name == _empleadoSeleccionado!['categoriaId'],
-          orElse: () => CategoriaSanidad.enfermeria,
+          orElse: () => CategoriaSanidad.servicios,
         ),
-        esAfiliado: true,
-        diasInasistencia: diasInasistencia,
-        periodo: periodo,
-        fechaPago: DateTime.tryParse(fechaPago) ?? DateTime.now(),
+        nivelTitulo: NivelTituloSanidad.sinTitulo,
+        tareaCriticaRiesgo: false,
+        aplicarCuotaSindicalAtsa: true,
+        horasNocturnas: 0,
+        manejoEfectivoCaja: false,
         horasExtras50: 0,
         horasExtras100: 0,
-        feriadosTrabajados: 0,
         adelantos: 0,
-        montoEmbargo: 0,
+        embargos: 0,
+        prestamos: 0,
         otrosDescuentos: 0,
-        montoPrestamo: 0,
+        conceptosPropios: [],
         codigoRnos: _empleadoSeleccionado!['codigoRnos'],
         cantidadFamiliares: 0,
         codigoCondicion: '01',

@@ -64,8 +64,13 @@ class CabeceraRecibo {
 class LiquidacionDetallada {
   final List<ConceptoRecibo> haberes;
   final List<ConceptoRecibo> retenciones;
+  final List<ConceptoRecibo> otrosConceptos;
 
-  const LiquidacionDetallada({required this.haberes, required this.retenciones});
+  const LiquidacionDetallada({
+    required this.haberes, 
+    required this.retenciones,
+    this.otrosConceptos = const [],
+  });
 }
 
 @immutable
@@ -74,12 +79,16 @@ class ConceptoRecibo {
   final String descripcion;
   final String? cantidad;
   final double monto;
+  final bool esRemunerativo;
+  final String? porcentaje;
 
   const ConceptoRecibo({
     this.codigo,
     required this.descripcion,
     this.cantidad,
     required this.monto,
+    this.esRemunerativo = true,
+    this.porcentaje,
   });
 }
 

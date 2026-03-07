@@ -66,12 +66,17 @@ class LSDValidatorHelper {
 
     for (var legajo in file.referencias) {
       final cuil = legajo.cuil;
-      final nombre = legajo.nombre;
+      final nombre = 'Legajo ${legajo.legajo}'; // LSD Registro 2 no tiene nombre
       final errores = <ValidationIssue>[];
       final advertencias = <ValidationIssue>[];
 
       final conceptos = conceptosPorCuil[cuil] ?? [];
-      final bases = file.bases.firstWhere((b) => b.cuil == cuil, orElse: () => null);
+      LSDBases? bases;
+      try {
+        bases = file.bases.firstWhere((b) => b.cuil == cuil);
+      } catch (_) {
+        bases = null;
+      }
       
       if (bases == null) {
           errores.add(ValidationIssue("No se encontró registro de Bases (04) para este CUIL."));
@@ -82,7 +87,6 @@ class LSDValidatorHelper {
       // ---- INICIO DE VALIDACIONES POR EMPLEADO ----
       
       final base1 = bases.getBaseAsDouble(0);
-      final base2 = bases.getBaseAsDouble(1);
       final base4 = bases.getBaseAsDouble(3);
       final base8 = bases.getBaseAsDouble(7);
 
@@ -96,18 +100,18 @@ class LSDValidatorHelper {
           }
       }
 
-      if ((totalRemunerativo - base1).abs() > 0.02) { // Tolerancia de 2 centavos
+      if ((totalRemunerativo - base1).abs() > 0.05) { // Tolerancia de 5 centavos
           advertencias.add(ValidationIssue(
-              'La suma de haberes remunerativos (\\$${totalRemunerativo.toStringAsFixed(2)}) no coincide con la Base 1 (\\$${base1.toStringAsFixed(2)}).',
+              'La suma de haberes remunerativos (\$${totalRemunerativo.toStringAsFixed(2)}) no coincide con la Base 1 (\$${base1.toStringAsFixed(2)}).',
               type: ValidationIssueType.remunerativoInconsistente,
               data: {'remunerativoCalculado': totalRemunerativo}
           ));
       }
 
       // Validación de consistencia Base 4 vs Base 8
-      if (base4 > 0 && base8 > 0 && (base4 - base8).abs() > 0.02) {
+      if (base4 > 0 && base8 > 0 && (base4 - base8).abs() > 0.05) {
         errores.add(ValidationIssue(
-            'Inconsistencia de Bases de Obra Social: Base 4 (\\$${base4.toStringAsFixed(2)}) es distinta a Base 8 (\\$${base8.toStringAsFixed(2)}).',
+            'Inconsistencia de Bases de Obra Social: Base 4 (\$${base4.toStringAsFixed(2)}) es distinta a Base 8 (\$${base8.toStringAsFixed(2)}).',
             type: ValidationIssueType.base4Inconsistent,
             data: {'base8': base8} 
         ));
@@ -118,27 +122,36 @@ class LSDValidatorHelper {
       final aporteLeyTeorico = (base1 * 0.03).toStringAsFixed(2);
       final aporteOSTeorico = (base4 * 0.03).toStringAsFixed(2);
 
-      final aporteJubReal = conceptos.firstWhere((c) => c.codigo.trim() == '110001', orElse: () => null)?.importeAsDouble.toStringAsFixed(2);
-      final aporteLeyReal = conceptos.firstWhere((c) => c.codigo.trim() == '110002', orElse: () => null)?.importeAsDouble.toStringAsFixed(2);
-      final aporteOSReal = conceptos.firstWhere((c) => c.codigo.trim() == '110003', orElse: () => null)?.importeAsDouble.toStringAsFixed(2);
+      // Usamos búsqueda segura para evitar RangeError si no se encuentra
+      LSDConcepto? getConceptoByAfip(String afipCode) {
+        try {
+          return conceptos.firstWhere((c) => c.codigo.trim() == afipCode);
+        } catch (_) {
+          return null;
+        }
+      }
+
+      final aporteJubReal = getConceptoByAfip('110001')?.importeAsDouble.toStringAsFixed(2);
+      final aporteLeyReal = getConceptoByAfip('110002')?.importeAsDouble.toStringAsFixed(2);
+      final aporteOSReal = getConceptoByAfip('110003')?.importeAsDouble.toStringAsFixed(2);
 
       if (aporteJubReal != null && aporteJubReal != aporteJubTeorico) {
         advertencias.add(ValidationIssue(
-            'Aporte Jubilatorio (11%) inconsistente. Declarado: \\$$aporteJubReal, Calculado: \\$$aporteJubTeorico.',
+            'Aporte Jubilatorio (11%) inconsistente. Declarado: \$$aporteJubReal, Calculado: \$$aporteJubTeorico.',
             type: ValidationIssueType.aporteJubilacionDiff,
             data: {'teorico': double.parse(aporteJubTeorico)}
         ));
       }
       if (aporteLeyReal != null && aporteLeyReal != aporteLeyTeorico) {
         advertencias.add(ValidationIssue(
-            'Aporte Ley 19.032 (3%) inconsistente. Declarado: \\$$aporteLeyReal, Calculado: \\$$aporteLeyTeorico.',
+            'Aporte Ley 19.032 (3%) inconsistente. Declarado: \$$aporteLeyReal, Calculado: \$$aporteLeyTeorico.',
             type: ValidationIssueType.aporteLeyDiff,
             data: {'teorico': double.parse(aporteLeyTeorico)}
         ));
       }
       if (aporteOSReal != null && aporteOSReal != aporteOSTeorico) {
         advertencias.add(ValidationIssue(
-            'Aporte Obra Social (3%) inconsistente. Declarado: \\$$aporteOSReal, Calculado: \\$$aporteOSTeorico.',
+            'Aporte Obra Social (3%) inconsistente. Declarado: \$$aporteOSReal, Calculado: \$$aporteOSTeorico.',
             type: ValidationIssueType.aporteOSDiff,
             data: {'teorico': double.parse(aporteOSTeorico)}
         ));

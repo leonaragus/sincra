@@ -176,39 +176,8 @@ class TeacherReceiptScanService {
 
   /// Ejecuta OCR sobre [imagePath] (ruta a archivo).
   Future<OcrExtractResult> runOcrFromPath(String imagePath) async {
-    try {
-      final bytes = await readImageBytes(imagePath);
-      if (bytes == null || bytes.isEmpty) {
-        return const OcrExtractResult(
-          source: OcrExtractSource.ocr,
-          error: 'No se pudo leer el archivo de imagen.',
-        );
-      }
-      // NOTA: Para mantener compatibilidad con OcrService que usa XFile,
-      // aquí podríamos convertir bytes a XFile o usar la lógica directa.
-      // Dado que OcrService está optimizado para XFile (web/mobile),
-      // lo ideal sería usar XFile desde el principio.
-      // Pero si venimos de path, usamos el servicio interno temporalmente o
-      // adaptamos OcrService para aceptar bytes.
-      // POR AHORA: Usamos _analyzeWithClaude que ahora usará OcrService internamente si es posible
-      // o mantendrá la lógica pero adaptada.
-      // MEJOR: Vamos a simular un XFile o usar la lógica de OcrService directamente si pudiéramos.
-      // Pero OcrService pide XFile.
-      // Vamos a instanciar OcrService y usar su lógica, pero necesitamos XFile.
-      // Como fallback, usamos la lógica legacy refactorizada para usar el mismo prompt que OcrService?
-      // NO, el usuario quiere usar LA MISMA LLAMADA.
-      // OcrService.procesarImagen(XFile).
-      
-      final xfile = XFile(imagePath);
-      return runOcrFromXFile(xfile);
-
-    } catch (e, st) {
-      debugPrint('TeacherReceiptScanService.runOcr: $e\n$st');
-      return const OcrExtractResult(
-        source: OcrExtractSource.ocr,
-        error: 'Error al procesar la imagen.',
-      );
-    }
+    final xfile = XFile(imagePath);
+    return runOcrFromXFile(xfile);
   }
   
   /// Ejecuta OCR sobre [XFile] (para compatibilidad Web).
@@ -298,11 +267,11 @@ class TeacherReceiptScanService {
     }
 
     // Parseo de CUIL
-    String? cuil = cab.empleadoCuil.isNotEmpty ? cab.empleadoCuil : null;
+    String? cuil = (cab.empleadoCuil?.isNotEmpty == true) ? cab.empleadoCuil : null;
 
     // Parseo de Jurisdicción (si viniera en cabecera o se deduce)
     String? jurisdiccion;
-    final empresaLower = cab.empresaNombre.toLowerCase();
+    final empresaLower = cab.empresaNombre?.toLowerCase() ?? '';
     if (empresaLower.contains('buenos aires') || empresaLower.contains('pba')) {
       jurisdiccion = 'PBA';
     } else if (empresaLower.contains('caba') || empresaLower.contains('ciudad')) {
@@ -313,10 +282,10 @@ class TeacherReceiptScanService {
 
     // Parseo de Fecha Ingreso
     DateTime? fechaIngreso;
-    if (cab.fechaIngreso.isNotEmpty) {
+    if (cab.fechaIngreso?.isNotEmpty == true) {
       try {
         // Normalizamos separadores
-        String f = cab.fechaIngreso.replaceAll('-', '/');
+        String f = cab.fechaIngreso!.replaceAll('-', '/');
         final parts = f.split('/');
         if (parts.length == 3) {
           // Formato yyyy/mm/dd
@@ -333,10 +302,10 @@ class TeacherReceiptScanService {
 
     return OcrExtractResult(
       cuil: cuil,
-      nombre: cab.empleadoNombre.isNotEmpty ? cab.empleadoNombre : null,
-      razonSocial: cab.empresaNombre.isNotEmpty ? cab.empresaNombre : null,
-      cuitEmpresa: cab.empresaCuit.isNotEmpty ? cab.empresaCuit : null,
-      domicilioEmpresa: cab.empresaDomicilio.isNotEmpty ? cab.empresaDomicilio : null,
+      nombre: (cab.empleadoNombre?.isNotEmpty == true) ? cab.empleadoNombre : null,
+      razonSocial: (cab.empresaNombre?.isNotEmpty == true) ? cab.empresaNombre : null,
+      cuitEmpresa: (cab.empresaCuit?.isNotEmpty == true) ? cab.empresaCuit : null,
+      domicilioEmpresa: (cab.empresaDomicilio?.isNotEmpty == true) ? cab.empresaDomicilio : null,
       items: allItems,
       fechaIngreso: fechaIngreso,
       sueldoBasico: basico,

@@ -268,6 +268,27 @@ class LiquidacionOmniResult {
   final double netoACobrar;
   final String bloqueArt12Ley17250;
 
+  // --- Getters para compatibilidad con exportación LSD (SAC, Vacaciones, Indemnizaciones) ---
+  double get sac => conceptosPropios
+      .where((c) => c.codigo == 'SAC' || c.codigo == 'SAC_PROP' || c.codigo == 'SAC_VAC' || c.codigo == 'SAC_VNG' || c.codigo == 'SAC_PREAV')
+      .fold(0.0, (prev, c) => prev + c.monto);
+
+  double get vacaciones => conceptosPropios
+      .where((c) => c.codigo == 'VAC')
+      .fold(0.0, (prev, c) => prev + c.monto);
+
+  double get vacacionesNoGozadas => conceptosPropios
+      .where((c) => c.codigo == 'VNG')
+      .fold(0.0, (prev, c) => prev + c.monto);
+
+  double get indemnizacionArt245 => conceptosPropios
+      .where((c) => c.codigo == 'INDEM_245')
+      .fold(0.0, (prev, c) => prev + c.monto);
+
+  double get preaviso => conceptosPropios
+      .where((c) => c.codigo == 'PREAVISO')
+      .fold(0.0, (prev, c) => prev + c.monto);
+
   /// Costo laboral real estimado (Bruto + No Remunerativo + Contribuciones Patronales aprox)
   /// Por ahora retornamos Bruto + No Remunerativo para compatibilidad
   double get costoLaboralReal => totalBrutoRemunerativo + totalNoRemunerativo;
@@ -879,22 +900,6 @@ class TeacherOmniEngine {
   // LÓGICA DE CÁLCULO INTERNA (HELPERS)
   // ========================================================================
 
-  /// Representa el resultado del cálculo en cascada de un sueldo mensual.
-  static class _CascadaResult {
-      double brutoRem = 0, noRem = 0;
-      double antig = 0, zonaAdd = 0, adicionalZonaPatagonica = 0, plusUbicacion = 0;
-      double montoItemAula = 0, addCiudad = 0, estadoDoc = 0, materialDidactico = 0;
-      double fonid = 0, conectividad = 0, horasCat = 0;
-      String detallePuntosYValorIndice = '';
-      String desgloseBaseBonificable = '';
-      // Campos Neuquén
-      double dto23315 = 0, ubicacionZona = 0, a5D33516 = 0, incDocenteLey25053 = 0;
-      double compFonid = 0, ipcFonid = 0, conectividadNacional = 0;
-      double conectividadProvincial = 0, redondeoMonto = 0;
-
-      _CascadaResult();
-  }
-
   /// Calcula todos los adicionales y bonificaciones para un sueldo mensual.
   static _CascadaResult _calcularCascada({
       required double A, // Sueldo Básico
@@ -1104,4 +1109,21 @@ class TeacherOmniEngine {
       bloqueArt12Ley17250: bloque,
     );
   }
+}
+
+/// Representa el resultado del cálculo en cascada de un sueldo mensual.
+class _CascadaResult {
+    double brutoRem = 0, noRem = 0;
+    double antig = 0, zonaAdd = 0, adicionalZonaPatagonica = 0, plusUbicacion = 0;
+    double montoItemAula = 0, addCiudad = 0, estadoDoc = 0, materialDidactico = 0;
+    double fonid = 0, conectividad = 0, horasCat = 0;
+    String detallePuntosYValorIndice = '';
+    String desgloseBaseBonificable = '';
+    // Campos Neuquén
+    double dto23315 = 0, ubicacionZona = 0, a5D33516 = 0, incDocenteLey25053 = 0;
+    double compFonid = 0, ipcFonid = 0, conectividadNacional = 0;
+    double conectividadProvincial = 0, redondeoMonto = 0;
+    double dec13705 = 0;
+
+    _CascadaResult();
 }

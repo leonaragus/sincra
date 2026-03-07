@@ -97,19 +97,19 @@ class ReportesService {
       final ahora = DateTime.now();
       final hace12Meses = DateTime(ahora.year - 1, ahora.month, 1);
 
-      var query = Supabase.instance.client
+      var builder = Supabase.instance.client
           .from('f931_historial')
           .select('periodo_mes, periodo_anio, total_remuneraciones')
-          .gte('periodo_anio', hace12Meses.year)
+          .gte('periodo_anio', hace12Meses.year);
+      
+      if (empresaCuit != null) {
+        builder = builder.eq('empresa_cuit', empresaCuit);
+      }
+
+      final res = await builder
           .order('periodo_anio', ascending: false)
           .order('periodo_mes', ascending: false)
           .limit(12);
-      
-      if (empresaCuit != null) {
-        query = query.eq('empresa_cuit', empresaCuit);
-      }
-
-      final res = await query;
       final list = (res as List).cast<Map<String, dynamic>>();
       return list.reversed.toList();
     } catch (e) {

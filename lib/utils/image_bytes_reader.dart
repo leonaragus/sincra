@@ -13,3 +13,8 @@ Future<Uint8List?> readImageBytes(String? path) async {
   }
   return _impl.readImageBytesImpl(path);
 }
+
+/// Lee los bytes de un archivo desde un path.
+Future<Uint8List?> readBytesFromFile(String path) async {
+  return _impl.readBytesFromFileImpl(path);
+}

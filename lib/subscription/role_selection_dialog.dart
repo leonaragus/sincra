@@ -17,8 +17,8 @@ class RoleSelectionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Dialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

@@ -88,8 +88,11 @@ class LiquidacionService {
     liquidacion.horasMensualesDivisor = 173.0;
 
     // Conceptos y deducciones adicionales
-    liquidacion.conceptosNoRemunerativosAdicionales = conceptosNoRemunerativosAdicionales;
-    liquidacion.deduccionesAdicionales = deduccionesAdicionales;
+    liquidacion.conceptosNoRemunerativosAdicionales.clear();
+    liquidacion.conceptosNoRemunerativosAdicionales.addAll(conceptosNoRemunerativosAdicionales);
+    
+    liquidacion.deduccionesAdicionales.clear();
+    liquidacion.deduccionesAdicionales.addAll(deduccionesAdicionales);
 
     // Vacaciones
     if (vacacionesActivas && diasVacaciones > 0) {

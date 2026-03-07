@@ -18,7 +18,7 @@ class VerificadorReciboScreen extends StatefulWidget {
 class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with SingleTickerProviderStateMixin {
   final OcrService _ocrService = OcrService();
   final PdfReportService _pdfReportService = PdfReportService();
-  final NumberFormat currencyFormat = NumberFormat.currency(locale: 'es_AR', symbol: '\\$');
+  final NumberFormat currencyFormat = NumberFormat.currency(locale: 'es_AR', symbol: r'$');
 
   bool _estaProcesando = false;
   ReciboModel? _reciboModel;
@@ -222,7 +222,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   ])));
 
   Widget _buildToolsSection({required bool isLocked}) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Padding(padding: const EdgeInsets.only(left: 4, bottom: 8), child: Text('Herramientas Rápidas', style: Theme.of(context).textTheme.headline6)),
+    Padding(padding: const EdgeInsets.only(left: 4, bottom: 8), child: Text('Herramientas Rápidas', style: Theme.of(context).textTheme.titleLarge)),
     GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.1, children: [
       _buildToolCard('¿Cuál es mi categoría?', Icons.business_center_outlined, isLocked, _showCategoriaInfoPopup),
       _buildToolCard('Calcular Indemnización', Icons.exit_to_app, isLocked, _showIndemnizacionPopup),
@@ -254,7 +254,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
 
   // --- PESTAÑAS DE RESULTADOS ---
   Widget _buildLiquidacionTab() => ListView(children: [
-    _buildSectionCard('Datos Principales', [_buildInfoRow('Empresa', _reciboModel!.cabecera.empresaNombre), _buildInfoRow('Empleado', _reciboModel!.cabecera.empleadoNombre)]),
+    _buildSectionCard('Datos Principales', [_buildInfoRow('Empresa', _reciboModel!.cabecera.empresaNombre ?? ''), _buildInfoRow('Empleado', _reciboModel!.cabecera.empleadoNombre ?? '')]),
     if (_reciboModel!.liquidacionDetallada.haberes.isNotEmpty) _buildSectionCard('Ingresos', _reciboModel!.liquidacionDetallada.haberes.map((h) => _buildConceptoRow(h.descripcion, h.monto, Colors.green)).toList()),
     if (_reciboModel!.liquidacionDetallada.retenciones.isNotEmpty) _buildSectionCard('Descuentos', _reciboModel!.liquidacionDetallada.retenciones.map((r) => _buildConceptoRow(r.descripcion, -r.monto, Colors.red)).toList()),
     Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: _buildTotalRow('NETO A COBRAR', _reciboModel!.totales.netoACobrar, isBold: true)),
@@ -287,16 +287,15 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   Widget _buildLoadingState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(), SizedBox(height: 20), Text('Tu asesor IA está trabajando...', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))]));
   Widget _buildSectionCard(String title, List<Widget> children) => Card(elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Padding(padding: const EdgeInsets.all(16.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), const Divider(height: 20), ...children])));
   Widget _buildInfoRow(String label, String value) => Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Row(children: [Expanded(flex: 2, child: Text(label, style: TextStyle(color: Theme.of(context).hintColor))), Expanded(flex: 3, child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500)))]));
-  Widget _buildConceptoRow(String d, double m, Color c) => Padding(padding: const EdgeInsets.symmetric(vertical: 2.0), child: Row(children: [Expanded(child: Text(d)), Text('\\$${m.abs().toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, color: c))]));
-  Widget _buildTotalRow(String l, double a, {bool isBold = false}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2.0), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 16)), Text('\\$${a.toStringAsFixed(2)}', style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 16))]));
+  Widget _buildConceptoRow(String d, double m, Color c) => Padding(padding: const EdgeInsets.symmetric(vertical: 2.0), child: Row(children: [Expanded(child: Text(d)), Text(r'$' + m.abs().toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: c))]));
+  Widget _buildTotalRow(String l, double a, {bool isBold = false}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2.0), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 16)), Text(r'$' + a.toStringAsFixed(2), style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 16))]));
   Widget _buildAcademyCtaCard() => Card(elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), color: AppColors.backgroundDark, child: Padding(padding: const EdgeInsets.all(20.0), child: Column(children: [
       const Text('Elevar Formación Técnica', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white), textAlign: TextAlign.center),
       const SizedBox(height: 12),
       const Text('Domina la liquidación de sueldos con nuestra Certificación Nacional Habilitante.', style: TextStyle(fontSize: 15, color: Colors.white70), textAlign: TextAlign.center),
       const SizedBox(height: 20),
-      ElevatedButton.icon(onPressed: () => _launchWhatsApp(), icon: const Icon(Icons.whatsapp, color: Colors.white), label: const Text('CONSULTAR AHORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)))),
+      ElevatedButton.icon(onPressed: () => _launchWhatsApp(), icon: const Icon(Icons.chat, color: Colors.white), label: const Text('CONSULTAR AHORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)))),
     ])));
   Widget _buildWidgetTuSueldoEnPerspectiva() => _buildSectionCard('Tu Sueldo en Perspectiva', [Text.rich(TextSpan(children: [const TextSpan(text: 'Analizamos la distribución de tu sueldo. '), WidgetSpan(child: GestureDetector(onTap: () => _launchWhatsApp(contextMessage: 'Hola, quiero entender la diferencia entre sueldo bruto y neto.'), child: const Text('🎓 Aprende más aquí.', style: TextStyle(color: AppColors.accentBlue, fontWeight: FontWeight.bold))))]))]);
   Widget _buildWidgetDescubriTusDerechos() => _buildSectionCard('💡 Oportunidades de tu Convenio', [Text.rich(TextSpan(children: [const TextSpan(text: 'Buscamos adicionales que podrías estar omitiendo. '), WidgetSpan(child: GestureDetector(onTap: () => _launchWhatsApp(contextMessage: 'Hola, ¿cómo sé qué adicionales de mi convenio me corresponden?'), child: const Text('🎓 Reclama lo que es tuyo.', style: TextStyle(color: AppColors.accentBlue, fontWeight: FontWeight.bold))))]))]);
 }
-env

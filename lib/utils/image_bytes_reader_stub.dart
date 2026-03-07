@@ -8,3 +8,8 @@ Future<Uint8List?> readImageBytesImpl(String path) async {
   // TODO: Implementar alternativa para web (base64 storage, etc.)
   return null;
 }
+
+/// En web no podemos leer archivos locales.
+Future<Uint8List?> readBytesFromFileImpl(String path) async {
+  return null;
+}

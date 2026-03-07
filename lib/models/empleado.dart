@@ -1,5 +1,6 @@
 class Empleado {
   String nombre;
+  String cuil;
   String categoria;
   double sueldoBasico;
   String periodo;
@@ -10,6 +11,7 @@ class Empleado {
 
   Empleado({
     required this.nombre,
+    required this.cuil,
     required this.categoria,
     required this.sueldoBasico,
     required this.periodo,
@@ -18,4 +20,18 @@ class Empleado {
     this.lugarPago,
     this.codigoRnos,
   });
+
+  factory Empleado.fromMap(Map<String, dynamic> map) {
+    return Empleado(
+      nombre: map['nombre'] ?? '',
+      cuil: map['cuil'] ?? '',
+      categoria: map['categoriaId'] ?? '',
+      sueldoBasico: (map['sueldoBasico'] as num?)?.toDouble() ?? 0.0,
+      periodo: map['periodo'] ?? '',
+      fechaPago: map['fechaPago'] ?? '',
+      fechaIngreso: map['fechaIngreso'],
+      lugarPago: map['lugarPago'],
+      codigoRnos: map['codigoRnos'],
+    );
+  }
 }
