@@ -195,6 +195,7 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
       // Registro 2: Datos Referenciales (Nuevo ARCA)
       final reg2 = LSDGenerator.generateRegistro2DatosReferenciales(
         cuilEmpleado: cuil,
+        legajo: _legajoSeleccionado!['legajo']?.toString() ?? '1',
         diasBase: 30,
       );
       
@@ -228,6 +229,7 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
       final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
         cuilEmpleado: cuil,
         codigoRnos: '115404', // OSDOP default docente
+        cantidadFamiliares: int.tryParse(_legajoSeleccionado!['cantidadFamiliares']?.toString() ?? '0') ?? 0,
       );
       
       final sb = StringBuffer();
@@ -309,7 +311,7 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.pastelMint.withOpacity(0.3),
+                  color: AppColors.pastelMint.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.glassBorder),
                 ),
@@ -378,7 +380,7 @@ class _LiquidacionVacacionesDocenteScreenState extends State<LiquidacionVacacion
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.pastelBlue.withOpacity(0.2),
+        color: AppColors.pastelBlue.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.glassBorder),
       ),

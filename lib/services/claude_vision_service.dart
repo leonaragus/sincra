@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/recibo_model.dart';
 import 'cct_database_service.dart';
 import 'educational_concepts_service.dart';
@@ -35,7 +36,7 @@ class ClaudeVisionService {
     }
 
     final base64Image = base64Encode(imageBytes);
-    final rawJsonResponse = await _invokeClaudeHaiku(base64Image);
+    final rawJsonResponse = await _invokeClaudeHaiku(base64Image, prompt: _minimalPrompt);
 
     // Si la llamada fue exitosa, registramos el uso.
     final reciboBase = _parseRawResponseToModel(rawJsonResponse, rawJsonResponse);
@@ -111,6 +112,11 @@ class ClaudeVisionService {
     );
   }
 
+  static Future<String> analyzeReceipt(Uint8List imageBytes, {String? customPrompt}) async {
+    final base64Image = base64Encode(imageBytes);
+    return await _invokeClaudeHaiku(base64Image, prompt: customPrompt);
+  }
+
   static AuditResult _auditarRetencion(ConceptoRecibo retencion, double bruto, double tope, InfoCCT infoCCT, CctDatabaseService cctService) {
     final key = retencion.descripcion.toLowerCase();
     String reglaKey = "";
@@ -140,7 +146,7 @@ class ClaudeVisionService {
     }
   }
   
-  static Future<String> _invokeClaudeHaiku(String base64Image) async {
+  static Future<String> _invokeClaudeHaiku(String base64Image, {String? prompt}) async {
     // Por ahora, devolvemos un JSON vacío para que _parseRawResponseToModel use el mock.
     return ""; 
   }
@@ -182,5 +188,15 @@ class ClaudeVisionService {
     final base64Image = base64Encode(imageBytes);
     final raw = await _invokeClaudeHaiku(base64Image);
     return _parseRawResponseToModel(raw, raw);
+  }
+
+  static Future<String?> getApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('claude_api_key');
+  }
+
+  static Future<void> setApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('claude_api_key', key);
   }
 }

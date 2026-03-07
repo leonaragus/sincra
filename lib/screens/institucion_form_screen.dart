@@ -506,14 +506,14 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
       if (resultadoOcr.reciboModel != null) {
         final cabecera = resultadoOcr.reciboModel!.cabecera;
         setState(() {
-            if (cabecera.empresaCuit.isNotEmpty) {
-                 _cuitController.text = cabecera.empresaCuit.replaceAll(RegExp(r'[^\d]'), '');
+            if (cabecera.empresaCuit?.isNotEmpty == true) {
+                 _cuitController.text = cabecera.empresaCuit!.replaceAll(RegExp(r'[^\d]'), '');
             }
-            if (cabecera.empresaNombre.isNotEmpty) {
-                _razonSocialController.text = cabecera.empresaNombre;
+            if (cabecera.empresaNombre?.isNotEmpty == true) {
+                _razonSocialController.text = cabecera.empresaNombre!;
             }
-            if (cabecera.empresaDomicilio.isNotEmpty) {
-                _domicilioController.text = cabecera.empresaDomicilio;
+            if (cabecera.empresaDomicilio?.isNotEmpty == true) {
+                _domicilioController.text = cabecera.empresaDomicilio!;
             }
         });
         
@@ -585,10 +585,10 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.glassFillStrong,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.pastelBlue.withOpacity(0.5), width: 1.5),
+                      border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.5), width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.pastelBlue.withOpacity(0.1),
+                          color: AppColors.pastelBlue.withValues(alpha: 0.1),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         )

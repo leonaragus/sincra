@@ -51,7 +51,7 @@ void main() {
 
     print('Móvil: Enviando token...');
     await mobileChannel.send(
-      type: RealtimeListenTypes.broadcast,
+      type: 'broadcast' as dynamic,
       event: 'session-token',
       payload: {'token': mockRefreshToken},
     );

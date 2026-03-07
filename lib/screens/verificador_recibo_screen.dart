@@ -257,7 +257,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
     _buildSectionCard('Datos Principales', [_buildInfoRow('Empresa', _reciboModel!.cabecera.empresaNombre ?? ''), _buildInfoRow('Empleado', _reciboModel!.cabecera.empleadoNombre ?? '')]),
     if (_reciboModel!.liquidacionDetallada.haberes.isNotEmpty) _buildSectionCard('Ingresos', _reciboModel!.liquidacionDetallada.haberes.map((h) => _buildConceptoRow(h.descripcion, h.monto, Colors.green)).toList()),
     if (_reciboModel!.liquidacionDetallada.retenciones.isNotEmpty) _buildSectionCard('Descuentos', _reciboModel!.liquidacionDetallada.retenciones.map((r) => _buildConceptoRow(r.descripcion, -r.monto, Colors.red)).toList()),
-    Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: _buildTotalRow('NETO A COBRAR', _reciboModel!.totales.netoACobrar, isBold: true)),
+    Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: _buildTotalRow('NETO A COBRAR', _reciboModel!.totales.netoACobrar, isBold: true)),
     const SizedBox(height: 20),ElevatedButton.icon(icon: const Icon(Icons.refresh), label: const Text('Escanear Otro Recibo'), onPressed: () => setState(() { _reciboModel = null; })),
   ]);
 

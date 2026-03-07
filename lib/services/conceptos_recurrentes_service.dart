@@ -101,7 +101,37 @@ class ConceptosRecurrentesService {
     await guardarConceptosMasivamente(conceptos: [concepto], empresaCuit: '');
   }
 
-  /// **NUEVO:** Guarda una lista de conceptos recurrentes (para asignación masiva).
+  /// Obtiene los conceptos activos para un empleado en un período dado.
+  static Future<List<ConceptoRecurrente>> obtenerConceptosActivos(
+    String empleadoCuil,
+    int mes,
+    int anio,
+  ) async {
+    try {
+      final response = await Supabase.instance.client
+          .from(_supabaseTable)
+          .select()
+          .eq('empleado_cuil', empleadoCuil)
+          .eq('activo', true);
+
+      return (response as List)
+          .map((e) => ConceptoRecurrente.fromMap(Map<String, dynamic>.from(e)))
+          .where((c) {
+            // Filtro por vigencia si existe fecha de baja
+            if (c.activoHasta != null) {
+              final targetDate = DateTime(anio, mes);
+              return !c.activoHasta!.isBefore(targetDate);
+            }
+            return true;
+          })
+          .toList();
+    } catch (e) {
+      print('Error obteniendo conceptos activos para $empleadoCuil: $e');
+      return [];
+    }
+  }
+
+  /// **NUEVO:** Guarda una lista de conceptos masivamente.
   static Future<void> guardarConceptosMasivamente({
     required List<ConceptoRecurrente> conceptos,
     required String empresaCuit,

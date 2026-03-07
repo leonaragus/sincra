@@ -322,7 +322,8 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
       parametros: [],
     );
     final cargo = legajo['cargo']?.toString().trim() ?? '';
-    final CargoDocente? cargoObj = (cargo.isNotEmpty) ? NomencladorFederal2026.itemPorTipo(cargo)?.tipo : null;
+    final TipoNomenclador? cargoTipo = TipoNomenclador.values.cast<TipoNomenclador?>().firstWhere((e) => e?.name == cargo, orElse: () => null);
+    final ItemNomenclador? cargoObj = cargoTipo != null ? NomencladorFederal2026.itemPorTipo(cargoTipo) : null;
     final empr = Empleado(
       nombre: legajo['nombre']?.toString() ?? '',
       cuil: (legajo['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''),
@@ -570,7 +571,7 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.pastelBlue.withOpacity(0.2),
+        color: AppColors.pastelBlue.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.glassBorder),
       ),

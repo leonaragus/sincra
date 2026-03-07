@@ -50,7 +50,7 @@ void main() {
 
     // Enviamos el mensaje
     await channel.send(
-      type: RealtimeListenTypes.broadcast,
+      type: 'broadcast' as dynamic,
       event: 'session-token',
       payload: {'token': mockRefreshToken},
     );

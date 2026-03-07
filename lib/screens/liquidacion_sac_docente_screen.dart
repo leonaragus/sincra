@@ -393,9 +393,27 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
     final neto = _neto();
     final inst = _instSeleccionada;
     if (inst == null) return null;
-    final emp = Empresa(razonSocial: inst['razonSocial']?.toString() ?? '', cuit: (inst['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''), domicilio: inst['domicilio']?.toString() ?? '', convenioId: 'docente_sac', convenioNombre: 'SAC Docente', convenioPersonalizado: false, categorias: [], parametros: []);
+    final emp = Empresa(
+      razonSocial: inst['razonSocial']?.toString() ?? '', 
+      cuit: (inst['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''), 
+      domicilio: inst['domicilio']?.toString() ?? '', 
+      convenioId: 'docente_sac', 
+      convenioNombre: 'SAC Docente', 
+      convenioPersonalizado: false, 
+      categorias: [], 
+      parametros: [],
+    );
     final cargo = legajo['cargo']?.toString().trim() ?? '';
-    final empr = Empleado(nombre: legajo['nombre']?.toString() ?? '', categoria: cargo.isEmpty ? 'SAC - $_periodoTexto' : '$cargo - SAC - $_periodoTexto', sueldoBasico: bruto, periodo: _periodoTexto, fechaPago: _fechaPagoController.text.trim(), lugarPago: inst['domicilio']?.toString(), fechaIngreso: legajo['fechaIngreso']?.toString());
+    final empr = Empleado(
+      nombre: legajo['nombre']?.toString() ?? '', 
+      cuil: (legajo['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''),
+      categoria: cargo.isEmpty ? 'SAC - $_periodoTexto' : '$cargo - SAC - $_periodoTexto', 
+      sueldoBasico: bruto, 
+      periodo: _periodoTexto, 
+      fechaPago: _fechaPagoController.text.trim(), 
+      lugarPago: inst['domicilio']?.toString(), 
+      fechaIngreso: legajo['fechaIngreso']?.toString(),
+    );
     final conceptosPdf = conceptos.map((c) {
       final t = c['tipo']?.toString() ?? '';
       final m = (c['monto'] as num?)?.toDouble() ?? 0;
@@ -455,6 +473,7 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
 
       final reg2Ref = LSDGenerator.generateRegistro2DatosReferenciales(
         cuilEmpleado: cuil,
+        legajo: legajo['legajo']?.toString() ?? '1',
         diasBase: 30,
       );
 
@@ -474,6 +493,7 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
       final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
         cuilEmpleado: cuil,
         codigoRnos: '115404',
+        cantidadFamiliares: int.tryParse(legajo['cantidadFamiliares']?.toString() ?? '0') ?? 0,
       );
 
       final sb = StringBuffer();
@@ -751,7 +771,7 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.pastelBlue.withOpacity(0.2),
+        color: AppColors.pastelBlue.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.glassBorder),
       ),

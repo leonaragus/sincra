@@ -2,6 +2,7 @@
 library validadores;
 
 import '../core/validation_utils.dart';
+export '../core/validation_utils.dart' show validarCUITCUIL;
 
 /// Valida un CUIT o CUIL y retorna un mensaje de error descriptivo si es inválido.
 ///

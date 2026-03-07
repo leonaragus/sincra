@@ -183,8 +183,9 @@ class _PricingScreenState extends State<PricingScreen> {
     );
   }
 
-  String formatCurrency(double amount) {
-    return '\$${AppNumberFormatter.format(amount)}';
+  String formatCurrency(String amount) {
+    final double val = double.tryParse(amount) ?? 0.0;
+    return '\$${AppNumberFormatter.format(val)}';
   }
 
   Widget _buildPlanCard({
@@ -232,7 +233,7 @@ class _PricingScreenState extends State<PricingScreen> {
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Text(
                   'Plan no disponible en la tienda', 
-                  style: TextStyle(color: AppColors.danger.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: AppColors.danger.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
             if (_isAnnual) ...[
@@ -240,7 +241,7 @@ class _PricingScreenState extends State<PricingScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.accentGreen.withOpacity(0.2),
+                  color: AppColors.accentGreen.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text('AHORRÁS 2 MESES GRATIS', textAlign: TextAlign.center, style: TextStyle(color: AppColors.accentGreen, fontWeight: FontWeight.bold, fontSize: 12)),
@@ -259,8 +260,8 @@ class _PricingScreenState extends State<PricingScreen> {
                 backgroundColor: isRecommended ? AppColors.accentBlue : AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                disabledBackgroundColor: Colors.grey.withOpacity(0.3),
-                disabledForegroundColor: Colors.white.withOpacity(0.7),
+                disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
+                disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
               ),
               child: const Text('Suscribirse', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             ),
