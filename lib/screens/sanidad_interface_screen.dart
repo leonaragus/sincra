@@ -1,186 +1,30 @@
 // --- Pantalla de Liquidación de Sanidad (CCT 122/75 y otros) - ARCA 2026 ---
 // Arquitectura rediseñada a un "Asistente Guiado" para mejorar el flujo de trabajo.
-// v3.1 - Implementación de Exportación Masiva y validaciones de neto.
+// v3.2 - Implementación con HybridStore y modelos Sanidad completos.
 
 import 'dart:async';
-import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
-import '../models/cct_model.dart';
 import '../models/ocr_confirm_result.dart';
-import '../models/teacher_types.dart'; // Para Jurisdiccion
-
+import '../models/sanidad_empleado_model.dart';
 import '../services/sanidad_omni_engine.dart';
 import '../services/pdf_service.dart';
-import '../services/sanidad_company_service.dart';
-import '../services/sanidad_empleado_service.dart';
-import '../services/lsd_mapping_service.dart';
+import '../services/hybrid_store.dart';
 import '../services/sanidad_lsd_export.dart';
-import '../services/contabilidad_service.dart';
 import '../services/sanidad_paritarias_service.dart';
-import '../services/sanidad_excel_export.dart';
-import '../services/sanidad_history_service.dart';
-import '../services/sanidad_retroactivo_service.dart';
 import '../utils/validaciones_arca.dart';
-import '../providers/cct_provider.dart';
+import '../utils/validadores.dart';
 import '../theme/app_colors.dart';
 import '../utils/app_help.dart';
 import '../utils/file_saver.dart';
-import '../utils/formatters.dart';
-import '../widgets/sanidad_receipt_preview.dart';
 import 'sanidad_receipt_scan_screen.dart';
-
-// --- Modelos Locales ---
-class SanidadEmpresa {
-  final String cuit;
-  final String razonSocial;
-  final String? domicilio;
-  final String? cctId;
-  final String? actividad;
-  final Jurisdiccion? jurisdiccion;
-
-  const SanidadEmpresa({
-    required this.cuit,
-    required this.razonSocial,
-    this.domicilio,
-    this.cctId,
-    this.actividad,
-    this.jurisdiccion,
-  });
-
-  SanidadEmpresa copyWith({
-    String? cuit,
-    String? razonSocial,
-    String? domicilio,
-    String? cctId,
-    String? actividad,
-    Jurisdiccion? jurisdiccion,
-  }) {
-    return SanidadEmpresa(
-      cuit: cuit ?? this.cuit,
-      razonSocial: razonSocial ?? this.razonSocial,
-      domicilio: domicilio ?? this.domicilio,
-      cctId: cctId ?? this.cctId,
-      actividad: actividad ?? this.actividad,
-      jurisdiccion: jurisdiccion ?? this.jurisdiccion,
-    );
-  }
-
-  factory SanidadEmpresa.fromMap(Map<String, dynamic> map) {
-    return SanidadEmpresa(
-      cuit: map['cuit']?.toString() ?? '',
-      razonSocial: map['razonSocial']?.toString() ?? '',
-      domicilio: map['domicilio']?.toString(),
-      cctId: map['cctId']?.toString(),
-      actividad: map['actividad']?.toString(),
-      jurisdiccion: map['jurisdiccion'] != null 
-          ? Jurisdiccion.values.firstWhere((j) => j.name == map['jurisdiccion'], orElse: () => Jurisdiccion.buenosAires)
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toMap() => {
-    'cuit': cuit,
-    'razonSocial': razonSocial,
-    'domicilio': domicilio,
-    'cctId': cctId,
-    'actividad': actividad,
-    'jurisdiccion': jurisdiccion?.name,
-  };
-}
-
-class SanidadEmpleado {
-  final String cuil; // Cambiado de cuit a cuil para consistencia
-  final String nombre;
-  final String? puesto;
-  final DateTime fechaIngreso;
-  final CategoriaSanidad categoria;
-  final NivelTituloSanidad nivelTitulo;
-  final bool tareaCriticaRiesgo;
-  final bool cuotaSindicalAtsa;
-  final bool manejoEfectivoCaja;
-  final int horasNocturnas;
-  final String? codigoRnos;
-  final int cantidadFamiliares;
-  final String? cbu;
-  final String? domicilio;
-  final String? localidad;
-  final String? codigoPostal;
-  final String? codigoModalidad;
-  final String? codigoSituacion;
-
-  const SanidadEmpleado({
-    required this.cuil,
-    required this.nombre,
-    this.puesto,
-    required this.fechaIngreso,
-    required this.categoria,
-    this.nivelTitulo = NivelTituloSanidad.sinTitulo,
-    this.tareaCriticaRiesgo = false,
-    this.cuotaSindicalAtsa = false,
-    this.manejoEfectivoCaja = false,
-    this.horasNocturnas = 0,
-    this.codigoRnos,
-    this.cantidadFamiliares = 0,
-    this.cbu,
-    this.domicilio,
-    this.localidad,
-    this.codigoPostal,
-    this.codigoModalidad,
-    this.codigoSituacion,
-  });
-
-  factory SanidadEmpleado.fromMap(Map<String, dynamic> map) {
-    return SanidadEmpleado(
-      cuil: map['cuil']?.toString() ?? map['cuit']?.toString() ?? '',
-      nombre: map['nombre']?.toString() ?? '',
-      puesto: map['puesto']?.toString(),
-      fechaIngreso: map['fechaIngreso'] != null ? DateTime.parse(map['fechaIngreso']) : DateTime.now(),
-      categoria: CategoriaSanidad.values.firstWhere((e) => e.name == map['categoria'], orElse: () => CategoriaSanidad.servicios),
-      nivelTitulo: NivelTituloSanidad.values.firstWhere((e) => e.name == map['nivelTitulo'], orElse: () => NivelTituloSanidad.sinTitulo),
-      tareaCriticaRiesgo: map['tareaCriticaRiesgo'] == true,
-      cuotaSindicalAtsa: map['cuotaSindicalAtsa'] == true,
-      manejoEfectivoCaja: map['manejoEfectivoCaja'] == true,
-      horasNocturnas: map['horasNocturnas'] ?? 0,
-      codigoRnos: map['codigoRnos']?.toString(),
-      cantidadFamiliares: map['cantidadFamiliares'] ?? 0,
-      cbu: map['cbu']?.toString(),
-      domicilio: map['domicilio']?.toString(),
-      localidad: map['localidad']?.toString(),
-      codigoPostal: map['codigoPostal']?.toString(),
-      codigoModalidad: map['codigoModalidad']?.toString(),
-      codigoSituacion: map['codigoSituacion']?.toString(),
-    );
-  }
-
-  Map<String, dynamic> toMap() => {
-    'cuil': cuil,
-    'nombre': nombre,
-    'puesto': puesto,
-    'fechaIngreso': fechaIngreso.toIso8601String(),
-    'categoria': categoria.name,
-    'nivelTitulo': nivelTitulo.name,
-    'tareaCriticaRiesgo': tareaCriticaRiesgo,
-    'cuotaSindicalAtsa': cuotaSindicalAtsa,
-    'manejoEfectivoCaja': manejoEfectivoCaja,
-    'horasNocturnas': horasNocturnas,
-    'codigoRnos': codigoRnos,
-    'cantidadFamiliares': cantidadFamiliares,
-    'cbu': cbu,
-    'domicilio': domicilio,
-    'localidad': localidad,
-    'codigoPostal': codigoPostal,
-    'codigoModalidad': codigoModalidad,
-    'codigoSituacion': codigoSituacion,
-  };
-}
 
 enum _WizardStep { welcome, selectCompany, manageCompanies, selectEmployee, fillData }
 
 class SanidadInterfaceScreen extends StatefulWidget {
-  final SanidadEmpresa? initialEmpresa;
+  final Map<String, String>? initialEmpresa;
   final OcrConfirmResult? initialOcrResult;
 
   const SanidadInterfaceScreen({super.key, this.initialEmpresa, this.initialOcrResult});
@@ -198,28 +42,22 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   String _wizardTitle = "Liquidador Sanidad (CCT 122/75)";
   Timer? _debounce;
   bool _isSaving = false;
-  SanidadEmpresa? _editingCompany;
+  Map<String, String>? _editingCompany;
   bool _exportandoMasivo = false;
 
   // --- Estado de Datos: Empresa y Empleado ---
-  SanidadEmpresa? _empresa;
-  SanidadEmpleado? _empleado;
-  List<SanidadEmpresa> _listaEmpresas = [];
-  List<SanidadEmpleado> _listaEmpleados = [];
+  Map<String, String>? _empresa;
+  EmpleadoSanidadCompleto? _empleado;
+  List<Map<String, String>> _listaEmpresas = [];
+  List<EmpleadoSanidadCompleto> _listaEmpleados = [];
   
   // --- Estado de Liquidación ---
   DateTime _periodoSeleccionado = DateTime.now();
-  DateTime _fechaPago = DateTime.now();
+  final DateTime _fechaPago = DateTime.now();
   ModoLiquidacionSanidad _modoLiquidacion = ModoLiquidacionSanidad.mensual;
   LiquidacionSanidadResult? _resultado;
   bool _calculando = false;
 
-  // === LIQUIDACIÓN FINAL ===
-  DateTime? _fechaEgreso;
-  String _motivoEgreso = 'renuncia';
-  bool _incluyePreaviso = false;
-  bool _incluyeIntegracionMes = false;
-  
   // --- Controladores Empresa ---
   final _razonSocialController = TextEditingController();
   final _cuitController = TextEditingController();
@@ -252,26 +90,13 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   bool _tareaCriticaRiesgo = false;
   bool _cuotaSindicalAtsa = false;
   bool _manejoEfectivoCaja = false;
-  String _modalidadContratacion = '008'; // Tiempo indeterminado
-  String _situacionRevista = '01';       // Activo
-  Jurisdiccion _jurisdiccion = Jurisdiccion.buenosAires;
-
-  bool get _esZonaPatagonica =>
-      [Jurisdiccion.rioNegro, Jurisdiccion.neuquen, Jurisdiccion.chubut, Jurisdiccion.santaCruz, Jurisdiccion.tierraDelFuego].contains(_jurisdiccion);
+  ModalidadContratacion _modalidadContratacion = ModalidadContratacion.permanente;
+  SituacionRevista _situacionRevista = SituacionRevista.activo;
+  String _jurisdiccion = 'buenosAires';
   
-  // --- Paritarias ---
-  List<ParitariaSanidad> _paritariasMaestras = [];
-  bool _maestroLoading = false;
-  bool _savingMaestro = false;
-  DateTime? _ultimaSincronizacion;
-  String _modoSincronizacion = '';
-  
-  Cct? _convenio;
-
   @override
   void initState() {
     super.initState();
-    _cargarParitarias();
     _setupDebouncedRecalculation();
 
     if (widget.initialEmpresa != null) {
@@ -343,6 +168,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
           break;
         case _WizardStep.manageCompanies:
           _wizardTitle = "Gestión de Empresas";
+          _cargarEmpresas();
           break;
         case _WizardStep.selectEmployee:
           _wizardTitle = "Paso 2: Seleccione Empleado";
@@ -368,13 +194,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
         _goToStep(_WizardStep.selectCompany);
         break;
       case _WizardStep.fillData:
-        if (_empleado != null) {
-          _goToStep(_WizardStep.selectEmployee);
-        } else if (_empresa != null) {
-           _goToStep(_WizardStep.selectEmployee);
-        } else {
-          _goToStep(_WizardStep.selectCompany);
-        }
+        _goToStep(_WizardStep.selectEmployee);
         break;
       default:
         _goToStep(_WizardStep.welcome);
@@ -384,8 +204,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _convenio = Provider.of<CctProvider>(context).getConvenio('sanidad-122-75');
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -396,12 +214,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             : null,
         title: Text(_wizardTitle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
-          if (_currentStep != _WizardStep.welcome)
-            IconButton(
-              icon: const Icon(Icons.settings, color: Colors.tealAccent),
-              tooltip: 'Ajustes Locales (Paritarias)',
-              onPressed: _handleAbrirMaestro,
-            ),
           AppHelp.buildHelpButton(context, 'SanidadInterfaceScreen'),
         ],
       ),
@@ -495,7 +307,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
           children: [
             const Text("Asistente de Liquidación de Sanidad", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             const SizedBox(height: 16),
-            Text("Herramienta para liquidar sueldos bajo el CCT 122/75 y otros convenios de Sanidad.", textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
+            const Text("Herramienta para liquidar sueldos bajo el CCT 122/75 y otros convenios de Sanidad.", textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
             const SizedBox(height: 40),
             _buildWelcomeOption(
               icon: Icons.calculate_outlined,
@@ -509,7 +321,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               icon: Icons.settings,
               title: "Editor de Escalas Salariales",
               subtitle: "Ajuste los básicos y adicionales por provincia.",
-              onTap: _handleAbrirMaestro,
+              onTap: () { /* Navegar a editor paritarias */ },
             ),
             const SizedBox(height: 16),
             _buildWelcomeOption(
@@ -525,8 +337,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               subtitle: "Use el scanner para pre-cargar datos desde un recibo existente.",
               onTap: _abrirEscanerRecibo,
             ),
-             const SizedBox(height: 24),
-            _buildBannerSincronizacion(),
           ],
         ),
       ),
@@ -566,18 +376,18 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
 
   // === PASO 1: EMPRESAS ===
   Future<void> _cargarEmpresas() async {
-    final companies = await SanidadCompanyService.getCompanies();
+    final companies = await HybridStore.getEmpresas();
     if (mounted) {
       setState(() {
-        _listaEmpresas = companies.map((e) => SanidadEmpresa.fromMap(e)).toList();
+        _listaEmpresas = companies;
       });
     }
   }
 
-  void _seleccionarEmpresa(SanidadEmpresa empresa) {
+  void _seleccionarEmpresa(Map<String, String> empresa) {
     setState(() {
       _empresa = empresa;
-      _jurisdiccion = empresa.jurisdiccion ?? Jurisdiccion.buenosAires;
+      _jurisdiccion = empresa['jurisdiccion'] ?? 'buenosAires';
     });
     _goToStep(_WizardStep.selectEmployee);
   }
@@ -611,8 +421,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListTile(
-              title: Text(emp.razonSocial, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text("CUIT: ${emp.cuit}", style: const TextStyle(color: AppColors.textSecondary)),
+              title: Text(emp['razonSocial'] ?? 'Sin nombre', style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("CUIT: ${emp['cuit'] ?? 'N/A'}", style: const TextStyle(color: AppColors.textSecondary)),
               onTap: () => _seleccionarEmpresa(emp),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textMuted),
             ),
@@ -645,13 +455,13 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               elevation: 1,
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
-                title: Text(emp.razonSocial),
-                subtitle: Text(emp.cuit),
+                title: Text(emp['razonSocial'] ?? ''),
+                subtitle: Text(emp['cuit'] ?? ''),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(icon: const Icon(Icons.edit, size: 20, color: AppColors.accentBlue), onPressed: () => _editCompany(emp)),
-                    IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.accentRed), onPressed: () => _deleteCompany(emp.cuit)),
+                    IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.accentRed), onPressed: () => _deleteCompany(emp['cuit'] ?? '')),
                   ],
                 ),
               ),
@@ -674,14 +484,14 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             TextField(controller: _razonSocialController, decoration: const InputDecoration(labelText: 'Razón Social')),
             TextField(controller: _cuitController, decoration: const InputDecoration(labelText: 'CUIT')),
             TextField(controller: _domicilioController, decoration: const InputDecoration(labelText: 'Domicilio Legal')),
-            DropdownButtonFormField<Jurisdiccion>(
-              value: _editingCompany?.jurisdiccion ?? Jurisdiccion.buenosAires,
+            DropdownButtonFormField<String>(
+              initialValue: _jurisdiccion,
               decoration: const InputDecoration(labelText: 'Jurisdicción'),
-              items: Jurisdiccion.values.map((j) => DropdownMenuItem(value: j, child: Text(j.name))).toList(),
+              items: SanidadParitariasService.jurisdicciones.map((j) => DropdownMenuItem(value: j['key'], child: Text(j['nombre'] ?? ''))).toList(),
               onChanged: (val) {
-                if (val != null && _editingCompany != null) {
+                if (val != null) {
                   setState(() {
-                    _editingCompany = _editingCompany!.copyWith(jurisdiccion: val);
+                    _jurisdiccion = val;
                   });
                 }
               },
@@ -708,10 +518,10 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   // === PASO 2: EMPLEADOS ===
   Future<void> _cargarEmpleados() async {
     if (_empresa == null) return;
-    final employees = await SanidadEmpleadoService.getEmployees(_empresa!.cuit);
+    final employees = await HybridStore.getLegajosSanidad(_empresa!['cuit'] ?? '');
     if (mounted) {
       setState(() {
-        _listaEmpleados = employees.map((e) => SanidadEmpleado.fromMap(e)).toList();
+        _listaEmpleados = employees.map((e) => EmpleadoSanidadCompleto.fromMap(e)).toList();
       });
     }
   }
@@ -720,7 +530,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       children: [
-        Center(child: Text("Empleados de: ${_empresa?.razonSocial ?? 'N/A'}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold))),
+        Center(child: Text("Empleados de: ${_empresa?['razonSocial'] ?? 'N/A'}", style: const TextStyle(color: AppColors.textSecondary, fontSize: 16, fontWeight: FontWeight.bold))),
         const SizedBox(height: 20),
         
         FilledButton.icon(
@@ -827,8 +637,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                 prefixIcon: const Icon(Icons.badge_outlined),
                 suffixIcon: _cuilController.text.isNotEmpty 
                     ? Icon(
-                        ValidacionesARCA.validarCUITCUIL(_cuilController.text) ? Icons.check_circle : Icons.error,
-                        color: ValidacionesARCA.validarCUITCUIL(_cuilController.text) ? Colors.green : Colors.red,
+                        validarCUITCUIL(_cuilController.text) ? Icons.check_circle : Icons.error,
+                        color: validarCUITCUIL(_cuilController.text) ? Colors.green : Colors.red,
                         size: 20,
                       )
                     : null,
@@ -855,9 +665,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               },
             ),
             DropdownButtonFormField<CategoriaSanidad>(
-              value: _categoria,
+              initialValue: _categoria,
               decoration: const InputDecoration(labelText: 'Categoría', prefixIcon: Icon(Icons.work_outline)),
-              items: CategoriaSanidad.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name))).toList(), // Simplificado
+              items: CategoriaSanidad.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name))).toList(),
               onChanged: (v) {
                 if (v != null) {
                   setState(() => _categoria = v);
@@ -866,7 +676,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
               },
             ),
             DropdownButtonFormField<NivelTituloSanidad>(
-              value: _nivelTitulo,
+              initialValue: _nivelTitulo,
               decoration: const InputDecoration(labelText: 'Nivel de Título', prefixIcon: Icon(Icons.school_outlined)),
               items: NivelTituloSanidad.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name))).toList(),
               onChanged: (v) {
@@ -926,8 +736,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                       TextField(controller: _codigoPostalController, decoration: const InputDecoration(labelText: 'Código Postal', prefixIcon: Icon(Icons.pin_drop)), keyboardType: TextInputType.number),
                       TextField(controller: _codigoRnosController, decoration: const InputDecoration(labelText: 'Código RNOS (Obra Social)'), keyboardType: TextInputType.number),
                       TextField(controller: _cantidadFamiliaresController, decoration: const InputDecoration(labelText: 'Cantidad de familiares a cargo'), keyboardType: TextInputType.number),
-                      DropdownButtonFormField<String>(value: _modalidadContratacion, decoration: const InputDecoration(labelText: 'Modalidad Contratación'), items: const [DropdownMenuItem(value: '008', child: Text('Tiempo Indeterminado')), /* ...otros... */], onChanged: (v) => setState(() => _modalidadContratacion = v ?? '008')),
-                      DropdownButtonFormField<String>(value: _situacionRevista, decoration: const InputDecoration(labelText: 'Situación Revista'), items: const [DropdownMenuItem(value: '01', child: Text('Activo')), /* ...otros... */], onChanged: (v) => setState(() => _situacionRevista = v ?? '01')),
+                      DropdownButtonFormField<ModalidadContratacion>(initialValue: _modalidadContratacion, decoration: const InputDecoration(labelText: 'Modalidad Contratación'), items: ModalidadContratacion.values.map((m) => DropdownMenuItem(value: m, child: Text(CodigosModalidadAFIP.descripcion(m)))).toList(), onChanged: (v) => setState(() => _modalidadContratacion = v ?? ModalidadContratacion.permanente)),
+                      DropdownButtonFormField<SituacionRevista>(initialValue: _situacionRevista, decoration: const InputDecoration(labelText: 'Situación Revista'), items: SituacionRevista.values.map((s) => DropdownMenuItem(value: s, child: Text(CodigosSituacionAFIP.descripcion(s)))).toList(), onChanged: (v) => setState(() => _situacionRevista = v ?? SituacionRevista.activo)),
                     ],
                   ),
                 ),
@@ -1022,21 +832,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
   // === AUXILIARES DE UI ===
-  Widget _buildBannerSincronizacion() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.withValues(alpha: 0.3))),
-      child: Row(
-        children: [
-          const Icon(Icons.sync, color: Colors.amber),
-          const SizedBox(width: 12),
-          const Expanded(child: Text("Las paritarias se sincronizan automáticamente con la nube.", style: TextStyle(fontSize: 12))),
-          TextButton(onPressed: _cargarParitarias, child: const Text("Sincronizar")),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSelectorPeriodoYModo() {
     return Row(
       children: [
@@ -1045,7 +840,6 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             title: const Text('Período'),
             subtitle: Text(DateFormat('MMMM yyyy').format(_periodoSeleccionado)),
             onTap: () async {
-              // Selector de mes/año simplificado
               final d = await showDatePicker(context: context, initialDate: _periodoSeleccionado, firstDate: DateTime(2020), lastDate: DateTime(2100));
               if (d != null) {
                 setState(() => _periodoSeleccionado = d);
@@ -1056,12 +850,12 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
         ),
         Expanded(
           child: DropdownButtonFormField<ModoLiquidacionSanidad>(
-            value: _modoLiquidacion,
+            initialValue: _modoLiquidacion,
             items: const [
               DropdownMenuItem(value: ModoLiquidacionSanidad.mensual, child: Text('Mensual')),
-              DropdownMenuItem(value: ModoLiquidacionSanidad.quincenal1, child: Text('1era Quincena')),
-              DropdownMenuItem(value: ModoLiquidacionSanidad.quincenal2, child: Text('2da Quincena')),
-              DropdownMenuItem(value: ModoLiquidacionSanidad.finalDirecta, child: Text('Final')),
+              DropdownMenuItem(value: ModoLiquidacionSanidad.sac, child: Text('Aguinaldo (SAC)')),
+              DropdownMenuItem(value: ModoLiquidacionSanidad.vacaciones, child: Text('Vacaciones')),
+              DropdownMenuItem(value: ModoLiquidacionSanidad.liquidacionFinal, child: Text('Liquidación Final')),
             ],
             onChanged: (v) {
               if (v != null) {
@@ -1076,26 +870,10 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
   // === LÓGICA DE NEGOCIO ===
-  Future<void> _cargarParitarias() async {
-    setState(() => _maestroLoading = true);
-    try {
-      final paritarias = await SanidadParitariasService.getParitarias();
-      if (mounted) {
-        setState(() {
-          _paritariasMaestras = paritarias;
-          _maestroLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _maestroLoading = false);
-    }
-  }
-
   void _recalcular() {
     if (_calculando) return;
     setState(() => _calculando = true);
     
-    // Simular retraso para UX
     Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
       
@@ -1105,9 +883,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
         fechaIngreso: _fechaIngreso,
         categoria: _categoria,
         nivelTitulo: _nivelTitulo,
-        jurisdiccion: _jurisdiccion,
         tareaCriticaRiesgo: _tareaCriticaRiesgo,
-        cuotaSindicalAtsa: _cuotaSindicalAtsa,
+        aplicarCuotaSindicalAtsa: _cuotaSindicalAtsa,
         manejoEfectivoCaja: _manejoEfectivoCaja,
         horasNocturnas: int.tryParse(_horasNocturnasController.text) ?? 0,
         horasExtras50: double.tryParse(_horasExtras50Controller.text) ?? 0,
@@ -1115,13 +892,25 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
         adelantos: double.tryParse(_adelantosController.text) ?? 0,
         embargos: double.tryParse(_embargosController.text) ?? 0,
         prestamos: double.tryParse(_prestamosController.text) ?? 0,
-        mejorRemuneracionSemestral: double.tryParse(_mejorRemuneracionController.text),
-        diasSAC: int.tryParse(_diasSACController.text) ?? 180,
-        diasVacaciones: int.tryParse(_diasVacacionesController.text) ?? 14,
+        mejorRemuneracion: double.tryParse(_mejorRemuneracionController.text),
+        diasSACProporcional: int.tryParse(_diasSACController.text) ?? 180,
+        diasVacacionesNoGozadas: int.tryParse(_diasVacacionesController.text) ?? 14,
         codigoRnos: _codigoRnosController.text,
+        cbu: _cbuController.text,
+        localidad: _localidadController.text,
+        codigoPostal: _codigoPostalController.text,
+        domicilioEmpleado: _domicilioEmpleadoController.text,
+        codigoModalidad: CodigosModalidadAFIP.obtenerCodigo(_modalidadContratacion),
+        codigoSituacion: CodigosSituacionAFIP.obtenerCodigo(_situacionRevista),
       );
 
-      final res = SanidadOmniEngine.liquidar(input, _paritariasMaestras, _periodoSeleccionado, _modoLiquidacion);
+      final res = SanidadOmniEngine.liquidar(
+        input,
+        periodo: DateFormat('yyyyMM').format(_periodoSeleccionado),
+        fechaPago: DateFormat('dd/MM/yyyy').format(_fechaPago),
+        jurisdiccion: _jurisdiccion,
+        modo: _modoLiquidacion,
+      );
       
       setState(() {
         _resultado = res;
@@ -1130,13 +919,15 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     });
   }
 
-  void _editCompany(SanidadEmpresa emp) {
+  void _editCompany(Map<String, String> emp) {
     setState(() {
       _editingCompany = emp;
-      _razonSocialController.text = emp.razonSocial;
-      _cuitController.text = emp.cuit;
-      _domicilioController.text = emp.domicilio ?? '';
+      _razonSocialController.text = emp['razonSocial'] ?? '';
+      _cuitController.text = emp['cuit'] ?? '';
+      _domicilioController.text = emp['domicilio'] ?? '';
+      _jurisdiccion = emp['jurisdiccion'] ?? 'buenosAires';
     });
+    _goToStep(_WizardStep.manageCompanies);
   }
 
   Future<void> _saveCompany() async {
@@ -1147,22 +938,30 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       'razonSocial': _razonSocialController.text,
       'cuit': _cuitController.text,
       'domicilio': _domicilioController.text,
-      'jurisdiccion': (_editingCompany?.jurisdiccion ?? Jurisdiccion.buenosAires).name,
+      'jurisdiccion': _jurisdiccion,
     };
 
-    if (_editingCompany == null) {
-      await SanidadCompanyService.saveCompany(companyData);
+    final list = await HybridStore.getEmpresas();
+    final cuitLimpio = _cuitController.text.replaceAll(RegExp(r'[^\d]'), '');
+    final i = list.indexWhere((e) => (e['cuit'] ?? '').replaceAll(RegExp(r'[^\d]'), '') == cuitLimpio);
+    
+    if (i >= 0) {
+      list[i] = companyData;
     } else {
-      await SanidadCompanyService.updateCompany(_editingCompany!.cuit, companyData);
+      list.add(companyData);
     }
 
+    await HybridStore.saveEmpresas(list);
     await _cargarEmpresas();
     _clearCompanyForm();
     setState(() => _isSaving = false);
+    _goToStep(_WizardStep.selectCompany);
   }
 
   Future<void> _deleteCompany(String cuit) async {
-    await SanidadCompanyService.deleteCompany(cuit);
+    final list = await HybridStore.getEmpresas();
+    list.removeWhere((e) => e['cuit'] == cuit);
+    await HybridStore.saveEmpresas(list);
     await _cargarEmpresas();
   }
 
@@ -1172,15 +971,16 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       _razonSocialController.clear();
       _cuitController.clear();
       _domicilioController.clear();
+      _jurisdiccion = 'buenosAires';
     });
   }
 
-  void _seleccionarEmpleado(SanidadEmpleado emp) {
+  void _seleccionarEmpleado(EmpleadoSanidadCompleto emp) {
     setState(() {
       _empleado = emp;
       _nombreController.text = emp.nombre;
       _cuilController.text = emp.cuil;
-      _puestoController.text = emp.puesto ?? '';
+      _puestoController.text = emp.codigoPuesto ?? '';
       _fechaIngreso = emp.fechaIngreso;
       _categoria = emp.categoria;
       _nivelTitulo = emp.nivelTitulo;
@@ -1194,8 +994,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       _domicilioEmpleadoController.text = emp.domicilio ?? '';
       _localidadController.text = emp.localidad ?? '';
       _codigoPostalController.text = emp.codigoPostal ?? '';
-      _modalidadContratacion = emp.codigoModalidad ?? '008';
-      _situacionRevista = emp.codigoSituacion ?? '01';
+      _modalidadContratacion = emp.modalidadContratacion;
+      _situacionRevista = emp.situacionRevista;
     });
     _goToStep(_WizardStep.fillData);
   }
@@ -1219,6 +1019,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       _domicilioEmpleadoController.clear();
       _localidadController.clear();
       _codigoPostalController.clear();
+      _modalidadContratacion = ModalidadContratacion.permanente;
+      _situacionRevista = SituacionRevista.activo;
     });
     _goToStep(_WizardStep.fillData);
   }
@@ -1226,10 +1028,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   Future<void> _saveEmployee() async {
     if (_empresa == null || _nombreController.text.isEmpty || _cuilController.text.isEmpty) return;
     
-    final employeeData = SanidadEmpleado(
+    final employeeData = EmpleadoSanidadCompleto(
       cuil: _cuilController.text,
       nombre: _nombreController.text,
-      puesto: _puestoController.text,
       fechaIngreso: _fechaIngreso,
       categoria: _categoria,
       nivelTitulo: _nivelTitulo,
@@ -1243,15 +1044,11 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       domicilio: _domicilioEmpleadoController.text,
       localidad: _localidadController.text,
       codigoPostal: _codigoPostalController.text,
-      codigoModalidad: _modalidadContratacion,
-      codigoSituacion: _situacionRevista,
+      modalidadContratacion: _modalidadContratacion,
+      situacionRevista: _situacionRevista,
     ).toMap();
 
-    if (_empleado == null) {
-      await SanidadEmpleadoService.saveEmployee(_empresa!.cuit, employeeData);
-    } else {
-      await SanidadEmpleadoService.updateEmployee(_empresa!.cuit, _empleado!.cuil, employeeData);
-    }
+    await HybridStore.saveLegajoSanidad(_empresa!['cuit'] ?? '', employeeData);
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Legajo guardado correctamente'), backgroundColor: Colors.green));
     await _cargarEmpleados();
@@ -1271,7 +1068,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       ),
     );
     if (confirm == true) {
-      await SanidadEmpleadoService.deleteEmployee(_empresa!.cuit, _empleado!.cuil);
+      await HybridStore.removeLegajoSanidad(_empresa!['cuit'] ?? '', _empleado!.cuil);
       await _cargarEmpleados();
       _crearNuevoEmpleado();
       _goToStep(_WizardStep.selectEmployee);
@@ -1282,14 +1079,14 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   Future<void> _exportarLsd() async {
     if (_resultado == null || _empresa == null) return;
     try {
-      final txt = await sanidadToLsdTxt(
+      final txt = await sanidadOmniToLsdTxt(
         liquidacion: _resultado!,
-        cuitEmpresa: _empresa!.cuit,
-        razonSocial: _empresa!.razonSocial,
-        domicilio: _empresa!.domicilio ?? '',
+        cuitEmpresa: _empresa!['cuit'] ?? '',
+        razonSocial: _empresa!['razonSocial'] ?? '',
+        domicilio: _empresa!['domicilio'] ?? '',
       );
       final nombreArchivo = 'lsd_sanidad_${_resultado!.input.cuil}_${DateFormat('yyyyMM').format(_periodoSeleccionado)}.txt';
-      await saveFile(fileName: nombreArchivo, bytes: latin1.encode(txt), mimeType: 'text/plain');
+      await saveFile(fileName: nombreArchivo, bytes: utf8.encode(txt), mimeType: 'text/plain');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('LSD generado: $nombreArchivo'), backgroundColor: Colors.green));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al exportar LSD: $e'), backgroundColor: Colors.red));
@@ -1302,9 +1099,9 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       final path = await _pdfService.generarReciboPdf(
         liquidacion: _resultado!,
         empresaData: {
-          'cuit': _empresa!.cuit,
-          'razonSocial': _empresa!.razonSocial,
-          'domicilio': _empresa!.domicilio ?? '',
+          'cuit': _empresa!['cuit'] ?? '',
+          'razonSocial': _empresa!['razonSocial'] ?? '',
+          'domicilio': _empresa!['domicilio'] ?? '',
         },
         empleadoData: {
           'nombre': _resultado!.input.nombre,
@@ -1326,15 +1123,11 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
   Future<void> _exportarLsdMasivo() async {
-     // Implementación pendiente o delegada a servicio
+     // Implementación pendiente
   }
 
   Future<void> _generarPackARCA() async {
-     // Implementación pendiente o delegada a servicio
-  }
-
-  void _handleAbrirMaestro() {
-    // Implementar navegación a editor de paritarias
+     // Implementación pendiente
   }
 
   void _abrirEscanerRecibo() {

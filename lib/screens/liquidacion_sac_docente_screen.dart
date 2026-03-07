@@ -616,6 +616,7 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
       // Registro 2: Datos Referenciales
       final reg2Ref = LSDGenerator.generateRegistro2DatosReferenciales(
         cuilEmpleado: cuil,
+        legajo: _legajoSeleccionado!['legajo']?.toString() ?? '1',
         diasBase: 30,
       );
       
@@ -636,6 +637,7 @@ class _LiquidacionSacDocenteScreenState extends State<LiquidacionSacDocenteScree
       final reg5 = LSDGenerator.generateRegistro5DatosComplementarios(
         cuilEmpleado: cuil,
         codigoRnos: '115404',
+        cantidadFamiliares: int.tryParse(_legajoSeleccionado!['cantidadFamiliares']?.toString() ?? '0') ?? 0,
       );
 
       final sb = StringBuffer();
