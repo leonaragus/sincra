@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/web_auth_service.dart';
 import '../config/app_modules.dart';
 import '../services/auth_service.dart';
+import 'web_login_screen.dart' show isAdminBypass; // Importamos el bypass de admin
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -52,6 +53,15 @@ class HomeScreenState extends State<HomeScreen> {
   /// Esto incluye el estado de la suscripción, la prueba y el rol.
   /// Es la ÚNICA fuente de verdad para construir la UI.
   Future<Map<String, dynamic>> _loadInitialData() async {
+    // Si estamos en bypass de admin, devolvemos un estado de acceso total inmediatamente.
+    if (isAdminBypass) {
+      return {
+        'isSubscribed': true,
+        'isTrialActive': true,
+        'userRole': UserRole.professional,
+      };
+    }
+
     // Se ejecutan en paralelo para máxima eficiencia
     final results = await Future.wait([
       SubscriptionService.isSubscribed(),
