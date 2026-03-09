@@ -539,69 +539,40 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
   }
 
   void _mostrarElegirInstitucionParaLegajo() {
-    showModalBottomSheet<void>(
+    showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
-        decoration: BoxDecoration(
-          color: AppColors.backgroundLight,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        '¿A cuál institución deseas añadir el empleado?',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                      ),
-                    ),
-                    IconButton(icon: const Icon(Icons.close, color: AppColors.textPrimary), onPressed: () => Navigator.pop(ctx)),
-                  ],
-                ),
+      backgroundColor: AppColors.backgroundLight,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Seleccionar Institución', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _instituciones.length,
+                itemBuilder: (context, i) {
+                  final inst = _instituciones[i];
+                  final cuit = (inst['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
+                  final razon = inst['razonSocial']?.toString() ?? cuit;
+                  return ListTile(
+                    leading: const Icon(Icons.business, color: AppColors.pastelBlue),
+                    title: Text(razon, style: const TextStyle(color: AppColors.textPrimary)),
+                    subtitle: Text('CUIT: $cuit', style: const TextStyle(color: AppColors.textSecondary)),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Navigator.push(context, MaterialPageRoute(builder: (c) => ListaLegajosDocenteScreen(cuit: cuit, razonSocial: razon)));
+                      if (mounted) await _cargarInstituciones();
+                    },
+                  );
+                },
               ),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  itemCount: _instituciones.length,
-                  itemBuilder: (_, i) {
-                    final e = _instituciones[i];
-                    final cuit = (e['cuit']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), '');
-                    final razon = e['razonSocial']?.toString() ?? cuit;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.glassFill,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.glassBorder),
-                      ),
-                      child: ListTile(
-                        leading: const CircleAvatar(backgroundColor: AppColors.glassFillStrong, child: Icon(Icons.business, color: AppColors.textSecondary)),
-                        title: Text(razon, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: Text('CUIT: ${e['cuit'] ?? ''}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                        trailing: const Text('Añadir empleado aquí', style: TextStyle(fontSize: 12, color: AppColors.pastelBlue)),
-                        onTap: () async {
-                          Navigator.pop(ctx);
-                          await Navigator.push(context, MaterialPageRoute(builder: (c) => ListaLegajosDocenteScreen(cuit: cuit, razonSocial: razon)));
-                          if (mounted) await _cargarInstituciones();
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
