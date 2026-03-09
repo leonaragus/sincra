@@ -71,7 +71,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
               color: AppColors.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 5),
                 ),
@@ -99,6 +99,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _searchController,
+                  style: const TextStyle(color: AppColors.textPrimary), // FIX: Letras visibles al escribir
                   onChanged: (value) {
                     setState(() {
                       _filtroTexto = value;
@@ -106,10 +107,11 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                   },
                   decoration: InputDecoration(
                     hintText: 'Buscar por puesto, tarea o convenio...',
-                    prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                    hintStyle: TextStyle(color: AppColors.textMuted),
+                    prefixIcon: const Icon(Icons.search, color: AppColors.accentBlue),
                     suffixIcon: _filtroTexto.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: const Icon(Icons.clear, color: AppColors.textSecondary),
                             onPressed: () {
                               _searchController.clear();
                               setState(() {
@@ -119,10 +121,18 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: AppColors.backgroundLight, // FIX: Fondo que combine con el sistema
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.border.withOpacity(0.5)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.accentBlue, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
@@ -130,13 +140,20 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _filtroConvenioId,
+                  dropdownColor: AppColors.backgroundLight,
+                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Filtrar por Convenio (Opcional)',
+                    labelStyle: TextStyle(color: AppColors.textSecondary),
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: AppColors.backgroundLight,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.border.withOpacity(0.5)),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
@@ -170,7 +187,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                        Icon(Icons.search_off, size: 64, color: AppColors.textMuted.withOpacity(0.3)),
                         const SizedBox(height: 16),
                         Text(
                           'No se encontraron categorías',
@@ -199,8 +216,9 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                       final CategoriaCCT cat = item['categoria'];
                       
                       return Card(
+                        color: AppColors.backgroundCard,
                         margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 2,
+                        elevation: 4,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         child: InkWell(
                           onTap: () {
@@ -217,7 +235,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primary.withOpacity(0.1),
+                                        color: AppColors.accentBlue.withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -225,7 +243,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                                         style: GoogleFonts.inter(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
-                                          color: AppColors.primary,
+                                          color: AppColors.accentBlue,
                                         ),
                                       ),
                                     ),
@@ -257,7 +275,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
                                   style: GoogleFonts.inter(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.green.shade700,
+                                    color: AppColors.success,
                                   ),
                                 ),
                                 if (cat.descripcion != null) ...[
@@ -288,52 +306,45 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
 
   void _showHelpDialog(BuildContext context, String conceptTitle) {
     final concept = EducationalConceptsService.findExplanation(conceptTitle);
-    if (concept == null) {
-      // Fallback for concepts not yet in the service
-       if (conceptTitle == 'Sueldo Neto') {
-         showDialog(
-           context: context,
-           builder: (context) => AlertDialog(
-             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-             title: Row(
-               children: [
-                 Icon(Icons.help_outline, color: AppColors.primary.withOpacity(0.8)),
-                 const SizedBox(width: 10),
-                 Expanded(child: Text('Sueldo Neto o "de Bolsillo"', style: GoogleFonts.inter(fontWeight: FontWeight.bold))),
-               ],
-             ),
-             content: Text(
-               'Es la suma de dinero que efectivamente recibís en tu cuenta bancaria o en mano. Se calcula tomando tu sueldo bruto y restándole los descuentos obligatorios por ley, como los aportes a la jubilación, la obra social y el PAMI (Ley 19.032).',
-                style: GoogleFonts.inter(height: 1.4)
-              ),
-             actions: [
-               TextButton(
-                 onPressed: () => Navigator.of(context).pop(),
-                 child: const Text('Entendido'),
-               ),
-             ],
-           ),
-         );
-       }
-       return;
+    
+    // Contenido de ayuda específico si no se encuentra en el servicio
+    String title = conceptTitle;
+    String explanation = 'No hay información disponible para este concepto.';
+
+    if (concept != null) {
+      title = concept.title;
+      explanation = concept.explanation;
+    } else if (conceptTitle == 'Sueldo Neto') {
+      title = 'Sueldo Neto o "de Bolsillo"';
+      explanation = 'Es la suma de dinero que efectivamente recibís en tu cuenta bancaria o en mano. Se calcula tomando tu sueldo bruto y restándole los descuentos obligatorios por ley, como los aportes a la jubilación, la obra social y el PAMI (Ley 19.032).';
+    } else if (conceptTitle == 'Sueldo Básico') {
+      title = 'Sueldo Básico';
+      explanation = 'Es el salario mínimo fijado por convenio para tu categoría. Sobre este valor se calculan todos los adicionales (antigüedad, presentismo, etc.) y los descuentos de ley.';
+    } else if (conceptTitle == 'Adicional por Antigüedad') {
+      title = 'Adicional por Antigüedad';
+      explanation = 'Es un extra que se paga por cada año de servicio en la empresa. El porcentaje varía según cada convenio colectivo (CCT).';
+    } else if (conceptTitle == 'Adicional por Presentismo') {
+      title = 'Adicional por Presentismo';
+      explanation = 'Es un premio económico para los trabajadores que no tienen inasistencias injustificadas durante el mes.';
     }
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.backgroundCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.help_outline, color: AppColors.primary.withOpacity(0.8)),
-            const SizedBox(width: 10),
-            Expanded(child: Text(concept.title, style: GoogleFonts.inter(fontWeight: FontWeight.bold))),
+            const Icon(Icons.help_outline, color: AppColors.accentBlue, size: 28),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.textPrimary))),
           ],
         ),
-        content: Text(concept.explanation, style: GoogleFonts.inter(height: 1.4)),
+        content: Text(explanation, style: GoogleFonts.inter(height: 1.5, color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido'),
+            child: const Text('Entendido', style: TextStyle(color: AppColors.accentBlue, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -346,160 +357,164 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent, // FIX: Para usar el diseño de la app
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.8,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                cat.nombre,
-                style: GoogleFonts.inter(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.business, size: 16, color: AppColors.textSecondary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${cct.nombre} (CCT ${cct.numeroCCT})',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
-                      ),
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textMuted.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _buildInfoSection(
-                'Sueldo Básico Estimado',
-                currencyFormat.format(cat.salarioBase),
-                isPrice: true,
-                helpTopic: 'Sueldo Básico',
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
                 ),
-                child: Row(
+                const SizedBox(height: 24),
+                Text(
+                  cat.nombre,
+                  style: GoogleFonts.inter(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    Icon(Icons.info_outline, size: 20, color: Colors.blue.shade700),
-                    const SizedBox(width: 12),
+                    const Icon(Icons.business, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Este valor refleja la escala salarial vigente más reciente. Es la base sobre la que se calculan tus descuentos y adicionales.',
+                        '${cct.nombre} (CCT ${cct.numeroCCT})',
                         style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.blue.shade900,
-                          height: 1.3,
+                          fontSize: 16,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 24),
+                _buildInfoSection(
+                  'Sueldo Básico Estimado',
+                  currencyFormat.format(cat.salarioBase),
+                  isPrice: true,
+                  helpTopic: 'Sueldo Básico',
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 20, color: AppColors.accentBlue),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Este valor refleja la escala salarial vigente más reciente. Es la base sobre la que se calculan tus descuentos y adicionales.',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-              // --- SECCIÓN DE CÁLCULO NETO ---
-              _buildNetoEstimadoSection(cat, cct),
-              // --------------------------------
+                // --- SECCIÓN DE CÁLCULO NETO ---
+                _buildNetoEstimadoSection(cat, cct),
+                // --------------------------------
 
-              const SizedBox(height: 16),
-              if (cat.descripcion != null)
-                _buildInfoSection('Descripción de Tareas', cat.descripcion!),
-              const SizedBox(height: 16),
-              _buildInfoSection('Actividad', cct.actividad ?? 'No especificada'),
-              const SizedBox(height: 16),
-              _buildInfoSection('Fecha de Vigencia', DateFormat('MMMM yyyy', 'es_AR').format(cct.fechaVigencia)),
-              
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-              Text(
-                'Adicionales del Convenio',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (cct.adicionalAntiguedad > 0 || cct.porcentajeAntiguedadAnual > 0)
-                _buildAdicionalRow(
-                  'Antigüedad', 
-                  '${cct.porcentajeAntiguedadAnual}% por año',
-                  helpTopic: 'Adicional por Antigüedad',
-                ),
-              if (cct.adicionalPresentismo > 0)
-                _buildAdicionalRow(
-                  'Presentismo',
-                  '${cct.adicionalPresentismo}%',
-                  helpTopic: 'Adicional por Presentismo',
-                ),
-              
-              if (cct.zonas.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                if (cat.descripcion != null)
+                  _buildInfoSection('Descripción de Tareas', cat.descripcion!),
+                const SizedBox(height: 16),
+                _buildInfoSection('Actividad', cct.actividad ?? 'No especificada'),
+                const SizedBox(height: 16),
+                _buildInfoSection('Fecha de Vigencia', DateFormat('MMMM yyyy', 'es_AR').format(cct.fechaVigencia)),
+                
+                const SizedBox(height: 24),
+                const Divider(color: AppColors.border),
                 const SizedBox(height: 16),
                 Text(
-                  'Zonas Geográficas',
+                  'Adicionales del Convenio',
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                ...cct.zonas.map((z) => _buildAdicionalRow(
-                  z.nombre, 
-                  '+${z.adicionalPorcentaje}%${z.descripcion != null ? " (${z.descripcion})" : ""}'
-                )).toList(),
-              ],
-              
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 16),
+                if (cct.adicionalAntiguedad > 0 || cct.porcentajeAntiguedadAnual > 0)
+                  _buildAdicionalRow(
+                    'Antigüedad', 
+                    '${cct.porcentajeAntiguedadAnual}% por año',
+                    helpTopic: 'Adicional por Antigüedad',
+                  ),
+                if (cct.adicionalPresentismo > 0)
+                  _buildAdicionalRow(
+                    'Presentismo',
+                    '${cct.adicionalPresentismo}%',
+                    helpTopic: 'Adicional por Presentismo',
+                  ),
+                
+                if (cct.zonas.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Zonas Geográficas',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  child: const Text('Entendido'),
+                  const SizedBox(height: 8),
+                  ...cct.zonas.map((z) => _buildAdicionalRow(
+                    z.nombre, 
+                    '+${z.adicionalPorcentaje}%${z.descripcion != null ? " (${z.descripcion})" : ""}'
+                  )).toList(),
+                ],
+                
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Entendido', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -532,7 +547,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
-        const Divider(),
+        const Divider(color: AppColors.border),
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -546,11 +561,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            InkWell(
-              onTap: () => _showHelpDialog(context, 'Sueldo Neto'),
-              borderRadius: BorderRadius.circular(30),
-              child: const Icon(Icons.help_outline, size: 18, color: AppColors.textMuted),
-            ),
+            _buildHelpIcon('Sueldo Neto'),
           ],
         ),
         const SizedBox(height: 16),
@@ -560,7 +571,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
         
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: Divider(thickness: 1.5),
+          child: Divider(thickness: 1.5, color: AppColors.border),
         ),
 
         Row(
@@ -572,7 +583,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
             ),
             Text(
               currencyFormat.format(netoEstimado),
-              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.success),
             ),
           ],
         ),
@@ -581,20 +592,20 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.amber.shade50,
+            color: AppColors.warning.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber.shade200),
+            border: Border.all(color: AppColors.warning.withOpacity(0.3)),
           ),
           child: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, size: 20, color: Colors.amber.shade800),
+              const Icon(Icons.warning_amber_rounded, size: 20, color: AppColors.warning),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Cálculo aproximado sólo sobre el básico. No incluye adicionales (antigüedad, presentismo), horas extras, ni el impuesto a las ganancias.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.amber.shade900,
+                    color: AppColors.textSecondary,
                     height: 1.3,
                   ),
                 ),
@@ -620,7 +631,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
             '${isPositive ? '' : '- '}${format.format(amount)}',
             style: GoogleFonts.inter(
               fontSize: 14, 
-              color: isPositive ? Colors.green.shade700 : Colors.red.shade600,
+              color: isPositive ? AppColors.success : AppColors.error,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -646,11 +657,7 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
             ),
             if (helpTopic != null) ...[
               const SizedBox(width: 8),
-              InkWell(
-                onTap: () => _showHelpDialog(context, helpTopic),
-                borderRadius: BorderRadius.circular(30),
-                child: const Icon(Icons.help_outline, size: 18, color: AppColors.textMuted),
-              ),
+              _buildHelpIcon(helpTopic),
             ],
           ],
         ),
@@ -658,9 +665,9 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
         Text(
           content,
           style: GoogleFonts.inter(
-            fontSize: isPrice ? 24 : 16,
+            fontSize: isPrice ? 28 : 16,
             fontWeight: isPrice ? FontWeight.bold : FontWeight.normal,
-            color: isPrice ? Colors.green.shade700 : AppColors.textPrimary,
+            color: isPrice ? AppColors.success : AppColors.textPrimary,
           ),
         ),
       ],
@@ -669,38 +676,43 @@ class _BuscadorCategoriasScreenState extends State<BuscadorCategoriasScreen> {
 
   Widget _buildAdicionalRow(String label, String value, {String? helpTopic}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  color: AppColors.textPrimary,
+          Expanded(
+            child: Row(
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(color: AppColors.textSecondary),
                 ),
-              ),
-              if (helpTopic != null) ...[
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () => _showHelpDialog(context, helpTopic),
-                  borderRadius: BorderRadius.circular(30),
-                  child: const Icon(Icons.help_outline, size: 18, color: AppColors.textMuted),
-                ),
+                if (helpTopic != null) ...[
+                  const SizedBox(width: 8),
+                  _buildHelpIcon(helpTopic),
+                ],
               ],
-            ],
+            ),
           ),
           Text(
             value,
             style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHelpIcon(String topic) {
+    return InkWell(
+      onTap: () => _showHelpDialog(context, topic),
+      borderRadius: BorderRadius.circular(20),
+      child: const Icon(
+        Icons.help_outline,
+        size: 18,
+        color: AppColors.accentBlue, // FIX: Color de ayuda estandarizado
       ),
     );
   }
