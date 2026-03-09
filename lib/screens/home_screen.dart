@@ -85,6 +85,13 @@ class HomeScreenState extends State<HomeScreen> {
       if (selectedRole != null) {
         await SubscriptionService.setUserRole(selectedRole);
         userRole = selectedRole;
+        
+        // Si elige Profesional y la prueba terminó, redirigimos a planes
+        if (selectedRole == UserRole.professional && !isTrialActive && !isSubscribed) {
+           if (mounted) {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const PricingScreen()));
+           }
+        }
       }
     }
 

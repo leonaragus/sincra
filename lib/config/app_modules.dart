@@ -49,6 +49,7 @@ final List<ModuleInfo> appModules = [
     subtitle: 'Configura los datos de tu empresa',
     icon: Icons.business_center,
     iconColor: AppColors.accentBlue,
+    isPremium: true,
     buildRoute: (context) => const EmpresaScreen(),
   ),
   ModuleInfo(
