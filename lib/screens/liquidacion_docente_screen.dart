@@ -529,12 +529,20 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
       if (list is List) {
         for (final cp in list) {
           if (cp is Map) {
+            final descripcion = cp['descripcion']?.toString() ?? cp['nombre']?.toString() ?? 'Concepto Propio';
+            final codigo = cp['codigo']?.toString() ?? (cp['nombre']?.toString() ?? 'CP').toUpperCase().replaceAll(' ', '_');
+            final monto = (cp['monto'] as num?)?.toDouble() ?? 0.0;
+            final naturaleza = cp['naturaleza']?.toString() ?? 'remunerativo';
+            final esRem = naturaleza != 'descuento' && naturaleza != 'no_remunerativo';
+            final esBonificable = cp['esBonificable'] is bool ? cp['esBonificable'] as bool : false;
+            final codigoAfip = cp['codigoAfipArca']?.toString() ?? '011000';
             _conceptosPropios.add(ConceptoPropioOmni(
-              nombre: cp['nombre']?.toString() ?? '',
-              monto: (cp['monto'] as num?)?.toDouble() ?? 0.0,
-              tipo: cp['tipo']?.toString() ?? 'sumaFija',
-              naturaleza: cp['naturaleza']?.toString() ?? 'remunerativo',
-              codigoAfipArca: cp['codigoAfipArca']?.toString() ?? '011000',
+              codigo: codigo,
+              descripcion: descripcion,
+              monto: monto,
+              esRemunerativo: esRem,
+              esBonificable: esBonificable,
+              codigoAfip: codigoAfip,
             ));
           }
         }
@@ -592,4 +600,62 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
   Widget _buildDetalleLiquidacion(LiquidacionOmniResult r) { return Container(); /* ... */ }
   Widget _buildPanelCostoEmpleador() { return Container(); /* ... */ }
   
+}
+
+extension _Recalculo on _LiquidacionDocenteScreenState {
+  void _recalcular() {
+    if (_calculando) return;
+    setState(() => _calculando = true);
+    Timer(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      try {
+        final input = DocenteOmniInput(
+          nombre: _nombreController.text.trim(),
+          cuil: _cuilController.text.trim(),
+          jurisdiccion: _jurisdiccion,
+          tipoGestion: _tipoGestion,
+          cargoNomenclador: _cargo,
+          nivelEducativo: _nivel,
+          fechaIngreso: _fechaIngreso,
+          cargasFamiliares: int.tryParse(_cargasController.text) ?? 0,
+          codigoRnos: _codigoRnosController.text.trim().isEmpty ? null : _codigoRnosController.text.trim(),
+          horasCatedra: int.tryParse(_horasCatController.text) ?? 0,
+          zona: _zona,
+          nivelUbicacion: _nivelUbicacion,
+          valorIndiceOverride: double.tryParse(_valorIndiceController.text),
+          sueldoBasicoOverride: double.tryParse(_sueldoBasicoOverrideController.text),
+          mejorRemuneracionSemestral: double.tryParse(_mejorRemuneracionController.text),
+          diasTrabajadosSemestre: int.tryParse(_diasSACController.text),
+          diasVacaciones: int.tryParse(_diasVacacionesController.text),
+          modoLiquidacion: widget.modo,
+          incluyePreaviso: _incluyePreaviso,
+          baseIndemnizatoria: double.tryParse(_baseIndemnizatoriaController.text),
+          motivoCese: _motivoCese,
+        );
+
+        final periodo = DateFormat('yyyyMM').format(DateTime.now());
+        final fechaPago = DateFormat('dd/MM/yyyy').format(DateTime.now());
+        final cantidadCargos = int.tryParse(_cantCargosController.text) ?? 1;
+
+        final res = TeacherOmniEngine.liquidar(
+          input,
+          periodo: periodo,
+          fechaPago: fechaPago,
+          cantidadCargos: cantidadCargos,
+          conceptosPropios: _conceptosPropios,
+          deduccionesAdicionales: _deduccionesAdicionales,
+        );
+        if (mounted) setState(() => _resultado = res);
+      } catch (e) {
+        // Silenciar en UI y mostrar feedback mínimo
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al recalcular: $e'), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _calculando = false);
+      }
+    });
+  }
 }

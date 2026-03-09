@@ -20,6 +20,7 @@ import '../theme/app_colors.dart';
 import '../utils/app_help.dart';
 import '../utils/file_saver.dart';
 import 'sanidad_receipt_scan_screen.dart';
+import '../services/robots_service.dart';
 
 enum _WizardStep { welcome, selectCompany, manageCompanies, selectEmployee, fillData }
 
@@ -57,6 +58,8 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   ModoLiquidacionSanidad _modoLiquidacion = ModoLiquidacionSanidad.mensual;
   LiquidacionSanidadResult? _resultado;
   bool _calculando = false;
+  bool _updatingRobot = false;
+  DateTime? _lastUpdateParitarias;
 
   // --- Controladores Empresa ---
   final _razonSocialController = TextEditingController();
@@ -98,12 +101,44 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   void initState() {
     super.initState();
     _setupDebouncedRecalculation();
+    _cargarUltimaActualizacion();
 
     if (widget.initialEmpresa != null) {
       _seleccionarEmpresa(widget.initialEmpresa!);
     } else if (widget.initialOcrResult != null) {
       _goToStep(_WizardStep.fillData);
       _prefillFromOcr(widget.initialOcrResult!);
+    }
+  }
+
+  Future<void> _cargarUltimaActualizacion() async {
+    final dt = await RobotsService.lastRunAny(['paritarias_sanidad','sanidad_paritarias','paritarias_fatsa']);
+    if (mounted) setState(() => _lastUpdateParitarias = dt);
+  }
+
+  Future<void> _actualizarParitariasAhora() async {
+    if (_updatingRobot) return;
+    setState(() => _updatingRobot = true);
+    try {
+      await RobotsService.triggerAny([
+        'robots_update_paritarias_sanidad',
+        'update_paritarias_sanidad',
+        'paritarias_sanidad_update',
+      ]);
+      await _cargarUltimaActualizacion();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Paritarias actualizadas'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al actualizar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updatingRobot = false);
     }
   }
 
@@ -214,6 +249,23 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
             : null,
         title: Text(_wizardTitle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
+          if (_lastUpdateParitarias != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Center(
+                child: Text(
+                  'Actualizado ${DateFormat('dd/MM HH:mm').format(_lastUpdateParitarias!)}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Actualizar escalas ahora',
+            onPressed: _updatingRobot ? null : _actualizarParitariasAhora,
+            icon: _updatingRobot
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.refresh, color: AppColors.textPrimary),
+          ),
           AppHelp.buildHelpButton(context, 'SanidadInterfaceScreen'),
         ],
       ),
@@ -855,7 +907,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
         ),
         Expanded(
           child: DropdownButtonFormField<ModoLiquidacionSanidad>(
-            initialValue: _modoLiquidacion,
+            value: _modoLiquidacion,
             items: const [
               DropdownMenuItem(value: ModoLiquidacionSanidad.mensual, child: Text('Mensual')),
               DropdownMenuItem(value: ModoLiquidacionSanidad.sac, child: Text('Aguinaldo (SAC)')),

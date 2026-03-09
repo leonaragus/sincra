@@ -13,6 +13,7 @@ import 'profile_screen.dart';
 import 'contabilidad/configuracion_contable_screen.dart';
 import 'teacher_receipt_scan_screen.dart';
 import '../models/ocr_confirm_result.dart';
+import '../services/robots_service.dart';
 
 class TeacherInterfaceScreen extends StatefulWidget {
   const TeacherInterfaceScreen({super.key});
@@ -28,13 +29,46 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
   
   /// Controlador para el menú hamburguesa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  DateTime? _lastUpdateDocente;
+  bool _updatingDocente = false;
 
   @override
   void initState() {
     super.initState();
     _cargarInstituciones();
+    _cargarUltimaActualizacion();
   }
 
+  Future<void> _cargarUltimaActualizacion() async {
+    final dt = await RobotsService.lastRunAny(['nomenclador_docente','docente_nomenclador','paritarias_docentes']);
+    if (mounted) setState(() => _lastUpdateDocente = dt);
+  }
+
+  Future<void> _actualizarDocenteAhora() async {
+    if (_updatingDocente) return;
+    setState(() => _updatingDocente = true);
+    try {
+      await RobotsService.triggerAny([
+        'robots_update_nomenclador_docente',
+        'update_nomenclador_docente',
+        'nomenclador_docente_update',
+      ]);
+      await _cargarUltimaActualizacion();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nomenclador actualizado'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al actualizar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updatingDocente = false);
+    }
+  }
   Future<void> _cargarInstituciones() async {
     final list = await InstitucionesService.getInstituciones();
     final counts = <String, int>{};
@@ -78,6 +112,23 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
         ),
         title: const Text('Liquidación Docente Federal 2026', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
+          if (_lastUpdateDocente != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Center(
+                child: Text(
+                  'Actualizado ${_lastUpdateDocente != null ? _formatFecha(_lastUpdateDocente!) : ''}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Actualizar escalas ahora',
+            onPressed: _updatingDocente ? null : _actualizarDocenteAhora,
+            icon: _updatingDocente
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.refresh, color: AppColors.textPrimary, size: 22),
+          ),
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(8),
@@ -100,6 +151,11 @@ class _TeacherInterfaceScreenState extends State<TeacherInterfaceScreen> {
         ],
       ),
     );
+  }
+
+  String _formatFecha(DateTime d) {
+    final two = (int n) => n.toString().padLeft(2, '0');
+    return '${two(d.day)}/${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
   }
 
   Future<void> _onEscanearRecibo() async {
