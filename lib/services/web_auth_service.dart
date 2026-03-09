@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:realtime_client/realtime_client.dart';
 
 /// Servicio para gestionar la lógica de autenticación web a través de Supabase Realtime.
 ///
@@ -57,7 +56,8 @@ class WebAuthService {
     _activeChannel!.subscribe((status, [e]) async {
       if (status == RealtimeSubscribeStatus.subscribed) {
         // Una vez suscrito, pide el token al dispositivo móvil.
-        await _activeChannel!.sendBroadcast(
+        await _activeChannel!.send(
+          type: RealtimeListenTypes.broadcast,
           event: 'request-token',
           payload: {},
         );
@@ -84,7 +84,8 @@ class WebAuthService {
     // Este canal es de corta duración: suscribir, enviando y cerrando.
     channel.subscribe((status, [_]) async {
       if (status == RealtimeSubscribeStatus.subscribed) {
-        await channel.sendBroadcast(
+        await channel.send(
+          type: RealtimeListenTypes.broadcast,
           event: 'session-token',
           payload: {'token': refreshToken},
         );
@@ -108,7 +109,8 @@ class WebAuthService {
       callback: (payload) async {
         final session = _client.auth.currentSession;
         if (session != null && session.refreshToken != null) {
-          await _activeChannel!.sendBroadcast(
+          await _activeChannel!.send(
+            type: RealtimeListenTypes.broadcast,
             event: 'session-token',
             payload: {'token': session.refreshToken!},
           );
