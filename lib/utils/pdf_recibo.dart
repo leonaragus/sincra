@@ -478,44 +478,66 @@ class PdfRecibo {
   // ================= ENCABEZADO =================
 
   static pw.Widget _encabezado(Empresa empresa, Empleado empleado, {Uint8List? logoBytes}) {
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        // Logo de la empresa (si existe)
-        if (logoBytes != null && logoBytes.isNotEmpty)
-          pw.Container(
-            width: 70,
-            height: 70,
-            margin: const pw.EdgeInsets.only(right: 16),
-            child: pw.Image(pw.MemoryImage(logoBytes), fit: pw.BoxFit.contain),
-          ),
-        // Datos de la empresa y empleado
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                empresa.razonSocial,
-                style: pw.TextStyle(
-                  fontSize: 18,
-                  fontWeight: pw.FontWeight.bold,
+    return pw.Container(
+      padding: const pw.EdgeInsets.only(bottom: 10),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey400, width: 0.5)),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Logo de la empresa (si existe)
+          if (logoBytes != null && logoBytes.isNotEmpty)
+            pw.Container(
+              width: 80,
+              height: 80,
+              margin: const pw.EdgeInsets.only(right: 20),
+              child: pw.Image(pw.MemoryImage(logoBytes), fit: pw.BoxFit.contain),
+            ),
+          // Datos de la empresa y empleado
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  empresa.razonSocial.toUpperCase(),
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue900,
+                  ),
                 ),
-              ),
-              pw.Text('CUIT: ${empresa.cuit}'),
-              pw.Text(empresa.domicilio),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'Empleado: ${empleado.nombre}',
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text('Categoría: ${empleado.categoria}'),
-              if (empleado.fechaIngreso != null && empleado.fechaIngreso!.isNotEmpty)
-                pw.Text('Fecha de Ingreso: ${empleado.fechaIngreso}'),
-              pw.Text('Período Liquidado: ${empleado.periodo}'),
-            ],
+                pw.SizedBox(height: 2),
+                pw.Text('CUIT: ${empresa.cuit}', style: const pw.TextStyle(fontSize: 10)),
+                pw.Text(empresa.domicilio, style: const pw.TextStyle(fontSize: 10)),
+                pw.SizedBox(height: 12),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('EMPLEADO: ${empleado.nombre.toUpperCase()}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                        pw.Text('CUIL: ${empleado.cuil}', style: const pw.TextStyle(fontSize: 10)),
+                        pw.Text('CATEGORÍA: ${empleado.categoria}', style: const pw.TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text('PERÍODO: ${empleado.periodo}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                        if (empleado.fechaIngreso != null)
+                          pw.Text('FECHA INGRESO: ${empleado.fechaIngreso}', style: const pw.TextStyle(fontSize: 10)),
+                        pw.Text('FECHA PAGO: ${empleado.fechaPago}', style: const pw.TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -761,9 +783,6 @@ class PdfRecibo {
   // ================= OBSERVACIONES LEGALES =================
   
   static pw.Widget _observacionesLegales(Empresa empresa) {
-    final fechaActual = DateTime.now();
-    final fechaFormateada = '${fechaActual.day.toString().padLeft(2, '0')}/${fechaActual.month.toString().padLeft(2, '0')}/${fechaActual.year}';
-    
     return pw.Container(
       margin: const pw.EdgeInsets.only(top: 20),
       padding: const pw.EdgeInsets.all(12),
@@ -776,19 +795,21 @@ class PdfRecibo {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
-            'Observaciones Legales',
+            'Observaciones Legales y Obligatorias',
             style: pw.TextStyle(
               fontSize: 10,
               fontWeight: pw.FontWeight.bold,
             ),
           ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Art. 12 Ley 17.250: El empleador declara haber depositado los aportes y contribuciones de la Seguridad Social correspondientes al mes anterior al de la fecha de este recibo.',
+            style: const pw.TextStyle(fontSize: 8.5),
+          ),
           pw.SizedBox(height: 4),
           pw.Text(
-            'El empleador reconoce la autenticidad, autoría e integridad del presente documento. Último depósito de aportes realizado en Banco (Nombre del Banco) el día $fechaFormateada.',
-            style: pw.TextStyle(
-              fontSize: 9,
-              fontStyle: pw.FontStyle.italic,
-            ),
+            'El presente recibo es duplicado del original obrante en poder del empleador, cumplimentando lo dispuesto por el Art. 138 de la Ley de Contrato de Trabajo (LCT).',
+            style: pw.TextStyle(fontSize: 8.5, fontStyle: pw.FontStyle.italic),
           ),
         ],
       ),
