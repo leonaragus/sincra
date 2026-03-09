@@ -388,6 +388,11 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     setState(() {
       _empresa = empresa;
       _jurisdiccion = empresa['jurisdiccion'] ?? 'buenosAires';
+      
+      // Aplicar datos de la empresa al formulario de empresa si estamos editando
+      _razonSocialController.text = empresa['razonSocial'] ?? '';
+      _cuitController.text = empresa['cuit'] ?? '';
+      _domicilioController.text = empresa['domicilio'] ?? '';
     });
     _goToStep(_WizardStep.selectEmployee);
   }
@@ -1140,6 +1145,24 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
   void _prefillFromOcr(OcrConfirmResult res) {
-    // Lógica para llenar campos desde OCR
+    setState(() {
+      _nombreController.text = res.nombre;
+      _cuilController.text = res.cuil;
+      _puestoController.text = res.puesto;
+      _fechaIngreso = res.fechaIngreso;
+      _categoria = res.categoriaSanidad;
+      _nivelTitulo = res.nivelTituloSanidad;
+      _tareaCriticaRiesgo = res.tareaCriticaRiesgo;
+      _cuotaSindicalAtsa = res.cuotaSindicalAtsa;
+      _manejoEfectivoCaja = res.manejoEfectivoCaja;
+      _horasNocturnasController.text = res.horasNocturnas.toString();
+      _horasExtras50Controller.text = res.horasExtras50.toString();
+      _horasExtras100Controller.text = res.horasExtras100.toString();
+      _adelantosController.text = res.adelantos.toString();
+      _embargosController.text = res.embargos.toString();
+      _prestamosController.text = res.prestamos.toString();
+      _mejorRemuneracionController.text = res.mejorRemuneracion.toString();
+    });
+    _recalcular();
   }
 }
