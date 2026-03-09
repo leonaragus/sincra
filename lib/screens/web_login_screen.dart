@@ -111,27 +111,17 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   // Realiza un login anónimo para el modo administrador.
   Future<void> _bypassAdminLogin() async {
+    // 1. Forzar el bypass global INMEDIATAMENTE para asegurar la navegación.
+    isAdminBypass = true;
+    
     try {
-      // Intento de login anónimo
-      final response = await Supabase.instance.client.auth.signInAnonymously();
-      
-      if (mounted) {
-        if (response.user != null) {
-          // Si el login anónimo funcionó, marcamos como admin y vamos a home
-          isAdminBypass = true;
-          Navigator.of(context).pushReplacementNamed('/home');
-        } else {
-          // Fallback: si no hay usuario pero el código es correcto, 
-          // permitimos el paso marcando el bypass global.
-          isAdminBypass = true;
-          Navigator.of(context).pushReplacementNamed('/home');
-        }
-      }
+      // 2. Intentar el login anónimo en segundo plano pero no bloquear si falla.
+      await Supabase.instance.client.auth.signInAnonymously();
     } catch (e) {
-      // Incluso si falla el login anónimo (ej: 401 por configuración), 
-      // si el código 'vanesa2025' es correcto, permitimos el acceso.
+      debugPrint('Bypass Admin: Login anónimo falló (esperado), continuando...');
+    } finally {
+      // 3. Navegar si el widget sigue montado.
       if (mounted) {
-        isAdminBypass = true;
         Navigator.of(context).pushReplacementNamed('/home');
       }
     }

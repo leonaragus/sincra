@@ -76,12 +76,9 @@ class MyApp extends StatelessWidget {
         '/web-login': (context) => const WebLoginScreen(),
       },
       onGenerateRoute: (settings) {
-        // NOTE: Se define `isAdminBypass` para evitar errores de compilación.
-        // Se recomienda implementar una lógica de roles de usuario adecuada.
-        const bool isAdminBypass = false; 
-
         final user = Supabase.instance.client.auth.currentUser;
         
+        // El bypass de administrador se chequea PRIMERO.
         if (user == null && !isAdminBypass && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
