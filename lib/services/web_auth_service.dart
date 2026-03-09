@@ -57,8 +57,7 @@ class WebAuthService {
     _activeChannel!.subscribe((status, [e]) async {
       if (status == RealtimeSubscribeStatus.subscribed) {
         // Una vez suscrito, pide el token al dispositivo móvil.
-        await _activeChannel!.send(
-          type: RealtimeListenTypes.broadcast,
+        await _activeChannel!.sendBroadcast(
           event: 'request-token',
           payload: {},
         );
@@ -85,8 +84,7 @@ class WebAuthService {
     // Este canal es de corta duración: suscribir, enviando y cerrando.
     channel.subscribe((status, [_]) async {
       if (status == RealtimeSubscribeStatus.subscribed) {
-        await channel.send(
-          type: RealtimeListenTypes.broadcast,
+        await channel.sendBroadcast(
           event: 'session-token',
           payload: {'token': refreshToken},
         );
@@ -110,8 +108,7 @@ class WebAuthService {
       callback: (payload) async {
         final session = _client.auth.currentSession;
         if (session != null && session.refreshToken != null) {
-          await _activeChannel!.send(
-            type: RealtimeListenTypes.broadcast,
+          await _activeChannel!.sendBroadcast(
             event: 'session-token',
             payload: {'token': session.refreshToken!},
           );
