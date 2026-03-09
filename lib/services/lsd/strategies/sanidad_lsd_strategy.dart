@@ -130,8 +130,8 @@ class SanidadLsdExportStrategy implements LsdExportStrategy<LiquidacionSanidadRe
 
     final reg1 = LSDGenerator.generateRegistro1(
       cuitEmpresa: cuitEmpresa,
-      periodo: liquidacion.periodo,
-      fechaPago: liquidacion.fechaPago,
+      periodo: liquidacion.periodo.replaceAll('/', ''), // Asegurar formato YYYYMM
+      fechaPago: liquidacion.fechaPago.replaceAll('/', ''), // Asegurar formato DDMMYYYY
       razonSocial: razonSocialLimpia,
       domicilio: domicilioLimpio,
       tipoLiquidacion: tipoLiq,
