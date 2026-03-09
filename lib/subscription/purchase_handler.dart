@@ -36,8 +36,36 @@ class PurchaseHandler {
     loadProducts();
   }
 
-  Future<void> loadProducts() async { /* ... (código existente sin cambios) ... */ }
-  Future<void> buyProduct(ProductDetails productDetails) async { /* ... (código existente sin cambios) ... */ }
+  Future<void> loadProducts() async {
+    try {
+      final bool available = await _iap.isAvailable();
+      if (!available) {
+        _productsController.add([]); // Emitir lista vacía si no hay tienda
+        return;
+      }
+
+      final ProductDetailsResponse response = await _iap.queryProductDetails(_productIds);
+      
+      if (response.notFoundIDs.isNotEmpty) {
+        print('Productos no encontrados: ${response.notFoundIDs}');
+      }
+
+      _productsController.add(response.productDetails);
+    } catch (e) {
+      print('Error al cargar productos de la tienda: $e');
+      _productsController.addError(e); // Emitir el error al stream
+    }
+  }
+  Future<void> buyProduct(ProductDetails productDetails) async {
+    final PurchaseParam purchaseParam = PurchaseParam(productDetails: productDetails);
+    
+    try {
+      // Intentamos una compra de suscripción (non-consumable)
+      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+    } catch (e) {
+      print('Error al iniciar compra: $e');
+    }
+  }
 
   void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
     for (var purchaseDetails in purchaseDetailsList) {

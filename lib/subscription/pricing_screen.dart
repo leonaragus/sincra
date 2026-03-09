@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -37,6 +36,7 @@ class _PricingScreenState extends State<PricingScreen> {
   }
 
   void _handlePurchaseUpdate(PurchaseDetails purchaseDetails) {
+    if (!mounted) return;
     setState(() {
       if (purchaseDetails.status == PurchaseStatus.pending) {
         _isPurchaseInProgress = true;
@@ -50,7 +50,7 @@ class _PricingScreenState extends State<PricingScreen> {
         } else if (purchaseDetails.status == PurchaseStatus.purchased) {
             // El PurchaseHandler se encargará de la verificación y guardado.
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('¡Gracias por tu compra! Activando tu plan...'), backgroundColor: AppColors.accentGreen)
+              const SnackBar(content: Text('¡Gracias por tu compra! Activando tu plan...'), backgroundColor: Colors.green)
             );
             // Cerramos la pantalla de precios después de un momento.
             Future.delayed(const Duration(seconds: 3), () {
@@ -94,77 +94,47 @@ class _PricingScreenState extends State<PricingScreen> {
           StreamBuilder<List<ProductDetails>>(
             stream: _productsStream,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
+              // 1. Manejo de errores del Stream
               if (snapshot.hasError) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Text(
-                      'Error al cargar los planes desde la tienda.\nPor favor, asegurate de tener la última versión de la app y una conexión a internet estable.\n(${snapshot.error})',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textSecondary),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error al cargar los planes desde la tienda.\n(${snapshot.error})',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () => _purchaseHandler.loadProducts(),
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
                     ),
                   ),
                 );
               }
 
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Text(
-                      'No hay planes disponibles en este momento. Por favor, intentá de nuevo más tarde.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                );
+              // 2. Estado de carga inicial
+              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
               }
-              
-              final products = snapshot.data!;
 
-              final independentProduct = _isAnnual ? _findProductDetails(products, SubscriptionPlan.independent.annualId) : _findProductDetails(products, SubscriptionPlan.independent.monthlyId);
-              final firmProduct = _isAnnual ? _findProductDetails(products, SubscriptionPlan.accountingFirm.annualId) : _findProductDetails(products, SubscriptionPlan.accountingFirm.monthlyId);
-              final corporateProduct = _isAnnual ? _findProductDetails(products, SubscriptionPlan.corporate.annualId) : _findProductDetails(products, SubscriptionPlan.corporate.monthlyId);
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildBillingToggle(),
-                    const SizedBox(height: 24),
-                    _buildPlanCard(
-                      plan: SubscriptionPlan.independent,
-                      productDetails: independentProduct,
-                      isRecommended: false,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildPlanCard(
-                      plan: SubscriptionPlan.accountingFirm,
-                      productDetails: firmProduct,
-                      isRecommended: true,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildPlanCard(
-                      plan: SubscriptionPlan.corporate,
-                      productDetails: corporateProduct,
-                      isRecommended: false,
-                    ),
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              );
+              // 3. Mostrar contenido (con o sin productos de la tienda)
+              final products = snapshot.data ?? [];
+              return _buildPricingContent(products);
             },
           ),
+          
           // Overlay de carga durante el proceso de compra
           if (_isPurchaseInProgress)
             Container(
-              color: Colors.black.withValues(alpha: 0.7),
+              color: Colors.black.withOpacity(0.7),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -178,6 +148,42 @@ class _PricingScreenState extends State<PricingScreen> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPricingContent(List<ProductDetails> products) {
+    final independentProduct = _isAnnual ? _findProductDetails(products, SubscriptionPlan.independent.annualId) : _findProductDetails(products, SubscriptionPlan.independent.monthlyId);
+    final firmProduct = _isAnnual ? _findProductDetails(products, SubscriptionPlan.accountingFirm.annualId) : _findProductDetails(products, SubscriptionPlan.accountingFirm.monthlyId);
+    final corporateProduct = _isAnnual ? _findProductDetails(products, SubscriptionPlan.corporate.annualId) : _findProductDetails(products, SubscriptionPlan.corporate.monthlyId);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 24),
+          _buildBillingToggle(),
+          const SizedBox(height: 24),
+          _buildPlanCard(
+            plan: SubscriptionPlan.independent,
+            productDetails: independentProduct,
+            isRecommended: false,
+          ),
+          const SizedBox(height: 16),
+          _buildPlanCard(
+            plan: SubscriptionPlan.accountingFirm,
+            productDetails: firmProduct,
+            isRecommended: true,
+          ),
+          const SizedBox(height: 16),
+          _buildPlanCard(
+            plan: SubscriptionPlan.corporate,
+            productDetails: corporateProduct,
+            isRecommended: false,
+          ),
+          const SizedBox(height: 30),
         ],
       ),
     );
@@ -232,8 +238,8 @@ class _PricingScreenState extends State<PricingScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Text(
-                  'Plan no disponible en la tienda', 
-                  style: TextStyle(color: AppColors.danger.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.bold),
+                  'Precio estimado (Sincronizando con tienda...)', 
+                  style: TextStyle(color: AppColors.textSecondary.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
             if (_isAnnual) ...[
@@ -241,10 +247,10 @@ class _PricingScreenState extends State<PricingScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.accentGreen.withValues(alpha: 0.2),
+                  color: Colors.green.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('AHORRÁS 2 MESES GRATIS', textAlign: TextAlign.center, style: TextStyle(color: AppColors.accentGreen, fontWeight: FontWeight.bold, fontSize: 12)),
+                child: const Text('AHORRÁS 2 MESES GRATIS', textAlign: TextAlign.center, style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
               )
             ],
             const SizedBox(height: 24),
@@ -260,8 +266,8 @@ class _PricingScreenState extends State<PricingScreen> {
                 backgroundColor: isRecommended ? AppColors.accentBlue : AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
-                disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
+                disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                disabledForegroundColor: Colors.white.withOpacity(0.7),
               ),
               child: const Text('Suscribirse', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             ),
@@ -271,7 +277,72 @@ class _PricingScreenState extends State<PricingScreen> {
     );
   }
 
-  Widget _buildHeader() { /* ... (código existente sin cambios) ... */ return Column(children: [SizedBox(height: 1), Text('Elegí el plan que se ajuste a tus necesidades.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary, fontSize: 16, height: 1.5))]);}
-  Widget _buildBillingToggle() { /* ... (código existente sin cambios) ... */ return Container(); }
-  Widget _buildFeatureItem(IconData icon, String text) { /* ... (código existente sin cambios) ... */ return Padding(padding: EdgeInsets.zero);}
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        Text(
+          'Elegí el plan que se ajuste a tus necesidades.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 16, height: 1.5),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBillingToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.glassFill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildToggleButton(label: 'Mensual', active: !_isAnnual, onTap: () => setState(() => _isAnnual = false)),
+          _buildToggleButton(label: 'Anual', active: _isAnnual, onTap: () => setState(() => _isAnnual = true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleButton({required String label, required bool active, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.accentBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : AppColors.textSecondary,
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.accentBlue),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
