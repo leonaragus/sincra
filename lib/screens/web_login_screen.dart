@@ -78,7 +78,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     // Lógica para el bypass de administrador
     if (codigoIngresado.toLowerCase() == 'vanesa2025') {
       setState(() => _isLoading = true);
-      isAdminBypass = true;
       _bypassAdminLogin();
       return;
     }
@@ -113,14 +112,26 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   // Realiza un login anónimo para el modo administrador.
   Future<void> _bypassAdminLogin() async {
     try {
-      await Supabase.instance.client.auth.signInAnonymously();
+      // Intento de login anónimo
+      final response = await Supabase.instance.client.auth.signInAnonymously();
+      
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
+        if (response.user != null) {
+          // Si el login anónimo funcionó, marcamos como admin y vamos a home
+          isAdminBypass = true;
+          Navigator.of(context).pushReplacementNamed('/home');
+        } else {
+          // Fallback: si no hay usuario pero el código es correcto, 
+          // permitimos el paso marcando el bypass global.
+          isAdminBypass = true;
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
       }
     } catch (e) {
-      // Incluso si falla el login anónimo, redirigimos a home
-      // donde el isAdminBypass puede ser usado para mostrar contenido de admin.
+      // Incluso si falla el login anónimo (ej: 401 por configuración), 
+      // si el código 'vanesa2025' es correcto, permitimos el acceso.
       if (mounted) {
+        isAdminBypass = true;
         Navigator.of(context).pushReplacementNamed('/home');
       }
     }
