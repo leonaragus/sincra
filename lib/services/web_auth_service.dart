@@ -58,7 +58,7 @@ class WebAuthService {
       if (status == RealtimeSubscribeStatus.subscribed) {
         // Una vez suscrito, pide el token al dispositivo móvil.
         await _activeChannel!.send(
-          type: 'broadcast' as dynamic,
+          type: RealtimeListenTypes.broadcast,
           event: 'request-token',
           payload: {},
         );
@@ -75,23 +75,21 @@ class WebAuthService {
   /// Para el Móvil: Envía la sesión actual a la web después de escanear un QR.
   Future<void> sendSessionToWeb(String channelId) async {
     final session = _client.auth.currentSession;
-    if (session?.refreshToken == null) {
+    final refreshToken = session?.refreshToken;
+    if (refreshToken == null) {
       throw Exception('No hay una sesión activa para enviar.');
     }
 
     final channel = _client.channel('web-login-$channelId');
     
-    // Este canal es de corta duración: suscribir, enviar y cerrar.
+    // Este canal es de corta duración: suscribir, enviando y cerrando.
     channel.subscribe((status, [_]) async {
       if (status == RealtimeSubscribeStatus.subscribed) {
-        final token = _client.auth.currentSession?.refreshToken;
-        if (token != null) {
-          await channel.send(
-            type: 'broadcast' as dynamic,
-            event: 'session-token',
-            payload: {'token': token},
-          );
-        }
+        await channel.send(
+          type: RealtimeListenTypes.broadcast,
+          event: 'session-token',
+          payload: {'token': refreshToken},
+        );
         await channel.unsubscribe();
       }
     });
@@ -110,12 +108,12 @@ class WebAuthService {
     _activeChannel!.onBroadcast(
       event: 'request-token',
       callback: (payload) async {
-        final token = _client.auth.currentSession?.refreshToken;
-        if (token != null) {
+        final session = _client.auth.currentSession;
+        if (session != null && session.refreshToken != null) {
           await _activeChannel!.send(
-            type: 'broadcast' as dynamic,
+            type: RealtimeListenTypes.broadcast,
             event: 'session-token',
-            payload: {'token': token},
+            payload: {'token': session.refreshToken!},
           );
           onTokenSent(); // Notifica a la UI que el token fue enviado.
         }

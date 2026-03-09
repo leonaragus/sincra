@@ -22,9 +22,6 @@ import 'subscription/subscription_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa el contador de la prueba gratuita
-  await SubscriptionService.initialize();
-
   setPathUrlStrategy(); 
 
   try {
@@ -33,11 +30,14 @@ void main() async {
     debugPrint("No se pudo cargar el archivo .env: $e");
   }
 
-  // Inicializar Supabase con configuración hardcodeada (segura para anon key)
+  // Inicializar Supabase PRIMERO, ya que otros servicios dependen de él
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
+
+  // Ahora que Supabase está inicializado, podemos inicializar otros servicios
+  await SubscriptionService.initialize();
 
   FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
   PlatformDispatcher.instance.onError = (error, stack) => true;
