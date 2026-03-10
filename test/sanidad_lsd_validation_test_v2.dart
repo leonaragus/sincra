@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sincra/services/sanidad_omni_engine.dart';
-import 'package:sincra/services/lsd/strategies/sanidad_lsd_strategy.dart';
-import 'package:sincra/models/sanidad_empleado_model.dart';
+import 'package:syncra_arg/services/sanidad_omni_engine.dart';
+import 'package:syncra_arg/services/lsd/strategies/sanidad_lsd_strategy.dart';
+import 'package:syncra_arg/models/sanidad_empleado_model.dart';
 import 'package:intl/intl.dart';
 
 void main() {

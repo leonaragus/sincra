@@ -585,10 +585,10 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.glassFillStrong,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.5), width: 1.5),
+                      border: Border.all(color: AppColors.pastelBlue.withOpacity(0.5), width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.pastelBlue.withValues(alpha: 0.1),
+                          color: AppColors.pastelBlue.withOpacity(0.1),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         )
@@ -847,7 +847,7 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
     return _buildSeccion('Costos Patronales (críticos)', Icons.monetization_on, [
       Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.pastelOrange.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.pastelOrange.withValues(alpha: 0.4))),
+        decoration: BoxDecoration(color: AppColors.pastelOrange.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.pastelOrange.withOpacity(0.4))),
         child: const Text('ART y Seguro de Vida Obligatorio son costos patronales clave para el Libro de Sueldos.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
       ),
       const SizedBox(height: 16),
@@ -904,7 +904,7 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.pastelBlue.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: AppColors.pastelBlue.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
                     child: Icon(icono, color: AppColors.pastelBlue, size: 20),
                   ),
                   const SizedBox(width: 12),

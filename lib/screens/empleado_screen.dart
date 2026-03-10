@@ -774,10 +774,10 @@ class _EmpleadoScreenState extends State<EmpleadoScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.pastelBlue.withValues(alpha: 0.1),
+                    color: AppColors.pastelBlue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.pastelBlue.withValues(alpha: 0.3),
+                      color: AppColors.pastelBlue.withOpacity(0.3),
                       width: 1,
                     ),
                   ),
@@ -1012,7 +1012,7 @@ class _EmpleadoScreenState extends State<EmpleadoScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                      color: AppColors.pastelBlue.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(icono, color: AppColors.pastelBlue, size: 20),

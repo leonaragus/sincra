@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import 'onboarding_screen.dart';
 import 'web_login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'mobile_auth_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -33,21 +34,24 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _navigateToNext() async {
-    // Esperar 5 segundos como solicitó el usuario
     await Future.delayed(const Duration(seconds: 5));
     if (!mounted) return;
 
     final user = Supabase.instance.client.auth.currentUser;
-    
-    // Si no está logueado, ir a Login
+
     if (user == null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const WebLoginScreen()),
-      );
+      if (kIsWeb) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const WebLoginScreen()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MobileAuthScreen()),
+        );
+      }
       return;
     }
 
-    // Si está logueado, ir a Onboarding o Home
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const OnboardingScreen()),
     );
@@ -65,7 +69,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Fondo con gradiente sutil
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
@@ -78,47 +81,41 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
             ),
           ),
-          
           Center(
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Animación Lottie (IA / Tecnología)
                   SizedBox(
                     height: 250,
                     width: 250,
-                    child: Lottie.network(
-                      'https://assets10.lottiefiles.com/packages/lf20_m6cuL6.json', // Animación de IA/Cerebro digital
+                    child: Lottie.asset(
+                      'assets/animations/digital_brain.json',
                       errorBuilder: (context, error, stackTrace) {
                         return const Icon(Icons.psychology, size: 100, color: AppColors.accentBlue);
                       },
                     ),
                   ),
                   const SizedBox(height: 30),
-                  
-                  // Logo SYncra
                   Text(
                     'SYncra',
-                    style: GoogleFonts.orbitron(
+                    style: const TextStyle(
+                      fontFamily: 'Orbitron',
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       letterSpacing: 4,
                       shadows: [
                         Shadow(
-                          color: AppColors.accentBlue.withOpacity(0.5),
+                          color: AppColors.accentBlue,
                           blurRadius: 20,
-                          offset: const Offset(0, 0),
+                          offset: Offset(0, 0),
                         ),
                       ],
                     ),
                   ),
-                  
                   const SizedBox(height: 10),
-                  
-                  // Leyenda
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
@@ -126,10 +123,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
                     ),
-                    child: Text(
+                    child: const Text(
                       'liquidación de sueldos asistida IA tecnologies',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.roboto(
+                      style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
                         letterSpacing: 1.2,
@@ -141,8 +138,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
             ),
           ),
-          
-          // Indicador de carga sutil abajo
           Positioned(
             bottom: 50,
             left: 0,

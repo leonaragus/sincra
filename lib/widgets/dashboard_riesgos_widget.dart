@@ -173,9 +173,9 @@ class _DashboardRiesgosWidgetState extends State<DashboardRiesgosWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 25),
+        color: color.withAlpha(25),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 77)),
+        border: Border.all(color: color.withAlpha(77)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -192,7 +192,7 @@ class _DashboardRiesgosWidgetState extends State<DashboardRiesgosWidget> {
           Text(
             label,
             style: TextStyle(
-              color: color.withValues(alpha: 204),
+              color: color.withAlpha(204),
               fontSize: 12,
             ),
           ),
@@ -256,9 +256,9 @@ class _DashboardRiesgosWidgetState extends State<DashboardRiesgosWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 13),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withValues(alpha: 51)),
+        color: Colors.blue.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withAlpha(51)),
       ),
       child: Row(
         children: [

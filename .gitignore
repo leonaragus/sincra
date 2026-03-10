@@ -25,3 +25,6 @@ Thumbs.db
 
 # Archivos de configuración local
 /lib/config/app_config.dart
+
+# Herramientas locales (no versionar)
+/tools/

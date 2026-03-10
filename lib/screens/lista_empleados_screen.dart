@@ -333,7 +333,7 @@ class _ListaEmpleadosScreenState extends State<ListaEmpleadosScreen> {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                color: AppColors.pastelBlue.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.pastelBlue),
               ),
@@ -414,7 +414,7 @@ class _ListaEmpleadosScreenState extends State<ListaEmpleadosScreen> {
                         vertical: 8,
                       ),
                       leading: CircleAvatar(
-                        backgroundColor: AppColors.pastelBlue.withValues(alpha: 0.2),
+                        backgroundColor: AppColors.pastelBlue.withOpacity(0.2),
                         child: Text(
                           empleado['nombre']?.toString().substring(0, 1).toUpperCase() ?? '?',
                           style: const TextStyle(

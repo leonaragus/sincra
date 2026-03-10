@@ -547,7 +547,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
               padding: const EdgeInsets.all(12),
               child: Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.blue.shade900.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.blue.shade900.withOpacity(0.3), borderRadius: BorderRadius.circular(8)),
                 child: Row(children: [
                   const Icon(Icons.link, color: AppColors.pastelBlue, size: 20),
                   const SizedBox(width: 8),
@@ -560,7 +560,7 @@ class _OcrReviewScreenState extends State<OcrReviewScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.amber.shade900.withValues(alpha: 0.25), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber.shade700, width: 1)),
+                decoration: BoxDecoration(color: Colors.amber.shade900.withOpacity(0.25), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber.shade700, width: 1)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

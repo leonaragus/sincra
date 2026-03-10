@@ -347,7 +347,7 @@ class _LegajoSanidadFormScreenState extends State<LegajoSanidadFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.pastelBlue.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)), child: Icon(icono, color: AppColors.pastelBlue, size: 20)), const SizedBox(width: 12), Text(titulo, style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold))]),
+              Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.pastelBlue.withOpacity(0.2), borderRadius: BorderRadius.circular(10)), child: Icon(icono, color: AppColors.pastelBlue, size: 20)), const SizedBox(width: 12), Text(titulo, style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold))]),
               const SizedBox(height: 16),
               ...children,
             ],

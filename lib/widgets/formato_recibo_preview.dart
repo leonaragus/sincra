@@ -65,7 +65,7 @@ class FormatoReciboPreview extends StatelessWidget {
                   width: 30,
                   height: 30,
                   decoration: BoxDecoration(
-                    color: AppColors.pastelBlue.withValues(alpha: 0.3),
+                    color: AppColors.pastelBlue.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Icon(Icons.business, size: 16, color: AppColors.pastelBlue),
@@ -79,7 +79,7 @@ class FormatoReciboPreview extends StatelessWidget {
                         height: 8,
                         width: 80,
                         decoration: BoxDecoration(
-                          color: AppColors.textPrimary.withValues(alpha: 0.6),
+                          color: AppColors.textPrimary.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -88,7 +88,7 @@ class FormatoReciboPreview extends StatelessWidget {
                         height: 6,
                         width: 60,
                         decoration: BoxDecoration(
-                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                          color: AppColors.textSecondary.withOpacity(0.4),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -183,7 +183,7 @@ class FormatoReciboPreview extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppColors.pastelOrange.withValues(alpha: 0.2),
+                      color: AppColors.pastelOrange.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
@@ -234,7 +234,7 @@ class FormatoReciboPreview extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppColors.textMuted.withValues(alpha: 0.2),
+                      color: AppColors.textMuted.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
@@ -287,7 +287,7 @@ class FormatoReciboPreview extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.pastelMint.withValues(alpha: 0.3),
+                  color: AppColors.pastelMint.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.business, size: 20, color: AppColors.pastelMint),
@@ -361,40 +361,40 @@ class FormatoReciboPreview extends StatelessWidget {
                 child: Container(
                   height: 25,
                   decoration: BoxDecoration(
-                    color: AppColors.glassFill,
+                      color: AppColors.glassFill,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.pastelMint.withOpacity(0.5)),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.draw, size: 14, color: AppColors.pastelMint),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 35,
+                  height: 25,
+                  decoration: BoxDecoration(
+                    color: AppColors.pastelMint.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColors.pastelMint.withValues(alpha: 0.5)),
                   ),
-                  child: const Center(
-                    child: Icon(Icons.draw, size: 14, color: AppColors.pastelMint),
-                  ),
+                  child: const Icon(Icons.verified, size: 16, color: AppColors.pastelMint),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 35,
-                height: 25,
-                decoration: BoxDecoration(
-                  color: AppColors.pastelMint.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Icon(Icons.verified, size: 16, color: AppColors.pastelMint),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+              ],
+            ),
+          ],
+        ),
+      );
+    }
 
-  Widget _buildBar(double width, double height) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: AppColors.textPrimary.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
+    Widget _buildBar(double width, double height) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: AppColors.textPrimary.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      );
+    }
   }
-}

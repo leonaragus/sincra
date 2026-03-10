@@ -96,7 +96,7 @@ class _CctScanScreenState extends State<CctScanScreen> {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Colors.red.shade900.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(color: Colors.red.shade900.withOpacity(0.3), borderRadius: BorderRadius.circular(12)),
                           child: Row(children: [
                             Icon(Icons.error_outline, color: Colors.red.shade300),
                             const SizedBox(width: 12),

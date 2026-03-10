@@ -168,7 +168,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark.withValues(alpha: 0.5),
+        backgroundColor: AppColors.backgroundDark.withOpacity(0.5),
         elevation: 0,
         leading: (_currentStep != _WizardStep.welcome) ? IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: _goBack) : null,
         title: Text(_wizardTitle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -237,7 +237,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
   }
   
   Widget _buildWelcomeOption({required IconData icon, required String title, required String subtitle, required VoidCallback onTap, bool isPrimary = false}) {
-    return Card(elevation: isPrimary ? 6 : 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: isPrimary ? const BorderSide(color: AppColors.primary, width: 1) : BorderSide.none), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20.0), child: Row(children: [ Icon(icon, size: 32, color: isPrimary ? AppColors.primary : AppColors.textSecondary), const SizedBox(width: 20), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isPrimary ? AppColors.textPrimary : AppColors.textPrimary.withValues(alpha: 0.9))), const SizedBox(height: 4), Text(subtitle, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary))])), const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textMuted)]))));
+    return Card(elevation: isPrimary ? 6 : 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: isPrimary ? const BorderSide(color: AppColors.primary, width: 1) : BorderSide.none), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20.0), child: Row(children: [ Icon(icon, size: 32, color: isPrimary ? AppColors.primary : AppColors.textSecondary), const SizedBox(width: 20), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isPrimary ? AppColors.textPrimary : AppColors.textPrimary.withOpacity(0.9))), const SizedBox(height: 4), Text(subtitle, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary))])), const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textMuted)]))));
   }
 
   // === PASO 1: INSTITUCIONES ===

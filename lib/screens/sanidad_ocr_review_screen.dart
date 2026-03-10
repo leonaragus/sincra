@@ -310,7 +310,7 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade900.withValues(alpha: 0.3),
+                  color: Colors.blue.shade900.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -333,7 +333,7 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade900.withValues(alpha: 0.25),
+                  color: Colors.amber.shade900.withOpacity(0.25),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.amber.shade700, width: 1),
                 ),
@@ -468,7 +468,7 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
               color: AppColors.backgroundLight,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: Colors.black.withOpacity(0.3),
                   blurRadius: 8,
                   offset: const Offset(0, -2),
                 ),

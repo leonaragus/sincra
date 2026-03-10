@@ -44,7 +44,7 @@ class GlassmorphismButton extends StatelessWidget {
                 gradientColors.first,
                 Colors.black,
                 0.6,
-              )!.withValues(alpha: 0.4),
+              )!.withOpacity(0.4),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -65,10 +65,10 @@ class GlassmorphismButton extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    gradientColors.first.withValues(alpha: 0.35),
+                    gradientColors.first.withOpacity(0.35),
                     gradientColors.length > 1
-                        ? gradientColors[1].withValues(alpha: 0.25)
-                        : gradientColors.first.withValues(alpha: 0.2),
+                        ? gradientColors[1].withOpacity(0.25)
+                        : gradientColors.first.withOpacity(0.2),
                     AppColors.glassFill,
                   ],
                 ),

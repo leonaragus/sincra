@@ -53,6 +53,7 @@ dependencies:
   provider: ^6.1.1 # Gestión de estado para temas
   file_picker: ^10.3.10
   google_fonts: ^8.0.1
+  google_sign_in: ^6.2.1
   flutter_dotenv: ^6.0.0
   qr_flutter: ^4.1.0
   image: ^4.3.0
@@ -74,6 +75,15 @@ flutter:
   # Assets para Tesseract OCR (modelos de idioma)
   assets:
     - assets/
+    - assets/animations/
+    - assets/fonts/
+
+  fonts:
+    - family: Orbitron
+      fonts:
+        - asset: assets/fonts/Orbitron-Regular.ttf
+        - asset: assets/fonts/Orbitron-Bold.ttf
+          weight: 700
 
 flutter_native_splash:
   color: "#0D1B2A"

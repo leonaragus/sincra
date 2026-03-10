@@ -140,7 +140,7 @@ class _CctOcrReviewScreenState extends State<CctOcrReviewScreen> {
       decoration: BoxDecoration(
         color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.glassBorder.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.glassBorder.withOpacity(0.5)),
       ),
       child: Row(
         children: [
@@ -160,7 +160,7 @@ class _CctOcrReviewScreenState extends State<CctOcrReviewScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.pastelMint.withValues(alpha: 0.2),
+              color: AppColors.pastelMint.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

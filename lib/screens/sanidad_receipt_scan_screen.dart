@@ -170,7 +170,7 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Colors.red.shade900.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(color: Colors.red.shade900.withOpacity(0.3), borderRadius: BorderRadius.circular(12)),
                           child: Row(children: [
                             Icon(Icons.error_outline, color: Colors.red.shade300),
                             const SizedBox(width: 12),
@@ -303,7 +303,7 @@ class _SanidadReceiptScanScreenState extends State<SanidadReceiptScanScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.2),
+                color: Colors.red.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.red),
               ),

@@ -631,9 +631,9 @@ class EmpresaScreenState extends State<EmpresaScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                  color: AppColors.pastelBlue.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.pastelBlue.withValues(alpha: 0.3)),
+                  border: Border.all(color: AppColors.pastelBlue.withOpacity(0.3)),
                 ),
                 child: const Icon(Icons.document_scanner, color: AppColors.pastelBlue, size: 20),
               ),
@@ -761,7 +761,7 @@ class EmpresaScreenState extends State<EmpresaScreen> {
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
                       color: _conveniosSeleccionados.contains('fuera_convenio')
-                          ? AppColors.pastelBlue.withValues(alpha: 0.15)
+                          ? AppColors.pastelBlue.withOpacity(0.15)
                           : AppColors.glassFill,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
@@ -815,7 +815,7 @@ class EmpresaScreenState extends State<EmpresaScreen> {
                           margin: const EdgeInsets.only(bottom: 8),
                           decoration: BoxDecoration(
                             color: estaSeleccionado 
-                                ? AppColors.pastelBlue.withValues(alpha: 0.15)
+                                ? AppColors.pastelBlue.withOpacity(0.15)
                                 : AppColors.glassFill,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
@@ -913,7 +913,7 @@ class EmpresaScreenState extends State<EmpresaScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                                  color: AppColors.pastelBlue.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -1047,7 +1047,7 @@ class EmpresaScreenState extends State<EmpresaScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.pastelBlue.withValues(alpha: 0.1),
+                    color: AppColors.pastelBlue.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -1164,7 +1164,7 @@ class EmpresaScreenState extends State<EmpresaScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.background.withValues(alpha: 0.8),
+                              color: AppColors.background.withOpacity(0.8),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -1203,7 +1203,7 @@ class EmpresaScreenState extends State<EmpresaScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.pastelBlue.withValues(alpha: 0.2),
+                      color: AppColors.pastelBlue.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(icono, color: AppColors.pastelBlue, size: 20),

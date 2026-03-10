@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sincra/services/sanidad_omni_engine.dart';
-import 'package:sincra/services/teacher_omni_engine.dart';
-import 'package:sincra/models/teacher_types.dart';
-import 'package:sincra/models/teacher_constants.dart';
-import 'package:sincra/models/sanidad_empleado_model.dart';
+import 'package:syncra_arg/services/sanidad_omni_engine.dart';
+import 'package:syncra_arg/services/teacher_omni_engine.dart';
+import 'package:syncra_arg/models/teacher_types.dart';
+import 'package:syncra_arg/models/teacher_constants.dart';
+import 'package:syncra_arg/models/sanidad_empleado_model.dart';
 import 'package:intl/intl.dart';
 
 void main() {
