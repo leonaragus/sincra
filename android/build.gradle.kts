@@ -1,3 +1,5 @@
+// android/build.gradle.kts (Raíz)
+
 allprojects {
     repositories {
         google()
@@ -5,16 +7,8 @@ allprojects {
     }
 }
 
-subprojects {
-    afterEvaluate {
-        if (project.hasProperty("android")) {
-            val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
-            if (android.namespace == null) {
-                android.namespace = "com.elevar.syncra_arg.${project.name.replace("-", "_")}"
-            }
-        }
-    }
-}
+// Eliminamos el bloque 'subprojects' que intentaba forzar namespaces, 
+// ya que en Gradle 8.x esto causa conflictos con los plugins de Flutter.
 
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
@@ -26,6 +20,7 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
@@ -33,3 +28,4 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
