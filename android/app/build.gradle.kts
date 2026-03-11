@@ -1,13 +1,16 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keyProperties = Properties()
 val keyPropertiesFile = rootProject.file("../key.properties")
-val keyProperties = java.util.Properties()
 if (keyPropertiesFile.exists()) {
-    keyProperties.load(java.io.FileInputStream(keyPropertiesFile))
+    keyProperties.load(FileInputStream(keyPropertiesFile))
 }
 
 android {
@@ -23,13 +26,15 @@ android {
         jvmTarget = "17"
     }
 
+    // Usamos la firma de debug por defecto para evitar errores si falta el archivo key.properties
     signingConfigs {
-        create("release") {
-            keyAlias = keyProperties.getProperty("keyAlias") ?: ""
-            keyPassword = keyProperties.getProperty("keyPassword") ?: ""
+        getByName("debug") {
+            // Si tenés datos en key.properties, los cargará, si no, usa los de debug
+            keyAlias = keyProperties.getProperty("keyAlias") ?: "androiddebugkey"
+            keyPassword = keyProperties.getProperty("keyPassword") ?: "android"
             val storeFileProp = keyProperties.getProperty("storeFile")
             storeFile = if (storeFileProp != null) rootProject.file("../$storeFileProp") else null
-            storePassword = keyProperties.getProperty("storePassword") ?: ""
+            storePassword = keyProperties.getProperty("storePassword") ?: "android"
         }
     }
 
@@ -43,7 +48,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             isShrinkResources = false
         }
