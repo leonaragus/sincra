@@ -1,60 +1,48 @@
-import java.util.Properties
-import java.io.FileInputStream
-
-plugins {
-    id("com.android.application")
-    id("kotlin-android")
-    id("dev.flutter.flutter-gradle-plugin")
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
 }
 
-val keyProperties = Properties()
-val keyPropertiesFile = rootProject.file("../key.properties")
-if (keyPropertiesFile.exists()) {
-    keyProperties.load(FileInputStream(keyPropertiesFile))
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
 }
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    namespace = "com.elevar.syncra_arg"
-    compileSdk = 34
+    // Namespace de TU app
+    namespace "com.tu.dominio.syncraArg" 
+    compileSdkVersion 34 // Actualizado para in_app_purchase
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    // Usamos la firma de debug por defecto para evitar errores si falta el archivo key.properties
-    signingConfigs {
-        getByName("debug") {
-            // Si tenés datos en key.properties, los cargará, si no, usa los de debug
-            keyAlias = keyProperties.getProperty("keyAlias") ?: "androiddebugkey"
-            keyPassword = keyProperties.getProperty("keyPassword") ?: "android"
-            val storeFileProp = keyProperties.getProperty("storeFile")
-            storeFile = if (storeFileProp != null) rootProject.file("../$storeFileProp") else null
-            storePassword = keyProperties.getProperty("storePassword") ?: "android"
-        }
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
     }
 
     defaultConfig {
-        applicationId = "com.elevar.syncra_arg"
-        minSdk = 21 
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        applicationId "com.tu.dominio.syncraArg"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode 1
+        versionName "1.0.0"
+        multiDexEnabled true // Evita errores de "muchas librerías"
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            signingConfig signingConfigs.debug // Cambiar a release cuando tengas el keystore
+            minifyEnabled false
+            shrinkResources false
         }
     }
 }
 
-flutter {
-    source = "../.."
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.android.support:multidex:1.0.3'
 }
