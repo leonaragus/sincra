@@ -1,5 +1,4 @@
 
-import 'dart:typed_data';
 
 import '../models/empresa.dart';
 import '../models/empleado.dart';
@@ -79,7 +78,7 @@ class PdfService {
       totalNoRemunerativo: totalNoRemunerativo,
       sueldoNeto: sueldoNeto,
       baseImponibleTopeada: baseImponible,
-      sueldoBasico: (liquidacion is LiquidacionSanidadResult) ? (liquidacion as LiquidacionSanidadResult).sueldoBasico : 0.0,
+      sueldoBasico: (liquidacion is LiquidacionSanidadResult) ? liquidacion.sueldoBasico : 0.0,
       cantidadHorasExtras50: horas50,
       cantidadHorasExtras100: horas100,
       logoBytes: logoBytes,

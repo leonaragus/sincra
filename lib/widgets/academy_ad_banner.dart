@@ -47,7 +47,7 @@ class _AcademyAdBannerState extends State<AcademyAdBanner> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark 
-              ? [AppColors.secondary, AppColors.secondary.withOpacity(0.8)]
+              ? [AppColors.secondary, AppColors.secondary.withValues(alpha: 0.8)]
               : [Colors.white, Colors.grey.shade50],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -55,15 +55,15 @@ class _AcademyAdBannerState extends State<AcademyAdBanner> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
           color: isDark 
-              ? AppColors.glassBorder.withOpacity(0.5) 
-              : AppColors.glassBorderLightMode.withOpacity(0.5),
+              ? AppColors.glassBorder.withValues(alpha: 0.5) 
+              : AppColors.glassBorderLightMode.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -73,7 +73,7 @@ class _AcademyAdBannerState extends State<AcademyAdBanner> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.accentBlue.withOpacity(0.1),
+                  color: AppColors.accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(Icons.school, color: AppColors.accentBlue, size: 28),

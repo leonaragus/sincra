@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/ocr_confirm_result.dart';
+import '../models/sanidad_ocr_confirm_result.dart';
 import '../models/sanidad_empleado_model.dart';
 import '../services/sanidad_omni_engine.dart';
 import '../services/pdf_service.dart';
@@ -19,8 +20,12 @@ import '../utils/validadores.dart';
 import '../theme/app_colors.dart';
 import '../utils/app_help.dart';
 import '../utils/file_saver.dart';
+import '../utils/pdf_recibo.dart';
+import '../models/empresa.dart';
+import '../models/empleado.dart';
 import 'sanidad_receipt_scan_screen.dart';
 import '../services/robots_service.dart';
+import '../services/lsd/strategies/sanidad_lsd_strategy.dart';
 
 enum _WizardStep { welcome, selectCompany, manageCompanies, selectEmployee, fillData }
 
@@ -107,7 +112,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       _seleccionarEmpresa(widget.initialEmpresa!);
     } else if (widget.initialOcrResult != null) {
       _goToStep(_WizardStep.fillData);
-      _prefillFromOcr(widget.initialOcrResult!);
+      _prefillFromOcrTeacher(widget.initialOcrResult!);
     }
   }
 
@@ -242,7 +247,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark.withOpacity(0.5),
+        backgroundColor: AppColors.backgroundDark.withValues(alpha: 0.5),
         elevation: 0,
         leading: (_currentStep != _WizardStep.welcome)
             ? IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: _goBack)
@@ -412,7 +417,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isPrimary ? AppColors.textPrimary : AppColors.textPrimary.withOpacity(0.9))),
+                    Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isPrimary ? AppColors.textPrimary : AppColors.textPrimary.withValues(alpha: 0.9))),
                     const SizedBox(height: 4),
                     Text(subtitle, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                   ],
@@ -808,7 +813,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
 
    Widget _buildSimuladorNeto() {
     return Card(
-      color: AppColors.pastelBlue.withOpacity(0.15),
+      color: AppColors.pastelBlue.withValues(alpha: 0.15),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -907,7 +912,7 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
         ),
         Expanded(
           child: DropdownButtonFormField<ModoLiquidacionSanidad>(
-            value: _modoLiquidacion,
+            initialValue: _modoLiquidacion,
             items: const [
               DropdownMenuItem(value: ModoLiquidacionSanidad.mensual, child: Text('Mensual')),
               DropdownMenuItem(value: ModoLiquidacionSanidad.sac, child: Text('Aguinaldo (SAC)')),
@@ -1180,30 +1185,197 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
   }
 
   Future<void> _exportarLsdMasivo() async {
-     // Implementación pendiente
+     if (_empresa == null || _listaEmpleados.isEmpty) return;
+     if (_exportandoMasivo) return;
+     setState(() => _exportandoMasivo = true);
+     try {
+       final periodo = DateFormat('yyyyMM').format(_periodoSeleccionado);
+       final fechaPago = DateFormat('dd/MM/yyyy').format(_fechaPago);
+       final strategy = SanidadLsdExportStrategy();
+       final liquidaciones = <LiquidacionSanidadResult>[];
+       for (final emp in _listaEmpleados) {
+         final input = SanidadEmpleadoInput(
+           nombre: emp.nombre,
+           cuil: emp.cuil,
+           fechaIngreso: emp.fechaIngreso,
+           categoria: emp.categoria,
+           nivelTitulo: emp.nivelTitulo,
+           tareaCriticaRiesgo: emp.tareaCriticaRiesgo,
+           aplicarCuotaSindicalAtsa: emp.cuotaSindicalAtsa,
+           manejoEfectivoCaja: emp.manejoEfectivoCaja,
+           horasNocturnas: emp.horasNocturnas,
+           horasExtras50: emp.horasExtras50,
+           horasExtras100: emp.horasExtras100,
+           adelantos: emp.adelantos,
+           embargos: emp.embargos,
+           prestamos: emp.prestamos,
+           otrosDescuentos: 0,
+           conceptosPropios: emp.conceptosPropios.map((c) => c.toMap()).toList(),
+           codigoRnos: emp.codigoRnos,
+           cantidadFamiliares: emp.cantidadFamiliares,
+           codigoModalidad: CodigosModalidadAFIP.obtenerCodigo(ModalidadContratacion.permanente),
+           codigoSituacion: CodigosSituacionAFIP.obtenerCodigo(SituacionRevista.activo),
+           codigoActividad: emp.codigoActividad ?? '049',
+           codigoPuesto: emp.codigoPuesto,
+           codigoCondicion: emp.codigoCondicion ?? '01',
+         );
+         final liq = SanidadOmniEngine.liquidar(
+           input,
+           periodo: periodo,
+           fechaPago: fechaPago,
+           jurisdiccion: _jurisdiccion,
+           modo: ModoLiquidacionSanidad.mensual,
+         );
+         liquidaciones.add(liq);
+       }
+       final lsdContent = await strategy.generarLsdTxt(
+         liquidaciones: liquidaciones,
+         empresaData: {
+           'cuit': _empresa!['cuit'] ?? '',
+           'razonSocial': _empresa!['razonSocial'] ?? '',
+           'domicilio': _empresa!['domicilio'] ?? '',
+         },
+       );
+       final nombre = 'LSD_Sanidad_${periodo}.txt';
+       await saveTextFile(fileName: nombre, content: lsdContent, mimeType: 'text/plain');
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('LSD masivo generado'), backgroundColor: Colors.green),
+         );
+       }
+     } catch (e) {
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error al generar LSD: $e'), backgroundColor: Colors.red),
+         );
+       }
+     } finally {
+       if (mounted) setState(() => _exportandoMasivo = false);
+     }
   }
 
   Future<void> _generarPackARCA() async {
-     // Implementación pendiente
+     if (_empresa == null || _listaEmpleados.isEmpty) return;
+     if (_exportandoMasivo) return;
+     setState(() => _exportandoMasivo = true);
+     try {
+       final periodo = DateFormat('yyyyMM').format(_periodoSeleccionado);
+       final fechaPago = DateFormat('dd/MM/yyyy').format(_fechaPago);
+       final liquidaciones = <LiquidacionSanidadResult>[];
+       for (final emp in _listaEmpleados) {
+         final input = SanidadEmpleadoInput(
+           nombre: emp.nombre,
+           cuil: emp.cuil,
+           fechaIngreso: emp.fechaIngreso,
+           categoria: emp.categoria,
+           nivelTitulo: emp.nivelTitulo,
+           tareaCriticaRiesgo: emp.tareaCriticaRiesgo,
+           aplicarCuotaSindicalAtsa: emp.cuotaSindicalAtsa,
+           manejoEfectivoCaja: emp.manejoEfectivoCaja,
+           horasNocturnas: emp.horasNocturnas,
+           horasExtras50: emp.horasExtras50,
+           horasExtras100: emp.horasExtras100,
+           adelantos: emp.adelantos,
+           embargos: emp.embargos,
+           prestamos: emp.prestamos,
+           otrosDescuentos: 0,
+           conceptosPropios: emp.conceptosPropios.map((c) => c.toMap()).toList(),
+           codigoRnos: emp.codigoRnos,
+           cantidadFamiliares: emp.cantidadFamiliares,
+           codigoModalidad: CodigosModalidadAFIP.obtenerCodigo(ModalidadContratacion.permanente),
+           codigoSituacion: CodigosSituacionAFIP.obtenerCodigo(SituacionRevista.activo),
+           codigoActividad: emp.codigoActividad ?? '049',
+           codigoPuesto: emp.codigoPuesto,
+           codigoCondicion: emp.codigoCondicion ?? '01',
+         );
+         final liq = SanidadOmniEngine.liquidar(
+           input,
+           periodo: periodo,
+           fechaPago: fechaPago,
+           jurisdiccion: _jurisdiccion,
+           modo: ModoLiquidacionSanidad.mensual,
+         );
+         liquidaciones.add(liq);
+       }
+       final pathZip = await generarPackARCA_Sanidad(
+         liquidaciones: liquidaciones,
+         cuitEmpresa: _empresa!['cuit'] ?? '',
+         razonSocial: _empresa!['razonSocial'] ?? '',
+         domicilio: _empresa!['domicilio'] ?? '',
+         generadorReciboPDF: (liq) async {
+           final empresa = Empresa(
+             razonSocial: _empresa!['razonSocial'] ?? '',
+             cuit: (_empresa!['cuit'] ?? '').replaceAll(RegExp(r'[^\d]'), ''),
+             domicilio: _empresa!['domicilio'] ?? '',
+             convenioId: '',
+             convenioNombre: '',
+             convenioPersonalizado: false,
+             categorias: [],
+             parametros: [],
+           );
+           final empleado = Empleado(
+             nombre: liq.input.nombre,
+             cuil: liq.input.cuil.replaceAll(RegExp(r'[^\d]'), ''),
+             categoria: liq.input.categoria.name,
+             sueldoBasico: liq.sueldoBasico,
+             periodo: liq.periodo,
+             fechaPago: liq.fechaPago,
+             fechaIngreso: liq.input.fechaIngreso.toIso8601String(),
+             lugarPago: _empresa!['domicilio'] ?? '',
+             codigoRnos: liq.input.codigoRnos,
+           );
+           final pdfBytes = await PdfRecibo.generarCompleto(
+             empresa: empresa,
+             empleado: empleado,
+             conceptos: _mapearLiquidacionParaTabla(liq),
+             sueldoBruto: liq.totalBrutoRemunerativo,
+             totalDeducciones: liq.totalDescuentos,
+             totalNoRemunerativo: liq.totalNoRemunerativo,
+             sueldoNeto: liq.netoACobrar,
+             baseImponibleTopeada: liq.baseImponibleTopeada,
+             sueldoBasico: liq.sueldoBasico,
+             cantidadHorasExtras50: liq.input.horasExtras50.toInt(),
+             cantidadHorasExtras100: liq.input.horasExtras100.toInt(),
+             bancoAcreditacion: 'Banco Nación Argentina',
+             fechaUltimoDepositoAportes: DateFormat('dd/MM/yyyy').format(DateTime.now()),
+             incluirBloqueFirmaLey25506: true,
+           );
+           return pdfBytes;
+         },
+       );
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Pack ARCA generado: $pathZip'), backgroundColor: Colors.green),
+         );
+       }
+     } catch (e) {
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error al generar Pack ARCA: $e'), backgroundColor: Colors.red),
+         );
+       }
+     } finally {
+       if (mounted) setState(() => _exportandoMasivo = false);
+     }
   }
 
   void _abrirEscanerRecibo() {
     Navigator.push(context, MaterialPageRoute(builder: (ctx) => const SanidadReceiptScanScreen())).then((res) {
-      if (res is OcrConfirmResult) {
+      if (res is SanidadOcrConfirmResult) {
         _goToStep(_WizardStep.fillData);
         _prefillFromOcr(res);
       }
     });
   }
 
-  void _prefillFromOcr(OcrConfirmResult res) {
+  void _prefillFromOcr(SanidadOcrConfirmResult res) {
     setState(() {
       _nombreController.text = res.nombre;
       _cuilController.text = res.cuil;
       _puestoController.text = res.puesto;
       _fechaIngreso = res.fechaIngreso;
-      _categoria = res.categoriaSanidad;
-      _nivelTitulo = res.nivelTituloSanidad;
+      _categoria = res.categoria;
+      _nivelTitulo = res.nivelTitulo;
       _tareaCriticaRiesgo = res.tareaCriticaRiesgo;
       _cuotaSindicalAtsa = res.cuotaSindicalAtsa;
       _manejoEfectivoCaja = res.manejoEfectivoCaja;
@@ -1216,5 +1388,54 @@ class _SanidadInterfaceScreenState extends State<SanidadInterfaceScreen> {
       _mejorRemuneracionController.text = res.mejorRemuneracion.toString();
     });
     _recalcular();
+  }
+
+  // Adaptador simple para resultados de OCR del módulo Docente (compatibilidad)
+  void _prefillFromOcrTeacher(OcrConfirmResult res) {
+    setState(() {
+      _nombreController.text = res.nombre ?? '';
+      _cuilController.text = res.cuil ?? '';
+      _puestoController.text = '';
+      _fechaIngreso = res.fechaIngreso ?? DateTime.now().subtract(const Duration(days: 365));
+      _categoria = CategoriaSanidad.profesional;
+      _nivelTitulo = NivelTituloSanidad.sinTitulo;
+      _tareaCriticaRiesgo = false;
+      _cuotaSindicalAtsa = false;
+      _manejoEfectivoCaja = false;
+      _horasNocturnasController.text = '0';
+      _horasExtras50Controller.text = '0';
+      _horasExtras100Controller.text = '0';
+      _adelantosController.text = '0';
+      _embargosController.text = '0';
+      _prestamosController.text = '0';
+      _mejorRemuneracionController.text = '0';
+    });
+    _recalcular();
+  }
+
+  List<ConceptoParaPDF> _mapearLiquidacionParaTabla(LiquidacionSanidadResult liq) {
+    final List<ConceptoParaPDF> conceptos = [];
+    if (liq.sueldoBasico > 0) {
+      conceptos.add(ConceptoParaPDF(descripcion: 'Sueldo Básico', remunerativo: liq.sueldoBasico, noRemunerativo: 0, descuento: 0));
+    }
+    if (liq.adicionalAntiguedad > 0) {
+      conceptos.add(ConceptoParaPDF(descripcion: 'Ad. Antigüedad', remunerativo: liq.adicionalAntiguedad, noRemunerativo: 0, descuento: 0));
+    }
+    if (liq.adicionalTitulo > 0) {
+      conceptos.add(ConceptoParaPDF(descripcion: 'Ad. Título', remunerativo: liq.adicionalTitulo, noRemunerativo: 0, descuento: 0));
+    }
+    if (liq.aporteJubilacion > 0) {
+      conceptos.add(ConceptoParaPDF(descripcion: 'Jubilación (11%)', remunerativo: 0, noRemunerativo: 0, descuento: liq.aporteJubilacion));
+    }
+    if (liq.aporteLey19032 > 0) {
+      conceptos.add(ConceptoParaPDF(descripcion: 'Ley 19.032 (3%)', remunerativo: 0, noRemunerativo: 0, descuento: liq.aporteLey19032));
+    }
+    if (liq.aporteObraSocial > 0) {
+      conceptos.add(ConceptoParaPDF(descripcion: 'Obra Social (3%)', remunerativo: 0, noRemunerativo: 0, descuento: liq.aporteObraSocial));
+    }
+    if (liq.cuotaSindicalAtsa > 0) {
+      conceptos.add(ConceptoParaPDF(descripcion: 'Cuota Sindical', remunerativo: 0, noRemunerativo: 0, descuento: liq.cuotaSindicalAtsa));
+    }
+    return conceptos;
   }
 }

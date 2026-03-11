@@ -5,11 +5,9 @@
 // ========================================================================
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
-import '../utils/image_bytes_reader.dart';
 import 'ocr_service.dart'; // Import OcrService
 import '../models/recibo_model.dart'; // Import ReciboModel
 

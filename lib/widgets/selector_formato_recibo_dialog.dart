@@ -64,7 +64,7 @@ class _SelectorFormatoReciboDialogState
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.pastelBlue.withOpacity(0.2),
+                          color: AppColors.pastelBlue.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -190,7 +190,7 @@ class _SelectorFormatoReciboDialogState
           child: Container(
             decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.pastelBlue.withOpacity(0.1)
+                  ? AppColors.pastelBlue.withValues(alpha: 0.1)
                   : AppColors.glassFillStrong,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(

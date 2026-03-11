@@ -1,16 +1,11 @@
 // --- Pantalla de Liquidación Docente - ARCA 2026 ---
 // Arquitectura rediseñada a un "Asistente Guiado" para mejorar el flujo de trabajo del profesional.
 // v3.0 - Versión final con todos los pasos y lógica de negocio integrados.
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../models/teacher_types.dart';
-import '../models/teacher_constants.dart';
 import '../theme/app_colors.dart';
-import '../services/teacher_omni_engine.dart' show ConceptoPropioOmni, LiquidacionOmniResult;
 import '../utils/app_help.dart';
 
-enum _WizardStep { welcome, selectInstitution, manageInstitutions, selectEmployee, fillData }
+enum _WizardStep { welcome, fillData }
 
 class LiquidacionDocenteScreen extends StatefulWidget {
   final String? cuitInstitucion;
@@ -40,7 +35,6 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
   // --- Estado del Asistente ---
   _WizardStep _currentStep = _WizardStep.welcome;
   String _wizardTitle = "Liquidador Docente Federal 2026";
-  LiquidacionOmniResult? _resultado;
 
   @override
   void dispose() {
@@ -61,7 +55,7 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark.withOpacity(0.5),
+        backgroundColor: AppColors.backgroundDark.withValues(alpha: 0.5),
         elevation: 0,
         leading: (_currentStep != _WizardStep.welcome) 
             ? IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary), onPressed: _goBack) 
@@ -77,7 +71,6 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
     switch (_currentStep) {
       case _WizardStep.welcome: return _buildWelcomeStep();
       case _WizardStep.fillData: return _buildFillDataStep();
-      default: return _buildWelcomeStep();
     }
   }
 
@@ -99,7 +92,11 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
         
         // BOTÓN CALCULADORA RETROACTIVO (CORREGIDO: onPressed null para que no falle)
         OutlinedButton.icon(
-          onPressed: null, // _abrirCalculadoraRetroactivo no definido aún
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Calculadora de retroactivo disponible próximamente')),
+            );
+          },
           icon: const Icon(Icons.history),
           label: const Text('Calc. Retroactivo (Próximamente)'),
         ),
@@ -108,7 +105,11 @@ class _LiquidacionDocenteScreenState extends State<LiquidacionDocenteScreen> {
         
         // BOTÓN PACK ARCA (CORREGIDO: onPressed null para que no falle)
         FilledButton.icon(
-          onPressed: null, // _descargarPackCompletoARCA2026 no definido aún
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Pack ARCA 2026 estará disponible próximamente')),
+            );
+          },
           icon: const Icon(Icons.folder_zip),
           label: const Text('Descargar Pack ARCA 2026 Completo'),
           style: FilledButton.styleFrom(backgroundColor: Colors.blue),

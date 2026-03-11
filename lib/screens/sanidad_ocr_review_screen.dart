@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../services/sanidad_omni_engine.dart';
 import '../services/sanidad_receipt_scan_service.dart';
+import '../models/sanidad_ocr_confirm_result.dart';
 import '../theme/app_colors.dart';
 
 class SanidadOcrReviewScreen extends StatefulWidget {
@@ -229,15 +230,26 @@ class _SanidadOcrReviewScreenState extends State<SanidadOcrReviewScreen> {
     }
 
     // Crear resultado para devolver a la pantalla de sanidad
-    final result = {
-      'cuil': cuil,
-      'nombre': nombre,
-      'sueldoBasico': _parseNumFromField(_sueldoBasicoCtr.text),
-      'antiguedadPct': _parseNumFromField(_antiguedadPctCtr.text),
-      'categoria': _categoria.name,
-      'nivelTitulo': _nivelTitulo.name,
-      'horasNocturnas': _parseIntFromField(_horasNocturnasCtr.text) ?? 0,
-    };
+    final result = SanidadOcrConfirmResult(
+      cuil: cuil,
+      nombre: nombre,
+      fechaIngreso: DateTime.now().subtract(const Duration(days: 365 * 2)), // Default si no se detecta
+      categoria: _categoria,
+      nivelTitulo: _nivelTitulo,
+      horasNocturnas: _parseIntFromField(_horasNocturnasCtr.text) ?? 0,
+      // Los siguientes campos podrían agregarse al form si se desea editarlos,
+      // por ahora van con defaults o inferidos si el OCR los trajera (pero el extract actual no los tiene todos)
+      puesto: '',
+      tareaCriticaRiesgo: false,
+      cuotaSindicalAtsa: true,
+      manejoEfectivoCaja: false,
+      horasExtras50: 0,
+      horasExtras100: 0,
+      adelantos: 0,
+      embargos: 0,
+      prestamos: 0,
+      mejorRemuneracion: _parseNumFromField(_sueldoBasicoCtr.text) ?? 0, // Usar básico como proxy inicial
+    );
 
     Navigator.pop(context, result);
   }

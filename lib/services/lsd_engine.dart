@@ -1,11 +1,6 @@
 import 'dart:convert';
-import 'dart:math';
-import 'dart:typed_data';
-import 'package:intl/intl.dart';
-import '../config/arca_lsd_config.dart';
 import '../core/validation_utils.dart'; // ACCIÓN CORRECTIVA 5: Importar el núcleo de validación
-import '../models/liquidacion.dart';
-import '../services/parametros_legales_service.dart';
+import 'dart:typed_data';
 
 class LSDFormatEngine {
   static String limpiarTexto(String texto) {

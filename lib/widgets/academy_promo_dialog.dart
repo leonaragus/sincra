@@ -29,7 +29,7 @@ class AcademyPromoDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.accentBlue.withOpacity(0.1),
+              color: AppColors.accentBlue.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.auto_stories,

@@ -322,8 +322,7 @@ class _TeacherSettlementReviewScreenState extends State<TeacherSettlementReviewS
       parametros: [],
     );
     final cargo = legajo['cargo']?.toString().trim() ?? '';
-    final TipoNomenclador? cargoTipo = TipoNomenclador.values.cast<TipoNomenclador?>().firstWhere((e) => e?.name == cargo, orElse: () => null);
-    final ItemNomenclador? cargoObj = cargoTipo != null ? NomencladorFederal2026.itemPorTipo(cargoTipo) : null;
+    // Mantenemos 'cargo' como texto para categoría; cálculo de objeto nomenclador no es necesario aquí
     final empr = Empleado(
       nombre: legajo['nombre']?.toString() ?? '',
       cuil: (legajo['cuil']?.toString() ?? '').replaceAll(RegExp(r'[^\d]'), ''),

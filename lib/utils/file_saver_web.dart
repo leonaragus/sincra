@@ -19,7 +19,6 @@ Future<String?> saveFileImpl({
     final blob = html.Blob([bytes], mimeType ?? 'application/octet-stream');
     final url = html.Url.createObjectUrlFromBlob(blob);
     
-    // Crear anchor y añadirlo al DOM para mejor compatibilidad
     final anchor = html.AnchorElement()
       ..href = url
       ..style.display = 'none'
@@ -68,7 +67,6 @@ Future<String?> saveTextFileImpl({
     final blob = html.Blob([blobContent], finalMimeType);
     final url = html.Url.createObjectUrlFromBlob(blob);
     
-    // Crear anchor y añadirlo al DOM para mejor compatibilidad
     final anchor = html.AnchorElement()
       ..href = url
       ..style.display = 'none'
