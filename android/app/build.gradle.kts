@@ -11,31 +11,49 @@ if (flutterRoot == null) {
     throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
 }
 
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    // Namespace de TU app
-    namespace "com.tu.dominio.syncraArg" 
-    compileSdkVersion 34 // Actualizado para in_app_purchase
+    namespace "com.example.syncra_arg"
+    compileSdkVersion 34
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
 
     defaultConfig {
-        applicationId "com.tu.dominio.syncraArg"
+        applicationId "com.example.syncra_arg"
         minSdkVersion 21
         targetSdkVersion 34
-        versionCode 1
-        versionName "1.0.0"
-        multiDexEnabled true // Evita errores de "muchas librerías"
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug // Cambiar a release cuando tengas el keystore
+            signingConfig signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
