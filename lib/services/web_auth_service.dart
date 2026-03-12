@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
-// Agregamos este import específico para que Codemagic encuentre RealtimeListenTypes
-import 'package:realtime_client/realtime_client.dart'; 
+// Este import específico es el que soluciona el error de "getter not found" en Codemagic
+import 'package:realtime_client/src/types.dart';
 
 /// Servicio para gestionar la lógica de autenticación web a través de Supabase Realtime.
 class WebAuthService {
@@ -52,7 +52,7 @@ class WebAuthService {
 
     _activeChannel!.subscribe((status, [e]) async {
       if (status == 'SUBSCRIBED') {
-        // Usamos el Enum sin comillas como pide la versión 2.8.0
+        // Usamos el Enum directamente
         await _activeChannel!.send(
           type: RealtimeListenTypes.broadcast, 
           event: 'request-token', 
