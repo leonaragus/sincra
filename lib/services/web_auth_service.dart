@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:realtime_client/realtime_client.dart';
 
 /// Servicio para gestionar la lógica de autenticación web a través de Supabase Realtime.
 ///
