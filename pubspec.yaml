@@ -34,10 +34,10 @@ dependencies:
   # OCR para web - Tesseract.js
   flutter_tesseract_ocr: ^0.4.30
 
-  # Capa híbrida local/nube
+  # Capa híbrida local/nube (Se eliminó realtime_client redundante)
   supabase_flutter: ^2.8.0
-  realtime_client: ^2.7.0
   connectivity_plus: ^7.0.0
+
   # Sprint 2: Gráficos y reportes
   fl_chart: ^0.68.0  # Gráficos profesionales
   excel: ^4.0.3      # Exportar Excel
@@ -73,7 +73,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Assets para Tesseract OCR (modelos de idioma)
   assets:
     - assets/
     - assets/animations/
@@ -97,4 +96,3 @@ flutter_native_splash:
   color_dark: "#0D1B2A"
   android_12_dark:
     color_dark: "#0D1B2A"
-  # Para "Syncra Arg" y eslogan: agregar image: "assets/images/splash_logo.png"
