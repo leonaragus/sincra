@@ -5,7 +5,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // Quitamos la línea de dev.flutter que falló
+        // ELIMINAMOS la línea de "dev.flutter" que yo te pasé y causó el error
         classpath 'com.android.tools.build:gradle:8.2.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
