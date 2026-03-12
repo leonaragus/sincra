@@ -50,7 +50,6 @@ class WebAuthService {
 
     _activeChannel!.subscribe((status, [e]) async {
       if (status == 'SUBSCRIBED') {
-        // Usamos el Enum directamente
         await _activeChannel!.send(
           type: 'broadcast', 
           event: 'request-token', 
