@@ -5,6 +5,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+        // Esta línea es la que le dice a Android dónde está Flutter para que MainActivity no falle
+        classpath "dev.flutter:flutter-gradle-plugin:1.0.0"
         classpath 'com.android.tools.build:gradle:8.2.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
