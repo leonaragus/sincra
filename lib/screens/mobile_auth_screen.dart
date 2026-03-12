@@ -6,6 +6,7 @@ import 'home_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MobileAuthScreen extends StatefulWidget {
   const MobileAuthScreen({super.key});
@@ -75,8 +76,13 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
 
   Future<void> _googleSignIn() async {
     try {
+      const webClientIdFromDartDefine = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+      final webClientId = (dotenv.env['GOOGLE_WEB_CLIENT_ID']?.trim().isNotEmpty ?? false)
+          ? dotenv.env['GOOGLE_WEB_CLIENT_ID']!.trim()
+          : (webClientIdFromDartDefine.isNotEmpty ? webClientIdFromDartDefine : '321917595587-th7jf0takcls9uhouc6lrj0bu77r5orl.apps.googleusercontent.com');
+
       final googleSignIn = GoogleSignIn(
-        serverClientId: 'YOUR_SERVER_CLIENT_ID', // Reemplazar con tu ID de cliente de servidor de Google Cloud
+        serverClientId: webClientId,
       );
       final googleUser = await googleSignIn.signIn();
       final googleAuth = await googleUser!.authentication;

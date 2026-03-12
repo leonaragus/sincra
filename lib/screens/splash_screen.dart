@@ -124,7 +124,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
                     ),
                     child: const Text(
-                      'liquidación de sueldos asistida IA tecnologies',
+                      'liquidación de sueldos asistida IA technologies',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,

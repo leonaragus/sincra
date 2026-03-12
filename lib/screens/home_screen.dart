@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'what_is_syncra_screen.dart';
 import '../subscription/pricing_screen.dart';
 import '../subscription/role_selection_dialog.dart';
@@ -262,7 +263,98 @@ class HomeScreenState extends State<HomeScreen> {
     );
 }
 
-  Drawer _buildDrawer() { /* ... código sin cambios ... */ return Drawer(); }
+  Drawer _buildDrawer() {
+    return Drawer(
+      backgroundColor: AppColors.backgroundLight,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: AppColors.accentBlue,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text(
+                  'Syncra',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FutureBuilder<Map<String, dynamic>?>(
+                  future: AuthMiddleware.getCurrentUserInfo(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final user = snapshot.data!['user'] as User;
+                      final plan = snapshot.data!['plan_name'] as String;
+                      return Text(
+                        '${user.email} • $plan',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      );
+                    }
+                    return const SizedBox();
+                  },
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.web, color: AppColors.textPrimary),
+            title: const Text('Syncra Web', style: TextStyle(color: AppColors.textPrimary)),
+            onTap: () async {
+              final url = Uri.parse('https://sincra.web.app/');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.policy, color: AppColors.textPrimary),
+            title: const Text('Política de Privacidad', style: TextStyle(color: AppColors.textPrimary)),
+            onTap: () async {
+              final url = Uri.parse('https://sincra.web.app/privacy-policy');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.star, color: AppColors.textPrimary),
+            title: const Text('Planes y Suscripciones', style: TextStyle(color: AppColors.textPrimary)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const PricingScreen()));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info, color: AppColors.textPrimary),
+            title: const Text('Acerca de Syncra', style: TextStyle(color: AppColors.textPrimary)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const WhatIsSyncraScreen()));
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.exit_to_app, color: AppColors.errorRed),
+            title: const Text('Cerrar Sesión', style: TextStyle(color: AppColors.errorRed)),
+            onTap: () async {
+              await Supabase.instance.client.auth.signOut();
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildHeader(UserRole userRole, bool isTrialActive) { /* ... código sin cambios ... */ return Container(); }
   Widget _buildEmpresasSection() { /* ... código sin cambios ... */ return Container(); }
   Widget _buildModuleGrid(UserRole userRole, bool isTrialActive) {
@@ -321,7 +413,68 @@ class HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-  Widget _buildWebLoginCard() { /* ... código sin cambios ... */ return Container(); }
+  Widget _buildWebLoginCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.accentBlue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.web, color: AppColors.accentBlue, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Acceso Web Premium',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Accedé a Syncra desde cualquier navegador con todas tus empresas y datos sincronizados.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () async {
+              final url = Uri.parse('https://sincra.web.app/');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.open_in_browser, size: 20),
+                SizedBox(width: 8),
+                Text('Abrir Syncra Web'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showUpgradeDialog() {
     showDialog(

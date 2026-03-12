@@ -16,8 +16,8 @@ def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "
 def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
 
 android {
-    namespace "com.example.syncra_arg"
-    compileSdkVersion 34
+    namespace "com.elevar.syncra_arg"
+    compileSdkVersion 35
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -29,24 +29,45 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.syncra_arg"
-        minSdkVersion 21
-        targetSdkVersion 34
+        applicationId "com.elevar.syncra_arg"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
     }
 
+    def keystorePath = System.getenv("FNC_KEYSTORE")
+    def keystorePassword = System.getenv("FNC_KEYSTORE_PASSWORD")
+    def keyAliasVar = System.getenv("FNC_KEY_ALIAS")
+    def keyPasswordVar = System.getenv("FNC_KEY_PASSWORD")
+
+    if (keystorePath) {
+        signingConfigs {
+            release {
+                storeFile file(keystorePath)
+                storePassword keystorePassword
+                keyAlias keyAliasVar
+                keyPassword keyPasswordVar
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            if (keystorePath) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             minifyEnabled false
             shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
-    implementation "com.android.support:multidex:1.0.3"
+    implementation "androidx.multidex:multidex:2.0.1"
 }

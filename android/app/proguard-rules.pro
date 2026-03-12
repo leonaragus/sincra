@@ -1,0 +1,6 @@
+ -keep class com.android.billingclient.** { *; }
+ -dontwarn com.android.billingclient.**
+ -keep class com.google.android.gms.internal.play_billing.** { *; }
+ -dontwarn com.google.android.gms.internal.play_billing.**
+ -keep class io.flutter.plugins.inapppurchase.** { *; }
+ -dontwarn io.flutter.plugins.inapppurchase.**

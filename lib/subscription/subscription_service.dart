@@ -3,6 +3,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'user_roles.dart';
 import 'subscription_plan.dart';
+import '../services/play_billing_service.dart';
 
 
 class ActiveSubscription {
@@ -27,76 +28,16 @@ class ActiveSubscription {
 
 class SubscriptionService {
   static final _supabase = Supabase.instance.client;
+  static final _billing = PlayBillingService();
 
   // --- Gestión de la Prueba Gratuita (Blindado en el Servidor) ---
 
-  /// Inicia el período de prueba para un usuario la primera vez que se registra.
-  /// Escribe la fecha de finalización en la tabla 'profiles' de Supabase.
-  /// Si el campo ya existe, no hace nada. Es a prueba de reinstalaciones.
   static Future<void> startTrialIfNeeded() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return;
-
-    try {
-      final response = await _supabase
-          .from('profiles')
-          .select('trial_ends_at')
-          .eq('id', userId)
-          .single();
-
-      if (response['trial_ends_at'] == null) {
-        final trialEndDate = DateTime.now().add(const Duration(days: 20));
-        await _supabase.from('profiles').update({
-          'trial_ends_at': trialEndDate.toIso8601String()
-        }).eq('id', userId);
-        print('Período de prueba iniciado para el usuario $userId. Finaliza el $trialEndDate.');
-      } else {
-        print('El usuario $userId ya tiene un período de prueba registrado.');
-      }
-    } on PostgrestException catch (e) {
-      if (e.code == 'PGRST116') { // "Not a single row was found"
-         final trialEndDate = DateTime.now().add(const Duration(days: 20));
-         await _supabase.from('profiles').upsert({
-            'id': userId,
-            'trial_ends_at': trialEndDate.toIso8601String(),
-            'updated_at': DateTime.now().toIso8601String(),
-         });
-         print('Perfil no encontrado, se creó y se inició el período de prueba para el usuario $userId. Finaliza el $trialEndDate.');
-      } else {
-        print('Error de Supabase al iniciar la prueba: ${e.message}');
-      }
-    }
-    catch (e) {
-      print('Error inesperado al iniciar la prueba: $e');
-    }
+    return;
   }
 
-  /// Verifica si el período de prueba del usuario está activo.
-  /// Lee la fecha de finalización desde Supabase, no del dispositivo.
   static Future<bool> isTrialActive() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return false;
-
-    try {
-      final response = await _supabase
-          .from('profiles')
-          .select('trial_ends_at')
-          .eq('id', userId)
-          .single();
-
-      final trialEndDateStr = response['trial_ends_at'];
-      if (trialEndDateStr == null) {
-        // Si nunca se inició, se inicia ahora.
-        await startTrialIfNeeded();
-        return true;
-      }
-
-      final trialEndDate = DateTime.parse(trialEndDateStr);
-      return DateTime.now().isBefore(trialEndDate);
-    } catch (e) {
-      print('Error al verificar el estado de la prueba: $e');
-      return false;
-    }
+    return false;
   }
 
   // --- Gestión de Roles de Usuario (Blindado en el Servidor) ---
@@ -178,32 +119,26 @@ class SubscriptionService {
   }
 
   static Future<ActiveSubscription?> getActiveSubscription() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return null;
-
-    try {
-      final response = await _supabase
-          .from('subscriptions')
-          .select()
-          .eq('user_id', userId)
-          .order('expires_at', ascending: false)
-          .limit(1)
-          .single();
-
-      final expiresAt = DateTime.parse(response['expires_at']);
-      if (expiresAt.isBefore(DateTime.now())) {
-        return null; // La suscripción expiró
+    await _billing.initialize();
+    final ids = <String, SubscriptionPlan>{
+      SubscriptionPlan.independent.monthlyId: SubscriptionPlan.independent,
+      SubscriptionPlan.independent.annualId: SubscriptionPlan.independent,
+      SubscriptionPlan.accountingFirm.monthlyId: SubscriptionPlan.accountingFirm,
+      SubscriptionPlan.accountingFirm.annualId: SubscriptionPlan.accountingFirm,
+      SubscriptionPlan.corporate.monthlyId: SubscriptionPlan.corporate,
+      SubscriptionPlan.corporate.annualId: SubscriptionPlan.corporate,
+    }..removeWhere((key, value) => key.isEmpty);
+    for (final entry in ids.entries) {
+      final has = await _billing.hasActiveSubscription(entry.key);
+      if (has) {
+        return ActiveSubscription(
+          planId: entry.key,
+          expiresAt: DateTime.now().add(const Duration(days: 30)),
+          userRole: UserRole.professional,
+        );
       }
-
-      return ActiveSubscription(
-        planId: response['plan_id'],
-        expiresAt: expiresAt,
-        userRole: UserRole.values.firstWhere((e) => e.toString() == response['user_role'], orElse: () => UserRole.professional),
-      );
-    } catch (e) {
-      print('Error al obtener la suscripción activa: $e');
-      return null;
     }
+    return null;
   }
 
   static Future<bool> isSubscribed() async {
@@ -212,23 +147,7 @@ class SubscriptionService {
   }
 
   static Future<int> getTrialDaysRemaining() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return 0;
-    try {
-      final response = await _supabase
-          .from('profiles')
-          .select('trial_ends_at')
-          .eq('id', userId)
-          .single();
-      final endStr = response['trial_ends_at'];
-      if (endStr == null) return 0;
-      final end = DateTime.parse(endStr);
-      final now = DateTime.now();
-      if (now.isAfter(end)) return 0;
-      return end.difference(now).inDays;
-    } catch (_) {
-      return 0;
-    }
+    return 0;
   }
 
   static Future<int> _getMonthlyClaudeUsageCount() async {
@@ -308,8 +227,11 @@ class SubscriptionService {
   }
 
   static Future<void> initialize() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return;
-    await startTrialIfNeeded();
+    await _billing.initialize();
+    await _billing.restorePurchases();
+  }
+
+  static Future<void> restorePurchases() async {
+    await _billing.restorePurchases();
   }
 }
