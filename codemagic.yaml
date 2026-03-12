@@ -1,0 +1,30 @@
+# codemagic.yaml para Syncra Arg
+workflows:
+  android-build:
+    name: Syncra Android Build
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      groups:
+        - google_play # Opcional: para las keys de firmado si las tenés
+    triggering:
+      events:
+        - push
+      watched_branches:
+        - main
+    scripts:
+      - name: Limpieza profunda y dependencias
+        script: | 
+          flutter pub cache clean
+          flutter pub get
+      - name: Build Android App Bundle (Release)
+        script: | 
+          flutter build appbundle --release --no-pub
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - TU_EMAIL_ACA@gmail.com # Poné tu mail para recibir el APK
