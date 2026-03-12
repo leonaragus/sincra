@@ -56,7 +56,7 @@ class WebAuthService {
     _activeChannel!.subscribe((status, [e]) async {
       if (status == 'SUBSCRIBED') {
         // Una vez suscrito, pide el token al dispositivo móvil.
-        await _activeChannel!.send(type: 'broadcast', event: 'request-token', payload: {});
+        await _activeChannel!.send(type: RealtimeListenTypes.broadcast, event: 'request-token', payload: {});
       }
     });
 
@@ -80,7 +80,7 @@ class WebAuthService {
     // Este canal es de corta duración: suscribir, enviando y cerrando.
     channel.subscribe((status, [_]) async {
       if (status == 'SUBSCRIBED') {
-        await channel.send(type: 'broadcast', event: 'session-token', payload: {'token': refreshToken});
+        await channel.send(type: RealtimeListenTypes.broadcast, event: 'session-token', payload: {'token': refreshToken});
         await channel.unsubscribe();
       }
     });
@@ -101,7 +101,7 @@ class WebAuthService {
       callback: (payload) async {
         final session = _client.auth.currentSession;
         if (session != null && session.refreshToken != null) {
-          await _activeChannel!.send(type: 'broadcast', event: 'session-token', payload: {'token': session.refreshToken!});
+          await _activeChannel!.send(type: RealtimeListenTypes.broadcast, event: 'session-token', payload: {'token': session.refreshToken!});
           onTokenSent(); // Notifica a la UI que el token fue enviado.
         }
         _cleanup();
