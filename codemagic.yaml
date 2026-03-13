@@ -11,6 +11,11 @@ workflows:
         KEYSTORE_PASSWORD: $FNC_KEYSTORE_PASSWORD
         KEY_PASSWORD: $FNC_KEY_PASSWORD
         KEY_ALIAS: $FNC_KEY_ALIAS
+      android_signing:
+        - keystore_reference: syncra_prod.jks
+          keystore_password: $KEYSTORE_PASSWORD
+          key_alias: $KEY_ALIAS
+          key_password: $KEY_PASSWORD
       groups:
         - google_play # Opcional: para las keys de firmado si las tenés
     triggering:
