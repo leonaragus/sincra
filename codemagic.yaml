@@ -40,6 +40,18 @@ workflows:
           export KEYSTORE_PASSWORD="$FNC_KEYSTORE_PASSWORD"
           export KEY_PASSWORD="$FNC_KEY_PASSWORD"
           export KEY_ALIAS="${FNC_KEY_ALIAS:-upload}"
+      - name: Diagnóstico de firmado
+        script: |
+          echo "KEYSTORE_PASSWORD set: ${KEYSTORE_PASSWORD:+yes}"
+          echo "KEY_PASSWORD set: ${KEY_PASSWORD:+yes}"
+          echo "KEY_ALIAS: ${KEY_ALIAS}"
+          echo "Keystores en /Users/builder/.keystores:"
+          ls -la /Users/builder/.keystores || true
+          if [ -f /Users/builder/.keystores/syncra_prod.jks ]; then
+            keytool -list -v -keystore /Users/builder/.keystores/syncra_prod.jks -storepass "$KEYSTORE_PASSWORD" | head -n 40
+          else
+            echo "No existe /Users/builder/.keystores/syncra_prod.jks"
+          fi
       - name: Build Android App Bundle (Release)
         script: | 
           flutter build appbundle --release --no-pub --verbose
