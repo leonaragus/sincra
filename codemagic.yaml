@@ -24,9 +24,12 @@ workflows:
         script: | 
           flutter pub cache clean
           flutter pub get
+      - name: Flutter doctor
+        script: |
+          flutter doctor -v
       - name: Build Android App Bundle (Release)
         script: | 
-          flutter build appbundle --release --no-pub
+          flutter build appbundle --release --no-pub --verbose
     artifacts:
       - build/app/outputs/bundle/release/*.aab
       - build/app/outputs/flutter-apk/*.apk
