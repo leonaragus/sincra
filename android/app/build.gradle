@@ -37,10 +37,10 @@ android {
         multiDexEnabled true
     }
 
-    def keystorePath = System.getenv("FNC_KEYSTORE") ?: "android/app/syncra_prod.jks"
-    def keystorePassword = System.getenv("FNC_KEYSTORE_PASSWORD") ?: "SyncraProd2024!"
-    def keyAliasVar = System.getenv("FNC_KEY_ALIAS") ?: "upload"
-    def keyPasswordVar = System.getenv("FNC_KEY_PASSWORD") ?: "SyncraKey2024!"
+    def keystorePath = System.getenv("FNC_KEYSTORE")
+    def keystorePassword = System.getenv("FNC_KEYSTORE_PASSWORD")
+    def keyAliasVar = System.getenv("FNC_KEY_ALIAS")
+    def keyPasswordVar = System.getenv("FNC_KEY_PASSWORD")
 
     if (keystorePath) {
         signingConfigs {

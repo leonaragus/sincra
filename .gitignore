@@ -22,8 +22,6 @@ Thumbs.db
 /android/key.properties
 /android/app/upload-keystore.jks
 *.jks
-# Excepción: Keystore de producción para CI/CD
-!/android/app/syncra_prod.jks
 
 # Archivos de configuración local
 /lib/config/app_config.dart
