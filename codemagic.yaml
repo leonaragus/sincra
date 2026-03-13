@@ -27,6 +27,11 @@ workflows:
       - name: Flutter doctor
         script: |
           flutter doctor -v
+      - name: Mapear variables de firmado
+        script: |
+          export KEYSTORE_PASSWORD="$FNC_KEYSTORE_PASSWORD"
+          export KEY_PASSWORD="$FNC_KEY_PASSWORD"
+          export KEY_ALIAS="${FNC_KEY_ALIAS:-upload}"
       - name: Build Android App Bundle (Release)
         script: | 
           flutter build appbundle --release --no-pub --verbose
