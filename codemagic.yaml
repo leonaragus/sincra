@@ -8,6 +8,9 @@ workflows:
       flutter: stable
       vars:
         FLUTTER_ROOT: /Users/builder/programs/flutter
+        KEYSTORE_PASSWORD: $FNC_KEYSTORE_PASSWORD
+        KEY_PASSWORD: $FNC_KEY_PASSWORD
+        KEY_ALIAS: $FNC_KEY_ALIAS
       groups:
         - google_play # Opcional: para las keys de firmado si las tenés
     triggering:
