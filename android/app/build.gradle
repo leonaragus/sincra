@@ -17,7 +17,7 @@ def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "
 
 android {
     namespace "com.elevar.syncra_arg"
-    compileSdkVersion 35
+    compileSdkVersion 36
     ndkVersion "26.1.10909125"
 
     compileOptions {
@@ -32,7 +32,7 @@ android {
     defaultConfig {
         applicationId "com.elevar.syncra_arg"
         minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
