@@ -51,7 +51,7 @@ class WebAuthService {
     _activeChannel!.subscribe((status, [e]) async {
       if (status == 'SUBSCRIBED') {
         await _activeChannel!.send(
-          type: 'broadcast', 
+          type: 'broadcast' as dynamic, 
           event: 'request-token', 
           payload: {},
         );
@@ -76,7 +76,7 @@ class WebAuthService {
     channel.subscribe((status, [_]) async {
       if (status == 'SUBSCRIBED') {
         await channel.send(
-          type: 'broadcast', 
+          type: 'broadcast' as dynamic, 
           event: 'session-token', 
           payload: {'token': refreshToken},
         );
@@ -99,7 +99,7 @@ class WebAuthService {
         final session = _client.auth.currentSession;
         if (session != null && session.refreshToken != null) {
           await _activeChannel!.send(
-            type: 'broadcast', 
+            type: 'broadcast' as dynamic, 
             event: 'session-token', 
             payload: {'token': session.refreshToken!},
           );
