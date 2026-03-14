@@ -1,3 +1,20 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "1"
+def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
+
 android {
     namespace "com.elevar.syncra_arg"
     compileSdkVersion 36
@@ -21,19 +38,20 @@ android {
         multiDexEnabled true
     }
 
-    // Definimos las variables que Codemagic inyecta
+    // Configuración de firma forzada para Codemagic
     signingConfigs {
         release {
-            storeFile file(System.getenv("FNC_KEYSTORE") ?: "no_hay_keystore")
-            storePassword System.getenv("FNC_KEYSTORE_PASSWORD")
-            keyAlias System.getenv("FNC_KEY_ALIAS")
-            keyPassword System.getenv("FNC_KEY_PASSWORD")
+            // CM_KEYSTORE_PATH es la variable por defecto de Codemagic para el archivo
+            storeFile file(System.getenv("CM_KEYSTORE_PATH") ?: "no_hay_keystore")
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS")
+            keyPassword System.getenv("KEY_PASSWORD")
         }
     }
 
     buildTypes {
         release {
-            // ELIMINADO EL IF/ELSE: Ahora o firma bien, o el build falla.
+            // Sin el "if", si no hay firma el build falla y te avisa por qué
             signingConfig signingConfigs.release
             
             minifyEnabled false
@@ -41,4 +59,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${rootProject.ext.kotlin_version}"
+    implementation "androidx.multidex:multidex:2.0.1"
 }
