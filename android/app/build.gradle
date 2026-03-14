@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.elevar.syncra_arg"
+        applicationId "com.elevar.syncra_app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
