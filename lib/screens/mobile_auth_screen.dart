@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'web_login_screen.dart' show setAdminBypass;
 
 
 class MobileAuthScreen extends StatefulWidget {
@@ -48,6 +49,7 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> with SingleTickerPr
     final isTester = email == 'testerconsole@gmail.com' && password == 'usuariodeprueba';
 
     if (isAdmin || isTester) {
+      await setAdminBypass(true);
       if (mounted) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
       }

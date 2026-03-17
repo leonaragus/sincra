@@ -6,6 +6,7 @@ import 'web_login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'mobile_auth_screen.dart';
+import 'web_login_screen.dart' show isAdminBypass;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -40,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     final user = Supabase.instance.client.auth.currentUser;
 
-    if (user == null) {
+    if (user == null && !isAdminBypass) {
       if (kIsWeb) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const WebLoginScreen()),
@@ -53,6 +54,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       return;
     }
 
+    // Si hay usuario o bypass de admin, vamos al Onboarding o Home
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const OnboardingScreen()),
     );

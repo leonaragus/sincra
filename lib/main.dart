@@ -5,6 +5,7 @@ import 'screens/home_screen.dart';
 import 'screens/verificador_recibo_screen.dart';
 import 'screens/web_login_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/web_login_screen.dart' show loadAdminBypass, isAdminBypass;
 import 'theme/app_theme.dart';
 import 'package:url_strategy/url_strategy.dart'; 
 
@@ -32,7 +33,7 @@ void main() async {
     debugPrint("No se pudo cargar el archivo .env: $e");
   }
 
-  // INICIALIZACIÓN DE SUPABASE CON TU ID
+  // Inicializar Supabase PRIMERO, ya que otros servicios dependen de él
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
@@ -41,6 +42,10 @@ void main() async {
     ),
   );
 
+  // Cargar el estado del bypass de administrador
+  await loadAdminBypass();
+
+  // Ahora que Supabase está inicializado, podemos inicializar otros servicios
   await SubscriptionService.initialize();
 
   FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
@@ -87,7 +92,8 @@ class MyApp extends StatelessWidget {
 
         final user = Supabase.instance.client.auth.currentUser;
         
-        if (user == null && settings.name != '/web-login') {
+        // El bypass de administrador se chequea PRIMERO.
+        if (user == null && !isAdminBypass && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
         

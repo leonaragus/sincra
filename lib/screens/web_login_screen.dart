@@ -10,8 +10,23 @@ import 'package:uuid/uuid.dart';
 import '../services/web_auth_service.dart';
 import '../theme/app_colors.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 // Variable global para un bypass de administrador, mantenida por simplicidad.
 bool isAdminBypass = false;
+
+/// Carga el estado del bypass desde el almacenamiento local.
+Future<void> loadAdminBypass() async {
+  final prefs = await SharedPreferences.getInstance();
+  isAdminBypass = prefs.getBool('is_admin_bypass') ?? false;
+}
+
+/// Guarda el estado del bypass en el almacenamiento local.
+Future<void> setAdminBypass(bool value) async {
+  isAdminBypass = value;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('is_admin_bypass', value);
+}
 
 class WebLoginScreen extends StatefulWidget {
   const WebLoginScreen({super.key});

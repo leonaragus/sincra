@@ -20,7 +20,7 @@ import '../services/web_auth_service.dart';
 import '../config/app_modules.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_middleware.dart';
-import 'web_login_screen.dart' show isAdminBypass; // Importamos el bypass de admin
+import 'web_login_screen.dart' show isAdminBypass, setAdminBypass; // Importamos el bypass de admin
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -349,8 +349,9 @@ class HomeScreenState extends State<HomeScreen> {
             leading: const Icon(Icons.exit_to_app, color: AppColors.error),
             title: const Text('Cerrar Sesión', style: TextStyle(color: AppColors.error)),
             onTap: () async {
+              await setAdminBypass(false);
               await Supabase.instance.client.auth.signOut();
-              Navigator.pop(context);
+              if (mounted) Navigator.pop(context);
             },
           ),
         ],
