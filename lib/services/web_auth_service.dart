@@ -64,7 +64,6 @@ class WebAuthService {
     });
   }
 
-  /// Envía el token de sesión actual al canal de la web.
   Future<void> sendTokenToChannel({
     required String channelId,
     required String token,
@@ -84,19 +83,6 @@ class WebAuthService {
     
     // Esperamos un momento para asegurar el envío antes de limpiar
     await Future.delayed(const Duration(seconds: 2));
-  }
-
-  void dispose() {
-    _cleanup();
-  }
-
-  void _cleanup() {
-    _timeoutTimer?.cancel();
-    _timeoutTimer = null;
-    if (_activeChannel != null) {
-      _client.removeChannel(_activeChannel!);
-      _activeChannel = null;
-    }
   }
 
   Future<void> sendSessionToWeb(String channelId) async {
@@ -156,8 +142,10 @@ class WebAuthService {
 
   void _cleanup() {
     _timeoutTimer?.cancel();
-    _activeChannel?.unsubscribe();
     _timeoutTimer = null;
-    _activeChannel = null;
+    if (_activeChannel != null) {
+      _client.removeChannel(_activeChannel!);
+      _activeChannel = null;
+    }
   }
 }

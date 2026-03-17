@@ -338,7 +338,7 @@ class HomeScreenState extends State<HomeScreen> {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+                MaterialPageRoute(builder: (context) => QRScannerScreen()),
               );
             },
           ),
@@ -478,7 +478,7 @@ class HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+                MaterialPageRoute(builder: (context) => QRScannerScreen()),
               );
             },
             style: ElevatedButton.styleFrom(
