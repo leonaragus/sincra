@@ -10,6 +10,7 @@ import '../subscription/subscription_status_screen.dart';
 import '../widgets/animated_logo.dart';
 import 'dart:async';
 import 'empresa_screen.dart';
+import 'qr_scanner_screen.dart';
 import '../services/hybrid_store.dart';
 import '../models/empresa.dart';
 import '../services/api_service.dart';
