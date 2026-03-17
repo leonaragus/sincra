@@ -64,6 +64,41 @@ class WebAuthService {
     });
   }
 
+  /// Envía el token de sesión actual al canal de la web.
+  Future<void> sendTokenToChannel({
+    required String channelId,
+    required String token,
+  }) async {
+    final channel = _client.channel('web-login-$channelId');
+    
+    // Nos suscribimos y enviamos el token por broadcast
+    await channel.subscribe((status, [e]) async {
+      if (status == 'SUBSCRIBED') {
+        await channel.send(
+          type: 'broadcast' as dynamic,
+          event: 'session-token',
+          payload: {'token': token},
+        );
+      }
+    });
+    
+    // Esperamos un momento para asegurar el envío antes de limpiar
+    await Future.delayed(const Duration(seconds: 2));
+  }
+
+  void dispose() {
+    _cleanup();
+  }
+
+  void _cleanup() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
+    if (_activeChannel != null) {
+      _client.removeChannel(_activeChannel!);
+      _activeChannel = null;
+    }
+  }
+
   Future<void> sendSessionToWeb(String channelId) async {
     final session = _client.auth.currentSession;
     final refreshToken = session?.refreshToken;

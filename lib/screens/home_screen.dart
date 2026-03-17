@@ -310,11 +310,12 @@ class HomeScreenState extends State<HomeScreen> {
           ListTile(
             leading: const Icon(Icons.web, color: AppColors.textPrimary),
             title: const Text('Syncra Web', style: TextStyle(color: AppColors.textPrimary)),
-            onTap: () async {
-              final url = Uri.parse('https://sincra.web.app/');
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              }
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+              );
             },
           ),
           ListTile(
@@ -449,11 +450,11 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () async {
-              final url = Uri.parse('https://sincra.web.app/');
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              }
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accentBlue,
@@ -466,9 +467,9 @@ class HomeScreenState extends State<HomeScreen> {
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.open_in_browser, size: 20),
+                Icon(Icons.qr_code_scanner, size: 20),
                 SizedBox(width: 8),
-                Text('Abrir Syncra Web'),
+                Text('Escanear QR para Web'),
               ],
             ),
           ),
