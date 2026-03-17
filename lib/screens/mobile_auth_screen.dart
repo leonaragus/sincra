@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'web_login_screen.dart' show setAdminBypass;
+import '../widgets/animated_logo.dart';
 
 
 class MobileAuthScreen extends StatefulWidget {
@@ -14,31 +15,11 @@ class MobileAuthScreen extends StatefulWidget {
   State<MobileAuthScreen> createState() => _MobileAuthScreenState();
 }
 
-class _MobileAuthScreenState extends State<MobileAuthScreen> with SingleTickerProviderStateMixin {
+class _MobileAuthScreenState extends State<MobileAuthScreen> {
   bool _isLogin = true;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  late AnimationController _logoController;
-  late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _logoController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-
-    _logoScale = Tween<double>(begin: 0.95, end: 1.05).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeInOut),
-    );
-
-    _logoOpacity = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeInOut),
-    );
-  }
 
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
@@ -115,7 +96,6 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> with SingleTickerPr
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _logoController.dispose();
     super.dispose();
   }
 
@@ -131,44 +111,7 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AnimatedBuilder(
-                  animation: _logoController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoScale.value,
-                      child: Opacity(
-                        opacity: _logoOpacity.value,
-                        child: Container(
-                          height: 140,
-                          width: 140,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.accentBlue.withOpacity(0.3),
-                                blurRadius: 30,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.business,
-                                  size: 80,
-                                  color: AppColors.accentBlue,
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                const AnimatedLogo(),
                 const SizedBox(height: 32),
                 Text(
                   'SYncra ARG',

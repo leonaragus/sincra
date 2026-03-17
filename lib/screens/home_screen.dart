@@ -7,6 +7,7 @@ import '../subscription/role_selection_dialog.dart';
 import '../subscription/subscription_service.dart';
 import '../subscription/user_roles.dart';
 import '../subscription/subscription_status_screen.dart';
+import '../widgets/animated_logo.dart';
 import 'dart:async';
 import 'empresa_screen.dart';
 import '../services/hybrid_store.dart';
@@ -234,7 +235,20 @@ class HomeScreenState extends State<HomeScreen> {
   SliverAppBar _buildAppBar(BuildContext context, UserRole userRole, bool isTrialActive) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return SliverAppBar(
-        title: const Text('Syncra'),
+        title: Row(
+          children: [
+            const AnimatedLogo(size: 35, showGlow: false),
+            const SizedBox(width: 10),
+            const Text(
+              'Syncra Arg',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: AppColors.backgroundLight,
         floating: true,
         pinned: true,
@@ -274,35 +288,45 @@ class HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: AppColors.accentBlue,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
-                  'Syncra',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FutureBuilder<Map<String, dynamic>?>(
-                  future: AuthMiddleware.getCurrentUserInfo(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      final user = snapshot.data!['user'] as User;
-                      final plan = snapshot.data!['plan_name'] as String;
-                      return Text(
-                        '${user.email} • $plan',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
+                const AnimatedLogo(size: 60, showGlow: false),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Syncra',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                      );
-                    }
-                    return const SizedBox();
-                  },
+                      ),
+                      const SizedBox(height: 8),
+                      FutureBuilder<Map<String, dynamic>?>(
+                        future: AuthMiddleware.getCurrentUserInfo(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            final user = snapshot.data!['user'] as User;
+                            final plan = snapshot.data!['plan_name'] as String;
+                            return Text(
+                              '${user.email} • $plan',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          }
+                          return const SizedBox();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
