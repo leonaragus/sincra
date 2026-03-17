@@ -18,6 +18,9 @@ import 'config/supabase_config.dart';
 // Import del nuevo servicio de suscripción
 import 'subscription/subscription_service.dart';
 
+// ESTE ES TU CÓDIGO AZUL (CLIENT ID)
+const String googleClientId = '651720319688-7cmbf72enhg4t52q3rdc0tni4459u9ed.apps.googleusercontent.com';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -29,16 +32,15 @@ void main() async {
     debugPrint("No se pudo cargar el archivo .env: $e");
   }
 
-  // MODIFICACIÓN AQUÍ: Inicializar Supabase con opciones de Auth para Android
+  // INICIALIZACIÓN DE SUPABASE CON TU ID
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
     authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.pkce, // Esto hace que el login sea más seguro y fluido en móviles
+      authFlowType: AuthFlowType.pkce,
     ),
   );
 
-  // Ahora que Supabase está inicializado, podemos inicializar otros servicios
   await SubscriptionService.initialize();
 
   FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
@@ -80,10 +82,6 @@ class MyApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         final user = Supabase.instance.client.auth.currentUser;
         
-        // El bypass de administrador se chequea PRIMERO.
-        // Nota: Asegúrate de que isAdminBypass esté definido en algún lugar o cámbialo si es necesario
-        bool isAdminBypassValue = false; // Ajustar según tu lógica real
-
         if (user == null && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
