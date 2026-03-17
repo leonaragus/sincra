@@ -80,6 +80,11 @@ class MyApp extends StatelessWidget {
         '/web-login': (context) => const WebLoginScreen(),
       },
       onGenerateRoute: (settings) {
+        // Permitimos que SplashScreen siempre sea el punto de entrada
+        if (settings.name == '/') {
+          return MaterialPageRoute(builder: (_) => const SplashScreen());
+        }
+
         final user = Supabase.instance.client.auth.currentUser;
         
         if (user == null && settings.name != '/web-login') {

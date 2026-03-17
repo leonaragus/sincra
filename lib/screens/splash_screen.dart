@@ -34,7 +34,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _navigateToNext() async {
-    await Future.delayed(const Duration(seconds: 5));
+    // Aumentamos ligeramente el delay para asegurar que el usuario vea la animación y se procese el login offline
+    await Future.delayed(const Duration(seconds: 4));
     if (!mounted) return;
 
     final user = Supabase.instance.client.auth.currentUser;

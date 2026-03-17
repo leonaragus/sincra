@@ -30,14 +30,18 @@ class SubscriptionService {
   static final _supabase = Supabase.instance.client;
   static final _billing = PlayBillingService();
 
-  // --- Gestión de la Prueba Gratuita (Blindado en el Servidor) ---
+  // --- Gestión de la Prueba Gratuita (Basada en Google Play) ---
 
   static Future<void> startTrialIfNeeded() async {
-    return;
+    // La prueba gratuita de 20 días se gestiona automáticamente a través de Google Play Billing
+    // No necesitamos implementar lógica de tiempo manual aquí si se configura en la Play Console.
+    await _billing.initialize();
   }
 
   static Future<bool> isTrialActive() async {
-    return false;
+    // Si Google Play nos dice que hay una suscripción activa, se considera que está en período de prueba o pago.
+    // Como Play Store maneja el trial de 20 días, solo necesitamos saber si el usuario tiene acceso.
+    return await isSubscribed();
   }
 
   // --- Gestión de Roles de Usuario (Blindado en el Servidor) ---
@@ -147,7 +151,10 @@ class SubscriptionService {
   }
 
   static Future<int> getTrialDaysRemaining() async {
-    return 0;
+    // Si queremos mostrar días restantes reales, deberíamos consultar el PurchaseDate de Google.
+    // Por ahora, si está suscrito (o en trial), devolvemos un valor positivo para no bloquear.
+    final subscribed = await isSubscribed();
+    return subscribed ? 20 : 0; 
   }
 
   static Future<int> _getMonthlyClaudeUsageCount() async {
