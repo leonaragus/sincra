@@ -37,8 +37,8 @@ workflows:
           flutter doctor -v
       - name: Mapear variables de firmado
         script: |
-          export KEYSTORE_PASSWORD="$FNC_KEYSTORE_PASSWORD"
-          export KEY_PASSWORD="$FNC_KEY_PASSWORD"
+          export KEYSTORE_PASSWORD="${FNC_KEYSTORE_PASSWORD:-$KEYSTORE_PASSWORD}"
+          export KEY_PASSWORD="${FNC_KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
           export KEY_ALIAS="${FNC_KEY_ALIAS:-upload}"
       - name: Diagnóstico de firmado
         script: |
@@ -50,19 +50,20 @@ workflows:
           if [ -f /Users/builder/.keystores/syncra_prod.jks ]; then
             keytool -list -keystore /Users/builder/.keystores/syncra_prod.jks -storepass "$KEYSTORE_PASSWORD" | head -n 20
             keytool -list -v -keystore /Users/builder/.keystores/syncra_prod.jks -storepass "$KEYSTORE_PASSWORD" | grep -i "Alias name" || true
+            keytool -list -v -keystore /Users/builder/.keystores/syncra_prod.jks -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" -alias "${KEY_ALIAS:-upload}" | grep -i "Entry type" || true
           else
             echo "No existe /Users/builder/.keystores/syncra_prod.jks"
-          fi
-      - name: Prueba de firmado manual
-        script: |
-          if [ -f /Users/builder/.keystores/syncra_prod.jks ]; then
-            android-app-bundle sign --verbose --bundle build/app/outputs/bundle/debug/app-debug.aab --ks /Users/builder/.keystores/syncra_prod.jks --ks-pass @env:KEYSTORE_PASSWORD --ks-key-alias "${KEY_ALIAS:-upload}" --key-pass @env:KEY_PASSWORD || true
-          else
-            echo "No se puede firmar: no existe el keystore"
           fi
       - name: Build Android App Bundle (Release)
         script: | 
           flutter build appbundle --release --no-pub --verbose
+      - name: Prueba de firmado manual
+        script: |
+          if [ -f /Users/builder/.keystores/syncra_prod.jks ]; then
+            android-app-bundle sign --verbose --bundle build/app/outputs/bundle/release/app-release.aab --ks /Users/builder/.keystores/syncra_prod.jks --ks-pass @env:KEYSTORE_PASSWORD --ks-key-alias "${KEY_ALIAS:-upload}" --key-pass @env:KEY_PASSWORD || true
+          else
+            echo "No se puede firmar: no existe el keystore"
+          fi
     artifacts:
       - build/app/outputs/bundle/release/*.aab
       - build/app/outputs/flutter-apk/*.apk
