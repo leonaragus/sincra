@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1082477853108",
+    "project_id": "sincra-35232785-2d4f4",
+    "storage_bucket": "sincra-35232785-2d4f4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1082477853108:android:ce14afd0f2da4cf794dae1",
+        "android_client_info": {
+          "package_name": "com.elevar.syncra_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOrOn50nl-wEdI2rqi6ITFZJyRuvnC4Z0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
