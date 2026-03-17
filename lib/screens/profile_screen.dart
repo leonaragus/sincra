@@ -245,9 +245,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _launchPrivacyPolicy() async {
-    const url = 'https://sincra.web.app/privacy-policy';
+    const url = 'https://doc-hosting.flycricket.io/syncra/00b0c6cb-e2bc-4423-87a4-27db2bae88cb/privacy';
     if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
 

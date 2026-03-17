@@ -322,9 +322,9 @@ class HomeScreenState extends State<HomeScreen> {
             leading: const Icon(Icons.policy, color: AppColors.textPrimary),
             title: const Text('Política de Privacidad', style: TextStyle(color: AppColors.textPrimary)),
             onTap: () async {
-              final url = Uri.parse('https://sincra.web.app/privacy-policy');
+              final url = Uri.parse('https://doc-hosting.flycricket.io/syncra/00b0c6cb-e2bc-4423-87a4-27db2bae88cb/privacy');
               if (await canLaunchUrl(url)) {
-                await launchUrl(url);
+                await launchUrl(url, mode: LaunchMode.externalApplication);
               }
             },
           ),
