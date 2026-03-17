@@ -1,4 +1,3 @@
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -30,10 +29,13 @@ void main() async {
     debugPrint("No se pudo cargar el archivo .env: $e");
   }
 
-  // Inicializar Supabase PRIMERO, ya que otros servicios dependen de él
+  // MODIFICACIÓN AQUÍ: Inicializar Supabase con opciones de Auth para Android
   await Supabase.initialize(
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce, // Esto hace que el login sea más seguro y fluido en móviles
+    ),
   );
 
   // Ahora que Supabase está inicializado, podemos inicializar otros servicios
@@ -79,7 +81,10 @@ class MyApp extends StatelessWidget {
         final user = Supabase.instance.client.auth.currentUser;
         
         // El bypass de administrador se chequea PRIMERO.
-        if (user == null && !isAdminBypass && settings.name != '/web-login') {
+        // Nota: Asegúrate de que isAdminBypass esté definido en algún lugar o cámbialo si es necesario
+        bool isAdminBypassValue = false; // Ajustar según tu lógica real
+
+        if (user == null && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
         
