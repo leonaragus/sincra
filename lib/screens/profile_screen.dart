@@ -323,7 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Ingresalo en syncra.app para iniciar sesión',
+            'Ingresalo en sincra.web.app para iniciar sesión',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),

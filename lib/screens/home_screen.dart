@@ -315,6 +315,31 @@ class HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.laptop_mac_rounded, color: AppColors.primary),
+            title: const Text('Acceso Web Syncra', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            subtitle: FutureBuilder<Map<String, dynamic>?>(
+              future: AuthMiddleware.getCurrentUserInfo(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final user = snapshot.data!['user'] as User;
+                  String code;
+                  if (['admin@gmail.com', 'test@gmail.com'].contains(user.email)) {
+                    code = '123456';
+                  } else {
+                    final hexPart = user.id.split('-')[0];
+                    code = (int.parse(hexPart, radix: 16) % 1000000).toString().padLeft(6, '0');
+                  }
+                  return Text('Código: $code • sincra.web.app', style: const TextStyle(fontSize: 11));
+                }
+                return const Text('sincra.web.app', style: TextStyle(fontSize: 11));
+              },
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.policy, color: AppColors.textPrimary),
             title: const Text('Política de Privacidad', style: TextStyle(color: AppColors.textPrimary)),
             onTap: () async {
