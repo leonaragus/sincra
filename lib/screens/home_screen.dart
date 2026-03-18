@@ -303,8 +303,8 @@ class HomeScreenState extends State<HomeScreen> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.laptop_mac_rounded, color: AppColors.primary),
-            title: const Text('Acceso Web Syncra', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            leading: const Icon(Icons.laptop_mac_rounded, color: Colors.white),
+            title: const Text('Acceso Web Syncra', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             subtitle: FutureBuilder<Map<String, dynamic>?>(
               future: AuthMiddleware.getCurrentUserInfo(),
               builder: (context, snapshot) {
@@ -319,12 +319,13 @@ class HomeScreenState extends State<HomeScreen> {
                   }
                   return Text(
                     'Código: $code • sincra.web.app', 
-                    style: const TextStyle(fontSize: 11, color: AppColors.textPrimary)
+                    style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)
                   );
                 }
-                return const Text('sincra.web.app', style: TextStyle(fontSize: 11, color: AppColors.textSecondary));
+                return const Text('sincra.web.app', style: TextStyle(fontSize: 11, color: Colors.white70));
               },
             ),
+            tileColor: AppColors.primary.withOpacity(0.1), // Un ligero fondo para destacar
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
