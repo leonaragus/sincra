@@ -67,19 +67,7 @@ class HomeScreenState extends State<HomeScreen> {
       if (selectedRole != null) {
         await SubscriptionService.setUserRole(selectedRole);
         userRole = selectedRole;
-        
-        if (selectedRole == UserRole.professional && !isTrialActive && !isSubscribed) {
-           if (mounted) {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const PricingScreen()));
-           }
-        }
       }
-    }
-
-    if (!isTrialActive && !isSubscribed && userRole == UserRole.professional) {
-        await SubscriptionService.setUserRole(UserRole.information);
-        userRole = UserRole.information;
-        _showSnackBar('Tu período de prueba ha terminado. Algunas funciones han sido desactivadas.');
     }
 
     return {
@@ -329,9 +317,12 @@ class HomeScreenState extends State<HomeScreen> {
                     final hexPart = user.id.split('-')[0];
                     code = (int.parse(hexPart, radix: 16) % 1000000).toString().padLeft(6, '0');
                   }
-                  return Text('Código: $code • sincra.web.app', style: const TextStyle(fontSize: 11));
+                  return Text(
+                    'Código: $code • sincra.web.app', 
+                    style: const TextStyle(fontSize: 11, color: AppColors.textPrimary)
+                  );
                 }
-                return const Text('sincra.web.app', style: TextStyle(fontSize: 11));
+                return const Text('sincra.web.app', style: TextStyle(fontSize: 11, color: AppColors.textSecondary));
               },
             ),
             onTap: () {

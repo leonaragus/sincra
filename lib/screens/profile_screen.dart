@@ -128,10 +128,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openWhatsAppSupport() async {
-    const phone = '+5491123456789'; // Reemplazar con número real
+    const phone = '+5491136065112'; // Número de la academia
     final url = Uri.parse('https://wa.me/$phone');
     if (await canLaunchUrl(url)) {
-      await launchUrl(url);
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -316,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Text(
             'Tu código de verificación personal',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: AppColors.primary,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
@@ -325,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Text(
             'Ingresalo en sincra.web.app para iniciar sesión',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
           ),
           const SizedBox(height: 24),
           
@@ -333,9 +333,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
+              color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+              border: Border.all(color: AppColors.primary.withOpacity(0.5)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -345,7 +345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     digit,
                     style: const TextStyle(
-                      color: AppColors.primary,
+                      color: AppColors.textPrimary,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2,
