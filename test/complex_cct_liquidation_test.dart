@@ -85,11 +85,11 @@ void main() {
       );
 
       print('--- Auditoría Sanidad (CABA/PBA) ---');
-      print('Fallo de Caja: ${result.montoFalloCaja}');
+      print('Fallo de Caja: ${result.falloCaja}');
       print('Título Universitario: ${result.adicionalTitulo}');
       
-      expect(result.montoFalloCaja, greaterThan(0));
-      expect(result.montoFalloCaja, equals(20000.0)); // Monto fijo 2026
+      expect(result.falloCaja, greaterThan(0));
+      expect(result.falloCaja, equals(20000.0)); // Monto fijo 2026
       expect(result.adicionalTitulo, greaterThan(0));
     });
   });
