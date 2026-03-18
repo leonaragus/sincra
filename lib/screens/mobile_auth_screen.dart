@@ -79,22 +79,37 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
   }
 
   Future<void> _signUp() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, completa todos los campos.')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
     try {
       final response = await Supabase.instance.client.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: email,
+        password: password,
       );
-      if (response.session == null) {
-        await Supabase.instance.client.auth.signInWithPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      }
-      if (mounted) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+      
+      // Si el registro es exitoso, Supabase suele iniciar sesión automáticamente
+      // o requiere confirmación de email dependiendo de la configuración del proyecto.
+      if (response.user != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('¡Cuenta creada con éxito!')),
+          );
+          // Redirigir al Home
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
       }
     } on AuthException catch (e) {
       if (mounted) {
