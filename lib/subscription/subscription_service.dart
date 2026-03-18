@@ -83,10 +83,11 @@ class SubscriptionService {
       // 3. Validar si es uno de los primeros 30 (contando creados antes o igual)
       final countRes = await _supabase
           .from('profiles')
-          .select('id', const FetchOptions(count: CountOption.exact))
-          .lte('created_at', profileRes['created_at']);
+          .select('id')
+          .lte('created_at', profileRes['created_at'])
+          .count();
       
-      final rank = countRes.count ?? 999;
+      final rank = countRes.count;
       return rank <= 30;
     } catch (e) {
       // Si hay error de red o de tabla, permitimos acceso temporal si la cuenta es nueva (< 45 días)
