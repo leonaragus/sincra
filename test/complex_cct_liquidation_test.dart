@@ -39,19 +39,27 @@ void main() {
       print('Sueldo Básico: ${result.sueldoBasico}');
       print('Antigüedad (11 años): ${result.adicionalAntiguedad}');
       print('Título Técnico: ${result.adicionalTitulo}');
-      print('Tarea Crítica: ${result.adicionalTareaCritica}');
-      print('Plus Zona Patagónica: ${result.plusZonaPatagonica}');
-      print('Horas Extras 50%: ${result.montoHorasExtras50}');
-      print('Horas Extras 100%: ${result.montoHorasExtras100}');
-      print('Horas Nocturnas: ${result.montoHorasNocturnas}');
+      print('Tarea Crítica: ${result.adicionalTareaCriticaRiesgo}');
+      print('Plus Zona Patagónica: ${result.adicionalZonaPatagonica}');
+      print('Horas Extras 50%: ${result.horasExtras50Monto}');
+      print('Horas Extras 100%: ${result.horasExtras100Monto}');
+      print('Horas Nocturnas: ${result.nocturnidad}');
       print('Total Bruto: ${result.totalBrutoRemunerativo}');
       print('Total Descuentos: ${result.totalDescuentos}');
       print('Neto a Cobrar: ${result.netoACobrar}');
 
       // Verificaciones de lógica
       expect(result.sueldoBasico, greaterThan(0));
-      expect(result.plusZonaPatagonica, greaterThan(0), reason: 'Río Negro debe tener Plus Patagonia');
-      expect(result.adicionalTareaCritica, greaterThan(0));
+      expect(result.adicionalAntiguedad, greaterThan(0));
+      expect(result.adicionalTareaCriticaRiesgo, greaterThan(0));
+      expect(result.adicionalZonaPatagonica, greaterThan(0));
+      expect(result.horasExtras50Monto, greaterThan(0));
+      expect(result.horasExtras100Monto, greaterThan(0));
+      expect(result.nocturnidad, greaterThan(0));
+      
+      // Verificación de montos específicos (ejemplos)
+      expect(result.adicionalZonaPatagonica, equals(result.totalBrutoRemunerativo * 0.20));
+      expect(result.adicionalTareaCriticaRiesgo, equals(result.sueldoBasico * 0.10));
       expect(result.netoACobrar, equals(result.totalBrutoRemunerativo + result.totalNoRemunerativo - result.totalDescuentos));
     });
 
@@ -80,7 +88,8 @@ void main() {
       print('Fallo de Caja: ${result.montoFalloCaja}');
       print('Título Universitario: ${result.adicionalTitulo}');
       
-      expect(result.montoFalloCaja, equals(20000.0), reason: 'Fallo de caja administrativo 2026');
+      expect(result.montoFalloCaja, greaterThan(0));
+      expect(result.montoFalloCaja, equals(20000.0)); // Monto fijo 2026
       expect(result.adicionalTitulo, greaterThan(0));
     });
   });
@@ -91,7 +100,7 @@ void main() {
         nombre: "PROFESORA NEUQUEN",
         cuil: "27334445552",
         jurisdiccion: Jurisdiccion.neuquen,
-        tipoGestion: TipoGestion.estatal,
+        tipoGestion: TipoGestion.publica,
         cargoNomenclador: TipoNomenclador.maestroGrado,
         nivelEducativo: NivelEducativo.primario,
         fechaIngreso: DateTime(2010, 3, 15),
@@ -125,8 +134,8 @@ void main() {
         nombre: "PROFESOR TERCIARIO",
         cuil: "20112223334",
         jurisdiccion: Jurisdiccion.buenosAires,
-        tipoGestion: TipoGestion.privado,
-        cargoNomenclador: TipoNomenclador.horasCatedra,
+        tipoGestion: TipoGestion.privada,
+        cargoNomenclador: TipoNomenclador.profesor,
         nivelEducativo: NivelEducativo.terciario,
         fechaIngreso: DateTime(2022, 1, 1),
         horasCatedra: 15,
