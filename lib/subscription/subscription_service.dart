@@ -51,11 +51,6 @@ class SubscriptionService {
     return await isSubscribed();
   }
 
-  static Future<void> startTrialIfNeeded() async {
-    if (kIsWeb) return; // No hay trial nativo en web
-    await _billing.initialize();
-  }
-
   // --- Gestión de Roles de Usuario (Blindado en el Servidor) ---
 
   /// Establece el rol de un usuario en la tabla 'profiles' de Supabase.
@@ -87,7 +82,7 @@ class SubscriptionService {
       final response = await _supabase
           .from('profiles')
           .select('user_role')
-          .eq('id', userId)
+          .eq('id', user.id)
           .single();
 
       final roleStr = response['user_role'] as String?;
