@@ -42,9 +42,18 @@ class SubscriptionService {
   }
 
   static Future<bool> isTrialActive() async {
+    final user = _supabase.auth.currentUser;
+    if (user != null && ['admin@gmail.com', 'test@gmail.com'].contains(user.email)) {
+      return true;
+    }
     // Si Google Play nos dice que hay una suscripción activa, se considera que está en período de prueba o pago.
     // Como Play Store maneja el trial de 20 días, solo necesitamos saber si el usuario tiene acceso.
     return await isSubscribed();
+  }
+
+  static Future<void> startTrialIfNeeded() async {
+    if (kIsWeb) return; // No hay trial nativo en web
+    await _billing.initialize();
   }
 
   // --- Gestión de Roles de Usuario (Blindado en el Servidor) ---
@@ -65,8 +74,14 @@ class SubscriptionService {
 
   /// Obtiene el rol de un usuario desde la tabla 'profiles' de Supabase.
   static Future<UserRole> getUserRole() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return UserRole.undecided;
+    final user = _supabase.auth.currentUser;
+    if (user == null) return UserRole.undecided;
+
+    // MASTER BYPASS PARA PLAY STORE / ADMIN
+    final List<String> testEmails = ['admin@gmail.com', 'test@gmail.com'];
+    if (testEmails.contains(user.email)) {
+      return UserRole.professional;
+    }
 
     try {
       final response = await _supabase
@@ -151,6 +166,10 @@ class SubscriptionService {
   }
 
   static Future<bool> isSubscribed() async {
+    final user = _supabase.auth.currentUser;
+    if (user != null && ['admin@gmail.com', 'test@gmail.com'].contains(user.email)) {
+      return true;
+    }
     if (kIsWeb) return true; // En la web no hay Google Play Billing, se asume acceso total si está logueado
     final subscription = await getActiveSubscription();
     return subscription != null;

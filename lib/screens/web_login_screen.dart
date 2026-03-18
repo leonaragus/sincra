@@ -25,25 +25,62 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Authenticate with email and password first
-      final AuthResponse res = await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+      
+      // MASTER BYPASS PARA PLAY STORE / ADMIN
+      const String masterPassword = '123456';
+      final List<String> testEmails = ['admin@gmail.com', 'test@gmail.com'];
+      
+      AuthResponse? res;
+      if (testEmails.contains(email) && password == masterPassword) {
+        try {
+          res = await Supabase.instance.client.auth.signInWithPassword(
+            email: email,
+            password: password,
+          );
+        } on AuthException catch (_) {
+          // Si falla (ej: no existe), intentamos registrarlo automáticamente
+          try {
+            await Supabase.instance.client.auth.signUp(
+              email: email,
+              password: password,
+            );
+            res = await Supabase.instance.client.auth.signInWithPassword(
+              email: email,
+              password: password,
+            );
+          } catch (e2) {
+            // Si el signUp también falla, mostramos el error original del signIn
+            rethrow;
+          }
+        }
+      } else {
+        res = await Supabase.instance.client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+      }
 
-      final User? user = res.user;
+      final User? user = res?.user;
       if (user == null) {
         throw const AuthException('Usuario o contraseña incorrectos.');
       }
 
-      // 2. Verify the fixed verification code
-      final expectedCode = user.id.split('-')[0].toUpperCase();
-      final enteredCode = _verificationCodeController.text.trim().toUpperCase();
+      // 2. Verify the 6-digit numeric verification code
+      // BYPASS DE CÓDIGO WEB PARA ADMINS
+      final enteredCode = _verificationCodeController.text.trim();
+      if (testEmails.contains(email) && enteredCode == masterPassword) {
+        // Si es admin y el código es el masterPassword (123456), entrar directo
+      } else {
+        final hexPart = user.id.split('-')[0];
+        final expectedCode = (int.parse(hexPart, radix: 16) % 1000000).toString().padLeft(6, '0');
 
-      if (enteredCode != expectedCode) {
-        // Sign out if the code is wrong to prevent leaving a partial session
-        await Supabase.instance.client.auth.signOut();
-        throw const AuthException('El Código de Verificación no es correcto.');
+        if (enteredCode != expectedCode) {
+          // Sign out if the code is wrong to prevent leaving a partial session
+          await Supabase.instance.client.auth.signOut();
+          throw const AuthException('El Código de Verificación no es correcto.');
+        }
       }
 
       // If both are correct, navigation will be handled by the auth listener
@@ -81,75 +118,227 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Bienvenido a Syncra Web',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28, 
-                      fontWeight: FontWeight.bold, 
-                      color: AppColors.textPrimary
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Inicia sesión para continuar.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 40),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
-                    validator: (value) => (value == null || value.isEmpty) ? 'Ingresa tu email' : null,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(labelText: 'Contraseña', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock)),
-                    obscureText: true,
-                    validator: (value) => (value == null || value.isEmpty) ? 'Ingresa tu contraseña' : null,
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _verificationCodeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Código de Verificación Web',
-                      hintText: 'Encuéntralo en tu perfil de la app',
-                      border: OutlineInputBorder(), 
-                      prefixIcon: Icon(Icons.vpn_key)
-                    ),
-                    validator: (value) => (value == null || value.isEmpty) ? 'Ingresa tu código' : null,
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _signIn,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AppColors.primary, 
-                      foregroundColor: Colors.white,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Iniciar Sesión', style: TextStyle(fontSize: 16)),
-                  ),
+      body: Stack(
+        children: [
+          // Fondo con gradiente sutil
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0F172A),
+                  Color(0xFF1E293B),
                 ],
               ),
             ),
           ),
-        ),
+          
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo o Icono Principal
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                      ),
+                      child: const Icon(
+                        Icons.computer_rounded,
+                        size: 64,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    Text(
+                      'Syncra Web',
+                      style: TextStyle(
+                        fontSize: 32, 
+                        fontWeight: FontWeight.bold, 
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Accede a tu panel de control profesional',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.blueGrey.shade300),
+                    ),
+                    const SizedBox(height: 40),
+                    
+                    // Card de Login con efecto Glassmorphism
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildTextField(
+                              controller: _emailController,
+                              label: 'Correo Electrónico',
+                              icon: Icons.alternate_email_rounded,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) => (value == null || value.isEmpty) ? 'Ingresa tu email' : null,
+                            ),
+                            const SizedBox(height: 20),
+                            _buildTextField(
+                              controller: _passwordController,
+                              label: 'Contraseña',
+                              icon: Icons.lock_outline_rounded,
+                              isPassword: true,
+                              validator: (value) => (value == null || value.isEmpty) ? 'Ingresa tu contraseña' : null,
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // Separador visual para el código
+                            Row(
+                              children: [
+                                Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Text(
+                                    'VERIFICACIÓN',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blueGrey.shade400,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            _buildTextField(
+                              controller: _verificationCodeController,
+                              label: 'Código de 6 dígitos',
+                              hint: 'Ver en Perfil de la App',
+                              icon: Icons.security_rounded,
+                              keyboardType: TextInputType.number,
+                              validator: (value) => (value == null || value.isEmpty) ? 'Código requerido' : null,
+                            ),
+                            
+                            const SizedBox(height: 32),
+                            
+                            ElevatedButton(
+                              onPressed: _isLoading ? null : _signIn,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                backgroundColor: AppColors.primary, 
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24, 
+                                      height: 24, 
+                                      child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white)
+                                    )
+                                  : const Text(
+                                      'Iniciar Sesión Segura', 
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    Text(
+                      '© 2024 Syncra Arg - Sistema de Liquidación Profesional',
+                      style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    String? hint,
+    bool isPassword = false,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          obscureText: isPassword,
+          keyboardType: keyboardType,
+          validator: validator,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+            prefixIcon: Icon(icon, color: AppColors.primary.withOpacity(0.7), size: 20),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.05),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

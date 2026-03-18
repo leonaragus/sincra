@@ -28,10 +28,40 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
       _isLoading = true;
     });
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+      // MASTER BYPASS PARA PLAY STORE / ADMIN
+      const String masterPassword = '123456';
+      final List<String> testEmails = ['admin@gmail.com', 'test@gmail.com'];
+      
+      if (testEmails.contains(email) && password == masterPassword) {
+        try {
+          await Supabase.instance.client.auth.signInWithPassword(
+            email: email,
+            password: password,
+          );
+        } on AuthException catch (_) {
+          // Si falla (ej: no existe), intentamos registrarlo automáticamente
+          try {
+            await Supabase.instance.client.auth.signUp(
+              email: email,
+              password: password,
+            );
+            // Re-intentamos login por si acaso el auto-login del signUp falló
+            await Supabase.instance.client.auth.signInWithPassword(
+              email: email,
+              password: password,
+            );
+          } catch (e2) {
+            // Si el signUp también falla, mostramos el error original del signIn
+            rethrow;
+          }
+        }
+      } else {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+      }
+      
       if (mounted) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
       }

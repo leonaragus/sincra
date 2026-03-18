@@ -1,0 +1,65 @@
+name: Syncra CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: syncra-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Analyze (no-bloqueante)
+        run: flutter analyze || true
+
+      - name: Build Web (release)
+        run: flutter build web --release
+
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+
+  trigger-codemagic:
+    if: ${{ secrets.CM_TOKEN && secrets.CM_APP_ID }}
+    needs: build-web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Codemagic Build (AAB)
+        env:
+          CM_TOKEN: ${{ secrets.CM_TOKEN }}
+          CM_APP_ID: ${{ secrets.CM_APP_ID }}
+        run: |
+          curl -X POST https://api.codemagic.io/builds \
+            -H "x-auth-token: ${CM_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "appId": "'"${CM_APP_ID}"'",
+              "workflowId": "default-workflow",
+              "branch": "main",
+              "environment": {
+                "variables": {
+                  "CI_MESSAGE": "Trigger desde GitHub Actions"
+                }
+              }
+            }'
