@@ -31,16 +31,17 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       // MASTER BYPASS PARA PLAY STORE / ADMIN
       const String masterPassword = '123456';
       final List<String> testEmails = ['admin@gmail.com', 'test@gmail.com'];
+      final isTestAccount = testEmails.contains(email) && password == masterPassword;
       
       AuthResponse? res;
-      if (testEmails.contains(email) && password == masterPassword) {
+      if (isTestAccount) {
         try {
           res = await Supabase.instance.client.auth.signInWithPassword(
             email: email,
             password: password,
           );
-        } on AuthException catch (_) {
-          // Si falla (ej: no existe), intentamos registrarlo automáticamente
+        } catch (e) {
+          // Si falla (ej: no existe o error de key), intentamos registro forzado
           try {
             await Supabase.instance.client.auth.signUp(
               email: email,
@@ -50,9 +51,12 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
               email: email,
               password: password,
             );
-          } catch (e2) {
-            // Si el signUp también falla, mostramos el error original del signIn
-            rethrow;
+          } catch (_) {
+            // Re-intento final de login
+            res = await Supabase.instance.client.auth.signInWithPassword(
+              email: email,
+              password: password,
+            );
           }
         }
       } else {
@@ -89,13 +93,17 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       }
 
     } on AuthException catch (e) {
-      _showErrorSnackBar(e.message);
+      String errorMessage = e.message;
+      if (errorMessage.contains('Invalid API Key')) {
+        errorMessage = 'Error de configuración de servidor (API Key).';
+      }
+      _showErrorSnackBar(errorMessage);
     } catch (e) {
-      _showErrorSnackBar('Ocurrió un error inesperado. Inténtelo de nuevo.');
-    }
-
-    if (mounted) {
-      setState(() => _isLoading = false);
+      _showErrorSnackBar('Error inesperado: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

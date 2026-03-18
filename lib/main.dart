@@ -32,19 +32,19 @@ void main() async {
     debugPrint("No se pudo cargar el archivo .env: $e");
   }
 
-  // Inicializar Supabase PRIMERO, ya que otros servicios dependen de él
+  // Inicializar Supabase de la manera más directa posible
   try {
-    debugPrint("Inicializando Supabase con URL: ${SupabaseConfig.url}");
+    const String supabaseUrl = 'https://sstxhajsclwfktyvawmr.supabase.co';
+    const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdHhoYWpzY2x3Zmt0eXZhd21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTk1MTAzNDQsImV4cCI6MjAzNTA4NjM0NH0.j-n_1y4g2W_Fop2cQ_pCHiS7h-EW3p_6o3o6I5iAFNA';
+    
     await Supabase.initialize(
-      url: SupabaseConfig.url,
-      anonKey: SupabaseConfig.anonKey,
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
-      ),
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+      debug: true,
     );
-    debugPrint("Supabase inicializado correctamente.");
+    debugPrint("Supabase listo.");
   } catch (e) {
-    debugPrint("ERROR CRÍTICO: No se pudo inicializar Supabase: $e");
+    debugPrint("Error crítico Supabase: $e");
   }
 
   // Ahora que Supabase está inicializado, podemos inicializar otros servicios

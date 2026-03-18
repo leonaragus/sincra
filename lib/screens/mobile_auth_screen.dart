@@ -31,31 +31,32 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
       // MASTER BYPASS PARA PLAY STORE / ADMIN
       const String masterPassword = '123456';
       final List<String> testEmails = ['admin@gmail.com', 'test@gmail.com'];
+      final isTestAccount = testEmails.contains(email) && password == masterPassword;
       
-      if (testEmails.contains(email) && password == masterPassword) {
+      if (isTestAccount) {
         try {
+          // Intentar login normal
           await Supabase.instance.client.auth.signInWithPassword(
             email: email,
             password: password,
           );
-        } on AuthException catch (_) {
-          // Si falla (ej: no existe), intentamos registrarlo automáticamente
+        } catch (e) {
+          // Si falla, intentamos registrarlo (bypass de "usuario no encontrado")
           try {
             await Supabase.instance.client.auth.signUp(
               email: email,
               password: password,
             );
-            // Re-intentamos login por si acaso el auto-login del signUp falló
+          } catch (_) {
+            // Re-intento final de login por si el registro falló porque ya existía
             await Supabase.instance.client.auth.signInWithPassword(
               email: email,
               password: password,
             );
-          } catch (e2) {
-            // Si el signUp también falla, mostramos el error original del signIn
-            rethrow;
           }
         }
       } else {
+        // Flujo normal para otros usuarios
         await Supabase.instance.client.auth.signInWithPassword(
           email: email,
           password: password,
@@ -67,7 +68,21 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
       }
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        String errorMessage = e.message;
+        if (errorMessage.contains('Invalid API Key')) {
+          errorMessage = 'Error de conexión con el servidor (API Key). Por favor, contacte a soporte.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.redAccent,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error inesperado: $e'),
+          backgroundColor: Colors.redAccent,
+        ));
       }
     } finally {
       if (mounted) {
@@ -113,7 +128,21 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
       }
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        String errorMessage = e.message;
+        if (errorMessage.contains('Invalid API Key')) {
+          errorMessage = 'Error de conexión con el servidor (API Key). Por favor, contacte a soporte.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.redAccent,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error inesperado: $e'),
+          backgroundColor: Colors.redAccent,
+        ));
       }
     } finally {
       if (mounted) {
