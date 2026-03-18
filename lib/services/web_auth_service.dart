@@ -145,6 +145,7 @@ class WebAuthService {
   /// Escucha solicitudes de código manual (Mobile -> Web).
   Future<String> listenForManualCodeRequest({
     required void Function() onTokenSent,
+    String? testToken,
   }) async {
     _cleanup();
     // Código de 6 dígitos basado en el tiempo para que sea único pero corto
@@ -161,13 +162,14 @@ class WebAuthService {
         if (tokenSent) return;
         
         final session = _client.auth.currentSession;
-        if (session != null && session.refreshToken != null) {
+        final String? tokenToSend = session?.refreshToken ?? testToken;
+        if (tokenToSend != null) {
           // Al recibir solicitud, enviamos el token. 
           // No limpiamos el canal aquí todavía, esperamos el ACK de la web.
           await channel.send(
             type: 'broadcast' as dynamic, 
             event: 'session-token', 
-            payload: {'token': session.refreshToken!},
+            payload: {'token': tokenToSend},
           );
         }
       },

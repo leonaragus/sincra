@@ -25,14 +25,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final user = Supabase.instance.client.auth.currentUser;
       final session = Supabase.instance.client.auth.currentSession;
       
-      if (user != null && session != null) {
-        // Usamos el refreshToken para el handshake ya que es más estable para sesiones web
-        final tokenToWeb = session.refreshToken ?? session.accessToken;
-        
-        // USAR EL NUEVO MÉTODO CON HANDSHAKE (ACK)
+      if (user != null && session != null && session.refreshToken != null) {
+        // Enviar SIEMPRE el refreshToken: la Web usa setSession(refreshToken)
         await _webAuthService.sendTokenToChannelWithAck(
           channelId: code,
-          token: tokenToWeb,
+          token: session.refreshToken!,
         );
         
         if (mounted) {
@@ -43,6 +40,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             ),
           );
           Navigator.of(context).pop();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Iniciá sesión en la app antes de sincronizar'),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 4),
+            ),
+          );
         }
       }
     } catch (e) {
@@ -62,6 +69,19 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   Future<void> _handleManualSync() async {
     _cleanupWebAuth(); // Limpiamos cualquier escucha previa
+    
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session?.refreshToken == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Iniciá sesión en la app antes de generar el código'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
     
     try {
       setState(() => _isProcessing = true);
