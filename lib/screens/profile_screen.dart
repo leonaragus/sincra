@@ -128,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openWhatsAppSupport() async {
-    const phone = '+5491136065112'; // Número de la academia
+    const phone = '+5492995484312'; // Número de la academia (verificado)
     final url = Uri.parse('https://wa.me/$phone');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -318,36 +318,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: TextStyle(
               color: AppColors.primary,
               fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold, // Más grueso
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           const Text(
             'Ingresalo en sincra.web.app para iniciar sesión',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
+            style: TextStyle(
+              color: AppColors.textPrimary, 
+              fontSize: 14, // Un poco más grande
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 24),
           
-          // El código con diseño moderno
+          // El código con diseño moderno y colores contrastados
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: Colors.white, // Fondo blanco puro para máximo contraste
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+              border: Border.all(color: AppColors.primary, width: 2), // Borde más marcado
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: verificationCode.split('').map((digit) {
                 return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
                   child: Text(
                     digit,
                     style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                      color: Colors.black87, // Texto casi negro para leerse bien
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
                       letterSpacing: 2,
                       fontFamily: 'monospace',
                     ),
