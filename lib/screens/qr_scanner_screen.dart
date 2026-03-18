@@ -148,7 +148,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         children: [
           MobileScanner(
             controller: _scannerController,
-            errorBuilder: (context, error, _) {
+            errorBuilder: (context, error) {
               final String errorMessage;
               switch (error.errorCode) {
                 case MobileScannerErrorCode.permissionDenied:
