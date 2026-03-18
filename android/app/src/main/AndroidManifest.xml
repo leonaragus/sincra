@@ -11,9 +11,10 @@
     <!-- Permiso requerido para realizar compras dentro de la aplicación con Google Play -->
     <uses-permission android:name="com.android.vending.BILLING" />
 
-    <!-- Declara que la cámara es una característica usada, pero no es obligatoria.
-         Esto permite que la app se instale en dispositivos sin cámara (ej. tablets). -->
+    <!-- Declara las características de hardware necesarias para el escaneo -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 
     <application
         android:label="Syncra Arg"

@@ -59,23 +59,12 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     });
 
     // 2. Usar el servicio para escuchar el token de sesión.
-    final channel = Supabase.instance.client.channel('web-login-$newChannelId');
-    
-    channel.onBroadcast(
-      event: 'session-token',
-      callback: (payload) async {
-        final String? receivedToken = payload['token'];
-        if (receivedToken != null) {
-          // ENVIAR ACK DE REGRESO AL MÓVIL
-          await channel.send(
-            type: 'broadcast' as dynamic,
-            event: 'session-received',
-            payload: {},
-          );
-          _loginWithToken(receivedToken, 'QR');
-        }
+    _webAuthService.listenForQrSession(
+      channelId: newChannelId,
+      onTokenReceived: (token) {
+        _loginWithToken(token, 'QR');
       },
-    ).subscribe();
+    );
   }
 
   Future<void> _loginWithToken(String refreshToken, String method) async {

@@ -34,6 +34,8 @@ class SubscriptionService {
   // --- Gestión de la Prueba Gratuita (Basada en Google Play) ---
 
   static Future<void> startTrialIfNeeded() async {
+    if (kIsWeb) return; // No hay trial nativo en web
+    
     // La prueba gratuita de 20 días se gestiona automáticamente a través de Google Play Billing
     // No necesitamos implementar lógica de tiempo manual aquí si se configura en la Play Console.
     await _billing.initialize();
@@ -124,6 +126,8 @@ class SubscriptionService {
   }
 
   static Future<ActiveSubscription?> getActiveSubscription() async {
+    if (kIsWeb) return null; // No hay suscripciones nativas en web
+    
     await _billing.initialize();
     final ids = <String, SubscriptionPlan>{
       SubscriptionPlan.independent.monthlyId: SubscriptionPlan.independent,

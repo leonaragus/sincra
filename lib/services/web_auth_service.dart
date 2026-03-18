@@ -7,27 +7,38 @@ class WebAuthService {
   RealtimeChannel? _activeChannel;
   Timer? _timeoutTimer;
 
+  /// Escucha el token de sesión en la web (QR).
   void listenForQrSession({
     required String channelId,
     required void Function(String token) onTokenReceived,
   }) {
     _cleanup();
-    _activeChannel = _client.channel('web-login-$channelId');
+    final channel = _client.channel('web-login-$channelId');
+    _activeChannel = channel;
     
-    _activeChannel!.onBroadcast(
+    channel.onBroadcast(
       event: 'session-token',
-      callback: (payload) {
+      callback: (payload) async {
         final String? receivedToken = payload['token'];
         if (receivedToken != null) {
+          // ENVIAR ACK AL MÓVIL
+          await channel.send(
+            type: 'broadcast' as dynamic,
+            event: 'session-received',
+            payload: {},
+          );
           onTokenReceived(receivedToken);
           _cleanup();
         }
       },
     );
 
-    _activeChannel!.subscribe();
+    channel.subscribe((status, [e]) {
+      debugPrint('Supabase Web QR: $status');
+    });
   }
 
+  /// Solicita el token usando un código manual (Web -> Mobile).
   void requestTokenWithManualCode({
     required String code,
     required void Function(String token) onTokenReceived,
@@ -35,32 +46,49 @@ class WebAuthService {
   }) {
     _cleanup();
     final channelName = 'manual-login-$code';
-    _activeChannel = _client.channel(channelName);
+    final channel = _client.channel(channelName);
+    _activeChannel = channel;
 
-    _activeChannel!.onBroadcast(
+    bool tokenReceived = false;
+
+    channel.onBroadcast(
       event: 'session-token',
-      callback: (payload) {
+      callback: (payload) async {
         final String? receivedToken = payload['token'];
-        if (receivedToken != null) {
+        if (receivedToken != null && !tokenReceived) {
+          tokenReceived = true;
+          // ENVIAR ACK AL MÓVIL
+          await channel.send(
+            type: 'broadcast' as dynamic,
+            event: 'session-received',
+            payload: {},
+          );
           onTokenReceived(receivedToken);
           _cleanup();
         }
       },
     );
 
-    _activeChannel!.subscribe((status, [e]) async {
+    channel.subscribe((status, [e]) async {
       if (status == 'SUBSCRIBED') {
-        await _activeChannel!.send(
-          type: 'broadcast' as dynamic, 
-          event: 'request-token', 
-          payload: {},
-        );
+        // Reintentar la solicitud cada 2 segundos hasta recibir el token o timeout
+        for (int i = 0; i < 10; i++) {
+          if (tokenReceived) break;
+          await channel.send(
+            type: 'broadcast' as dynamic, 
+            event: 'request-token', 
+            payload: {},
+          );
+          await Future.delayed(const Duration(seconds: 2));
+        }
       }
     });
 
-    _timeoutTimer = Timer(const Duration(seconds: 20), () {
-      onTimeout();
-      _cleanup();
+    _timeoutTimer = Timer(const Duration(seconds: 30), () {
+      if (!tokenReceived) {
+        onTimeout();
+        _cleanup();
+      }
     });
   }
 
@@ -73,7 +101,7 @@ class WebAuthService {
     final completer = Completer<void>();
     bool ackReceived = false;
     int retryCount = 0;
-    const maxRetries = 5;
+    const maxRetries = 10; // Más reintentos para mayor seguridad
 
     // Escuchar el ACK de la web
     channel.onBroadcast(
@@ -95,50 +123,67 @@ class WebAuthService {
           );
           
           retryCount++;
-          await Future.delayed(const Duration(seconds: 1));
+          await Future.delayed(const Duration(milliseconds: 800));
         }
 
         if (!ackReceived && !completer.isCompleted) {
-          completer.completeError(Exception('La PC no respondió. Verificá que la web esté abierta.'));
+          completer.completeError(Exception('La PC no respondió. Verifica que la web esté abierta en el QR.'));
         }
       } else if (status == 'CHANNEL_ERROR' || status == 'TIMED_OUT') {
-        if (!completer.isCompleted) completer.completeError(Exception('Error de conexión con el servidor.'));
+        if (!completer.isCompleted) completer.completeError(Exception('Fallo de conexión con el servidor de Supabase.'));
       }
     });
 
     try {
-      return await completer.future.timeout(const Duration(seconds: 10));
+      return await completer.future.timeout(const Duration(seconds: 15));
     } finally {
       _client.removeChannel(channel);
     }
   }
 
+  /// Escucha solicitudes de código manual (Mobile -> Web).
   Future<String> listenForManualCodeRequest({
     required void Function() onTokenSent,
   }) async {
     _cleanup();
-    final code = (100000 + DateTime.now().millisecond % 900000).toString();
+    // Código de 6 dígitos basado en el tiempo para que sea único pero corto
+    final code = (100000 + (DateTime.now().millisecondsSinceEpoch % 900000)).toString();
     final channelName = 'manual-login-$code';
-    _activeChannel = _client.channel(channelName);
+    final channel = _client.channel(channelName);
+    _activeChannel = channel;
     
-    _activeChannel!.onBroadcast(
+    bool tokenSent = false;
+
+    channel.onBroadcast(
       event: 'request-token',
       callback: (payload) async {
+        if (tokenSent) return;
+        
         final session = _client.auth.currentSession;
         if (session != null && session.refreshToken != null) {
-          await _activeChannel!.send(
+          // Al recibir solicitud, enviamos el token. 
+          // No limpiamos el canal aquí todavía, esperamos el ACK de la web.
+          await channel.send(
             type: 'broadcast' as dynamic, 
             event: 'session-token', 
             payload: {'token': session.refreshToken!},
           );
-          onTokenSent();
         }
+      },
+    );
+
+    // Escuchar el ACK de la web para el código manual
+    channel.onBroadcast(
+      event: 'session-received',
+      callback: (payload) {
+        tokenSent = true;
+        onTokenSent();
         _cleanup();
       },
     );
 
-    await _activeChannel!.subscribe();
-    _timeoutTimer = Timer(const Duration(minutes: 3), _cleanup);
+    await channel.subscribe();
+    _timeoutTimer = Timer(const Duration(minutes: 5), _cleanup);
 
     return code;
   }

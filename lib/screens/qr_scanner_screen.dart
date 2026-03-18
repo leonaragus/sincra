@@ -148,10 +148,42 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         children: [
           MobileScanner(
             controller: _scannerController,
+            errorBuilder: (context, error, child) {
+              return Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  margin: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.redAccent),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error de Cámara: ${error.errorCode.name}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Asegúrate de haber concedido los permisos de cámara.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
             onDetect: (capture) {
               final List<Barcode> barcodes = capture.barcodes;
+              debugPrint('QR Detectado: ${barcodes.length} códigos');
               if (barcodes.isNotEmpty) {
                 final String? code = barcodes.first.rawValue;
+                debugPrint('Contenido QR: $code');
                 if (code != null && mounted) {
                   _handleScan(code);
                 }
