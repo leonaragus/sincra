@@ -1,11 +1,10 @@
-import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
 import 'screens/verificador_recibo_screen.dart';
 import 'screens/web_login_screen.dart';
 import 'screens/splash_screen.dart';
-import 'screens/web_login_screen.dart' show loadAdminBypass, isAdminBypass;
 import 'theme/app_theme.dart';
 import 'package:url_strategy/url_strategy.dart'; 
 
@@ -46,10 +45,17 @@ void main() async {
   await loadAdminBypass();
 
   // Ahora que Supabase está inicializado, podemos inicializar otros servicios
-  await SubscriptionService.initialize();
+  if (!kIsWeb) {
+    try {
+      await SubscriptionService.initialize();
+    } catch (e) {
+      debugPrint("Error al inicializar suscripciones: $e");
+    }
+  }
 
-  FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
-  PlatformDispatcher.instance.onError = (error, stack) => true;
+  // Desactivar temporalmente el manejo de errores agresivo para ver qué pasa en consola si falla algo
+  // FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
+  // PlatformDispatcher.instance.onError = (error, stack) => true;
 
   runApp(
     ChangeNotifierProvider(

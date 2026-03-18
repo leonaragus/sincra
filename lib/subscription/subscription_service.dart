@@ -1,4 +1,5 @@
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'user_roles.dart';
@@ -146,6 +147,7 @@ class SubscriptionService {
   }
 
   static Future<bool> isSubscribed() async {
+    if (kIsWeb) return true; // En la web no hay Google Play Billing, se asume acceso total si está logueado
     final subscription = await getActiveSubscription();
     return subscription != null;
   }
