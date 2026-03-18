@@ -34,12 +34,9 @@ void main() async {
 
   // Inicializar Supabase de la manera más directa posible
   try {
-    const String supabaseUrl = 'https://sstxhajsclwfktyvawmr.supabase.co';
-    const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdHhoYWpzY2x3Zmt0eXZhd21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTk1MTAzNDQsImV4cCI6MjAzNTA4NjM0NH0.j-n_1y4g2W_Fop2cQ_pCHiS7h-EW3p_6o3o6I5iAFNA';
-    
     await Supabase.initialize(
-      url: supabaseUrl,
-      anonKey: supabaseAnonKey,
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
       debug: true,
     );
     debugPrint("Supabase listo.");
