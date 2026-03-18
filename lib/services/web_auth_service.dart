@@ -70,19 +70,28 @@ class WebAuthService {
   }) async {
     final channel = _client.channel('web-login-$channelId');
     
-    // Nos suscribimos y enviamos el token por broadcast
-    await channel.subscribe((status, [e]) async {
+    final completer = Completer<void>();
+    
+    channel.subscribe((status, [e]) async {
       if (status == 'SUBSCRIBED') {
+        // Pequeño delay para asegurar que el canal esté listo para emitir
+        await Future.delayed(const Duration(milliseconds: 500));
+        
         await channel.send(
           type: 'broadcast' as dynamic,
           event: 'session-token',
           payload: {'token': token},
         );
+        
+        completer.complete();
+      } else if (status == 'CHANNEL_ERROR' || status == 'TIMED_OUT') {
+        if (!completer.isCompleted) completer.completeError(Exception('Error de conexión con el servidor de sincronización'));
       }
     });
     
-    // Esperamos un momento para asegurar el envío antes de limpiar
-    await Future.delayed(const Duration(seconds: 2));
+    return completer.future.timeout(const Duration(seconds: 10), onTimeout: () {
+      throw Exception('Tiempo de espera agotado al sincronizar');
+    });
   }
 
   Future<void> sendSessionToWeb(String channelId) async {

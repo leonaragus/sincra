@@ -210,6 +210,9 @@ class HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (isTrialActive || isSubscribed)
+                          _buildWebLoginCard(),
+                        const SizedBox(height: 16),
                         _buildHeader(userRole, isTrialActive),
                         const SizedBox(height: 24),
                         if (userRole == UserRole.professional || (isTrialActive && userRole != UserRole.information) ) ...[
@@ -218,8 +221,6 @@ class HomeScreenState extends State<HomeScreen> {
                         ],
                         _buildModuleGrid(userRole, isTrialActive),
                         const SizedBox(height: 24),
-                        if (isTrialActive || isSubscribed)
-                          _buildWebLoginCard(),
                       ],
                     ),
                   ),

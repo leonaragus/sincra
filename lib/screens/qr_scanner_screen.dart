@@ -26,10 +26,12 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final session = Supabase.instance.client.auth.currentSession;
       
       if (user != null && session != null) {
-        // El código del QR es el channelId que la web está escuchando
+        // Usamos el refreshToken para el handshake ya que es más estable para sesiones web
+        final tokenToWeb = session.refreshToken ?? session.accessToken;
+        
         await _webAuthService.sendTokenToChannel(
           channelId: code,
-          token: session.accessToken,
+          token: tokenToWeb,
         );
         
         if (mounted) {
@@ -81,13 +83,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       appBar: AppBar(
         title: const Text('Sincronizar con Web'),
         backgroundColor: AppColors.background,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.keyboard),
-            onPressed: _showManualCodeDialog,
-            tooltip: 'Ingresar código manual',
-          ),
-        ],
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       backgroundColor: Colors.black,
       body: Stack(
@@ -116,36 +112,71 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             ),
           ),
           Positioned(
-            bottom: 40,
+            bottom: 30,
             left: 20,
             right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.accentBlue.withOpacity(0.5)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    '1. Ingresá a sincra.web.app en tu PC',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.accentBlue.withOpacity(0.5)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '2. Escaneá el código QR que aparece en pantalla',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  child: Column(
+                    children: [
+                      const Text(
+                        '1. Ingresá en tu PC a:',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'sincra.web.app',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.accentBlue, 
+                          fontSize: 22, 
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '2. Escaneá el QR o ingresá el código',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                      const SizedBox(height: 20),
+                      if (_isProcessing)
+                        const CircularProgressIndicator(color: AppColors.accentBlue)
+                      else
+                        ElevatedButton.icon(
+                          onPressed: _showManualCodeDialog,
+                          icon: const Icon(Icons.keyboard),
+                          label: const Text('INGRESAR CÓDIGO MANUAL'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  if (_isProcessing) ...[
-                    const SizedBox(height: 16),
-                    const CircularProgressIndicator(),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
