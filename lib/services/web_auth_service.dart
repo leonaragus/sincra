@@ -64,37 +64,56 @@ class WebAuthService {
     });
   }
 
-  Future<void> sendTokenToChannel({
+  /// Envía el token de sesión actual al canal de la web con reintentos y confirmación (ACK).
+  Future<void> sendTokenToChannelWithAck({
     required String channelId,
     required String token,
   }) async {
     final channel = _client.channel('web-login-$channelId');
-    
     final completer = Completer<void>();
-    
-    channel.subscribe((status, [e]) async {
+    bool ackReceived = false;
+    int retryCount = 0;
+    const maxRetries = 5;
+
+    // Escuchar el ACK de la web
+    channel.onBroadcast(
+      event: 'session-received',
+      callback: (payload) {
+        ackReceived = true;
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
+
+    await channel.subscribe((status, [e]) async {
       if (status == 'SUBSCRIBED') {
-        // Pequeño delay para asegurar que el canal esté listo para emitir
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        await channel.send(
-          type: 'broadcast' as dynamic,
-          event: 'session-token',
-          payload: {'token': token},
-        );
-        
-        completer.complete();
+        // Enviar el token periódicamente hasta recibir el ACK o agotar reintentos
+        while (!ackReceived && retryCount < maxRetries) {
+          await channel.send(
+            type: 'broadcast' as dynamic,
+            event: 'session-token',
+            payload: {'token': token},
+          );
+          
+          retryCount++;
+          await Future.delayed(const Duration(seconds: 1));
+        }
+
+        if (!ackReceived && !completer.isCompleted) {
+          completer.completeError(Exception('La PC no respondió. Verificá que la web esté abierta.'));
+        }
       } else if (status == 'CHANNEL_ERROR' || status == 'TIMED_OUT') {
-        if (!completer.isCompleted) completer.completeError(Exception('Error de conexión con el servidor de sincronización'));
+        if (!completer.isCompleted) completer.completeError(Exception('Error de conexión con el servidor.'));
       }
     });
-    
-    return completer.future.timeout(const Duration(seconds: 10), onTimeout: () {
-      throw Exception('Tiempo de espera agotado al sincronizar');
-    });
+
+    try {
+      return await completer.future.timeout(const Duration(seconds: 10));
+    } finally {
+      _client.removeChannel(channel);
+    }
   }
 
-  Future<void> sendSessionToWeb(String channelId) async {
+  void _cleanup() {
     final session = _client.auth.currentSession;
     final refreshToken = session?.refreshToken;
     if (refreshToken == null) {

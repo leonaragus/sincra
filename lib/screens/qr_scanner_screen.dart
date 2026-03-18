@@ -29,14 +29,18 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         // Usamos el refreshToken para el handshake ya que es más estable para sesiones web
         final tokenToWeb = session.refreshToken ?? session.accessToken;
         
-        await _webAuthService.sendTokenToChannel(
+        // USAR EL NUEVO MÉTODO CON HANDSHAKE (ACK)
+        await _webAuthService.sendTokenToChannelWithAck(
           channelId: code,
           token: tokenToWeb,
         );
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('¡Sincronización exitosa!')),
+            const SnackBar(
+              content: Text('¡Sincronización exitosa!'),
+              backgroundColor: Colors.green,
+            ),
           );
           Navigator.of(context).pop();
         }
@@ -44,7 +48,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al sincronizar: $e')),
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -52,29 +60,79 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     }
   }
 
-  void _showManualCodeDialog() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ingresar Código Manual'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Ej: 123456'),
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _handleScan(controller.text.trim());
-            },
-            child: const Text('Sincronizar'),
+  Future<void> _handleManualSync() async {
+    _cleanupWebAuth(); // Limpiamos cualquier escucha previa
+    
+    try {
+      setState(() => _isProcessing = true);
+      
+      final code = await _webAuthService.listenForManualCodeRequest(
+        onTokenSent: () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('¡PC vinculada con éxito!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.of(context).pop();
+          }
+        },
+      );
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Código de Vinculación'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Escribí este código en la Web:'),
+                const SizedBox(height: 20),
+                Text(
+                  code,
+                  style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8,
+                    color: AppColors.accentBlue,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Mantené esta pantalla abierta hasta que la PC se sincronice.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  _webAuthService.dispose();
+                  Navigator.pop(context);
+                },
+                child: const Text('CANCELAR'),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al generar código: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  void _cleanupWebAuth() {
+    _webAuthService.dispose();
   }
 
   @override
@@ -125,10 +183,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.accentBlue.withOpacity(0.5)),
                     boxShadow: [
-                      BoxShadow(
+                      const BoxShadow(
                         color: Colors.black26,
                         blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -152,7 +210,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        '2. Escaneá el QR o ingresá el código',
+                        '2. Escaneá el QR o generá un código',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
@@ -161,9 +219,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                         const CircularProgressIndicator(color: AppColors.accentBlue)
                       else
                         ElevatedButton.icon(
-                          onPressed: _showManualCodeDialog,
-                          icon: const Icon(Icons.keyboard),
-                          label: const Text('INGRESAR CÓDIGO MANUAL'),
+                          onPressed: _handleManualSync,
+                          icon: const Icon(Icons.vpn_key),
+                          label: const Text('GENERAR CÓDIGO PARA PC'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.accentBlue,
                             foregroundColor: Colors.white,
@@ -187,6 +245,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   void dispose() {
     _scannerController.dispose();
+    _cleanupWebAuth();
     super.dispose();
   }
 }
