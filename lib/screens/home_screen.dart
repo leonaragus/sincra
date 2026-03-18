@@ -19,6 +19,11 @@ import '../config/app_modules.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_middleware.dart';
 
+import 'mobile_auth_screen.dart';
+import 'web_login_screen.dart';
+import 'profile_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -302,6 +307,14 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ),
           ListTile(
+            leading: const Icon(Icons.person, color: AppColors.textPrimary),
+            title: const Text('Mi Perfil', style: TextStyle(color: AppColors.textPrimary)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.policy, color: AppColors.textPrimary),
             title: const Text('Política de Privacidad', style: TextStyle(color: AppColors.textPrimary)),
             onTap: () async {
@@ -333,7 +346,20 @@ class HomeScreenState extends State<HomeScreen> {
             title: const Text('Cerrar Sesión', style: TextStyle(color: AppColors.error)),
             onTap: () async {
               await Supabase.instance.client.auth.signOut();
-              if (mounted) Navigator.pop(context);
+              if (!mounted) return;
+              Navigator.pop(context); // Cerrar el drawer
+              
+              if (kIsWeb) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const WebLoginScreen()),
+                  (route) => false,
+                );
+              } else {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const MobileAuthScreen()),
+                  (route) => false,
+                );
+              }
             },
           ),
         ],
