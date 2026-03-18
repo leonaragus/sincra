@@ -113,27 +113,6 @@ class WebAuthService {
     }
   }
 
-  void _cleanup() {
-    final session = _client.auth.currentSession;
-    final refreshToken = session?.refreshToken;
-    if (refreshToken == null) {
-      throw Exception('No hay una sesión activa para enviar.');
-    }
-
-    final channel = _client.channel('web-login-$channelId');
-    
-    channel.subscribe((status, [_]) async {
-      if (status == 'SUBSCRIBED') {
-        await channel.send(
-          type: 'broadcast' as dynamic, 
-          event: 'session-token', 
-          payload: {'token': refreshToken},
-        );
-        await channel.unsubscribe();
-      }
-    });
-  }
-
   Future<String> listenForManualCodeRequest({
     required void Function() onTokenSent,
   }) async {
