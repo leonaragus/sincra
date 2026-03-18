@@ -46,9 +46,58 @@ class SubscriptionService {
     if (user != null && ['admin@gmail.com', 'test@gmail.com'].contains(user.email)) {
       return true;
     }
+    
+    // PROMOCIÓN LANZAMIENTO: Primeros 30 usuarios / 45 días
+    if (await _isPromoUser()) return true;
+
     // Si Google Play nos dice que hay una suscripción activa, se considera que está en período de prueba o pago.
     // Como Play Store maneja el trial de 20 días, solo necesitamos saber si el usuario tiene acceso.
     return await isSubscribed();
+  }
+
+  /// Verifica si el usuario actual califica para la promoción de lanzamiento:
+  /// Los primeros 30 usuarios registrados tienen 45 días de acceso total gratuito.
+  static Future<bool> _isPromoUser() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return false;
+
+    // Bypass rápido para admins
+    if (['admin@gmail.com', 'test@gmail.com'].contains(user.email)) return true;
+
+    try {
+      // 1. Obtener la fecha de creación del perfil actual
+      final profileRes = await _supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('id', user.id)
+          .maybeSingle();
+      
+      if (profileRes == null) return false;
+      
+      final createdAt = DateTime.parse(profileRes['created_at']);
+      final now = DateTime.now();
+      
+      // 2. Validar límite de 45 días
+      if (now.difference(createdAt).inDays > 45) return false;
+
+      // 3. Validar si es uno de los primeros 30 (contando creados antes o igual)
+      final countRes = await _supabase
+          .from('profiles')
+          .select('id', const FetchOptions(count: CountOption.exact))
+          .lte('created_at', profileRes['created_at']);
+      
+      final rank = countRes.count ?? 999;
+      return rank <= 30;
+    } catch (e) {
+      // Si hay error de red o de tabla, permitimos acceso temporal si la cuenta es nueva (< 45 días)
+      // para asegurar que los testers de Play Store no se queden bloqueados.
+      try {
+        final authCreatedAt = DateTime.parse(user.createdAt);
+        return DateTime.now().difference(authCreatedAt).inDays <= 45;
+      } catch (_) {
+        return false;
+      }
+    }
   }
 
   // --- Gestión de Roles de Usuario (Blindado en el Servidor) ---
@@ -59,9 +108,11 @@ class SubscriptionService {
     if (userId == null) return;
 
     try {
-      await _supabase.from('profiles').update({
+      await _supabase.from('profiles').upsert({
+        'id': userId,
         'user_role': role.name,
-      }).eq('id', userId);
+        'updated_at': DateTime.now().toIso8601String(),
+      });
     } catch (e) {
       print('Error al establecer el rol del usuario: $e');
     }
@@ -75,6 +126,11 @@ class SubscriptionService {
     // MASTER BYPASS PARA PLAY STORE / ADMIN
     final List<String> testEmails = ['admin@gmail.com', 'test@gmail.com'];
     if (testEmails.contains(user.email)) {
+      return UserRole.professional;
+    }
+    
+    // PROMOCIÓN LANZAMIENTO: Primeros 30 usuarios / 45 días
+    if (await _isPromoUser()) {
       return UserRole.professional;
     }
 
@@ -165,12 +221,35 @@ class SubscriptionService {
     if (user != null && ['admin@gmail.com', 'test@gmail.com'].contains(user.email)) {
       return true;
     }
+    
+    // PROMOCIÓN LANZAMIENTO: Primeros 30 usuarios / 45 días
+    if (await _isPromoUser()) return true;
+
     if (kIsWeb) return true; // En la web no hay Google Play Billing, se asume acceso total si está logueado
     final subscription = await getActiveSubscription();
     return subscription != null;
   }
 
   static Future<int> getTrialDaysRemaining() async {
+    final user = _supabase.auth.currentUser;
+    if (user != null && ['admin@gmail.com', 'test@gmail.com'].contains(user.email)) {
+      return 999;
+    }
+
+    // PROMOCIÓN LANZAMIENTO
+    if (await _isPromoUser()) {
+      try {
+        final profileRes = await _supabase.from('profiles').select('created_at').eq('id', user!.id).maybeSingle();
+        if (profileRes != null) {
+          final createdAt = DateTime.parse(profileRes['created_at']);
+          final daysPassed = DateTime.now().difference(createdAt).inDays;
+          final remaining = 45 - daysPassed;
+          return remaining > 0 ? remaining : 0;
+        }
+      } catch (_) {}
+      return 45;
+    }
+
     // Si queremos mostrar días restantes reales, deberíamos consultar el PurchaseDate de Google.
     // Por ahora, si está suscrito (o en trial), devolvemos un valor positivo para no bloquear.
     final subscribed = await isSubscribed();
@@ -197,6 +276,12 @@ class SubscriptionService {
 
   static Future<bool> canUseClaude() async {
     final used = await _getMonthlyClaudeUsageCount();
+    
+    // PROMOCIÓN LANZAMIENTO: 50 llamadas mensuales para los primeros 30 usuarios
+    if (await _isPromoUser()) {
+      return used < 50;
+    }
+
     final active = await getActiveSubscription();
     if (active != null) {
       final plan = active.planDetail;
@@ -224,6 +309,13 @@ class SubscriptionService {
 
   static Future<int> getClaudeCallsRemaining() async {
     final used = await _getMonthlyClaudeUsageCount();
+
+    // PROMOCIÓN LANZAMIENTO: 50 llamadas mensuales para los primeros 30 usuarios
+    if (await _isPromoUser()) {
+      final remaining = 50 - used;
+      return remaining > 0 ? remaining : 0;
+    }
+
     final active = await getActiveSubscription();
     if (active != null) {
       final plan = active.planDetail;

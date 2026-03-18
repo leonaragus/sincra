@@ -5,6 +5,8 @@ import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/animated_logo.dart';
+import '../subscription/subscription_service.dart';
+import '../subscription/user_roles.dart';
 
 
 class MobileAuthScreen extends StatefulWidget {
@@ -116,6 +118,14 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
       // Si el registro es exitoso, Supabase suele iniciar sesión automáticamente
       // o requiere confirmación de email dependiendo de la configuración del proyecto.
       if (response.user != null) {
+        // Inicializar el perfil del usuario para la promoción de lanzamiento
+        try {
+          await SubscriptionService.setUserRole(UserRole.professional);
+        } catch (_) {
+          // Ignorar errores de creación de perfil, el bypass de SubscriptionService
+          // usará la fecha de auth como fallback si no encuentra el perfil.
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('¡Cuenta creada con éxito!')),
