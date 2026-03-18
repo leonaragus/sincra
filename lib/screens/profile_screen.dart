@@ -25,11 +25,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserInfo() async {
     try {
-      // Direct access to current user
       final user = Supabase.instance.client.auth.currentUser;
       final userInfo = {'user': user};
       
-      // Cargar avatar
       String? avatar;
       if (user != null) {
         try {
@@ -41,7 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (profile != null) {
             avatar = profile['avatar_url'];
           }
-        } catch (_) {} // Ignorar si falla o tabla no existe
+        } catch (_) {}
       }
 
       setState(() {
@@ -70,7 +68,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final filePath = fileName;
 
-      // Upload to Supabase Storage
       await Supabase.instance.client.storage
           .from('avatars')
           .uploadBinary(filePath, bytes, fileOptions: const FileOptions(upsert: true));
@@ -79,7 +76,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .from('avatars')
           .getPublicUrl(filePath);
 
-      // Update Profile with ID explicit to avoid 23502 error
       await Supabase.instance.client.from('user_profiles').upsert({
         'id': user.id,
         'avatar_url': imageUrl,
@@ -143,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextField(
               controller: ctrl,
               decoration: const InputDecoration(
-                labelText: 'API Key (sk-ant-...)',
+                labelText: 'API Key (sk-ant-...)' ,
                 border: OutlineInputBorder(),
               ),
               obscureText: true,
@@ -238,6 +234,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebVerification() {
+    final user = _userInfo?['user'] as User?;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+    // Generate a simple, readable code from the user's UUID.
+    // Example UUID: c6a6231c-a3f2-4c28-8686-34a6e3ce53e8
+    // We'll take the first part, which is stable and unique.
+    final verificationCode = user.id.split('-')[0].toUpperCase();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Verificación Web',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Usa este código para iniciar sesión en la versión web de Syncra:',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+              ),
+              child: SelectableText( // Use SelectableText for easy copying
+                verificationCode,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  fontFamily: 'monospace', // Good for codes
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -343,6 +398,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   _buildUserInfo(),
+                  const SizedBox(height: 20),
+                  _buildWebVerification(), // <-- ADDED THE NEW WIDGET HERE
                   const SizedBox(height: 20),
                   _buildSupportSection(),
                   const SizedBox(height: 40),
