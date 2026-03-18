@@ -33,13 +33,19 @@ void main() async {
   }
 
   // Inicializar Supabase PRIMERO, ya que otros servicios dependen de él
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.pkce,
-    ),
-  );
+  try {
+    debugPrint("Inicializando Supabase con URL: ${SupabaseConfig.url}");
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
+    );
+    debugPrint("Supabase inicializado correctamente.");
+  } catch (e) {
+    debugPrint("ERROR CRÍTICO: No se pudo inicializar Supabase: $e");
+  }
 
   // Ahora que Supabase está inicializado, podemos inicializar otros servicios
   if (!kIsWeb) {
