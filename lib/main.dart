@@ -41,9 +41,6 @@ void main() async {
     ),
   );
 
-  // Cargar el estado del bypass de administrador
-  await loadAdminBypass();
-
   // Ahora que Supabase está inicializado, podemos inicializar otros servicios
   if (!kIsWeb) {
     try {
@@ -52,10 +49,6 @@ void main() async {
       debugPrint("Error al inicializar suscripciones: $e");
     }
   }
-
-  // Desactivar temporalmente el manejo de errores agresivo para ver qué pasa en consola si falla algo
-  // FlutterError.onError = (FlutterErrorDetails details) => FlutterError.presentError(details);
-  // PlatformDispatcher.instance.onError = (error, stack) => true;
 
   runApp(
     ChangeNotifierProvider(
@@ -98,8 +91,8 @@ class MyApp extends StatelessWidget {
 
         final user = Supabase.instance.client.auth.currentUser;
         
-        // El bypass de administrador se chequea PRIMERO.
-        if (user == null && !isAdminBypass && settings.name != '/web-login') {
+        // Si estamos en la web y el usuario no está logueado, redirigir a la pantalla de login
+        if (kIsWeb && user == null && settings.name != '/web-login') {
           return MaterialPageRoute(builder: (_) => const WebLoginScreen());
         }
         

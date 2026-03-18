@@ -6,23 +6,18 @@ import '../subscription/pricing_screen.dart';
 import '../subscription/role_selection_dialog.dart';
 import '../subscription/subscription_service.dart';
 import '../subscription/user_roles.dart';
-import '../subscription/subscription_status_screen.dart';
 import '../widgets/animated_logo.dart';
 import 'dart:async';
 import 'empresa_screen.dart';
-import 'qr_scanner_screen.dart';
 import '../services/hybrid_store.dart';
 import '../models/empresa.dart';
-import '../services/api_service.dart';
 import '../theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/web_auth_service.dart';
 import '../config/app_modules.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_middleware.dart';
-import 'web_login_screen.dart' show isAdminBypass, setAdminBypass; // Importamos el bypass de admin
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,52 +29,30 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, String>> _empresas = [];
-  final _webAuthService = WebAuthService();
   
-  // El Future que gobernará el estado de la UI
   Future<Map<String, dynamic>>? _initialDataFuture;
 
   @override
   void initState() {
     super.initState();
-    // Iniciamos la carga de todos los datos críticos
     _initialDataFuture = _loadInitialData();
     _cargarEmpresas(); 
   }
 
-  @override
-  void dispose() {
-    _webAuthService.dispose();
-    super.dispose();
-  }
-
-  /// Carga todos los datos críticos de estado del usuario desde el servidor.
-  /// Esto incluye el estado de la suscripción, la prueba y el rol.
-  /// Es la ÚNICA fuente de verdad para construir la UI.
   Future<Map<String, dynamic>> _loadInitialData() async {
-    // Si estamos en bypass de admin, devolvemos un estado de acceso total inmediatamente.
-    if (isAdminBypass) {
-      return {
-        'isSubscribed': true,
-        'isTrialActive': true,
-        'userRole': UserRole.professional,
-      };
-    }
-
-    // Se ejecutan en paralelo para máxima eficiencia
     final results = await Future.wait([
       SubscriptionService.isSubscribed(),
       SubscriptionService.isTrialActive(),
       SubscriptionService.getUserRole(),
     ]);
 
+    if (!mounted) return {};
+
     bool isSubscribed = results[0] as bool;
     bool isTrialActive = results[1] as bool;
     UserRole userRole = results[2] as UserRole;
 
-    // Si el rol nunca fue decidido, forzamos la selección
     if (userRole == UserRole.undecided) {
-      // El `useRootNavigator: false` es importante si se llama desde initState
       final selectedRole = await showDialog<UserRole>(
         context: context,
         barrierDismissible: false,
@@ -90,7 +63,6 @@ class HomeScreenState extends State<HomeScreen> {
         await SubscriptionService.setUserRole(selectedRole);
         userRole = selectedRole;
         
-        // Si elige Profesional y la prueba terminó, redirigimos a planes
         if (selectedRole == UserRole.professional && !isTrialActive && !isSubscribed) {
            if (mounted) {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const PricingScreen()));
@@ -99,7 +71,6 @@ class HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // Lógica de degradación: si la prueba terminó y no hay suscripción, se revoca el acceso.
     if (!isTrialActive && !isSubscribed && userRole == UserRole.professional) {
         await SubscriptionService.setUserRole(UserRole.information);
         userRole = UserRole.information;
@@ -196,7 +167,6 @@ class HomeScreenState extends State<HomeScreen> {
 
           final data = snapshot.data!;
           final isTrialActive = data['isTrialActive'] as bool;
-          final isSubscribed = data['isSubscribed'] as bool;
           final userRole = data['userRole'] as UserRole;
 
           return RefreshIndicator(
@@ -210,12 +180,10 @@ class HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (isTrialActive || isSubscribed)
-                          _buildWebLoginCard(),
                         const SizedBox(height: 16),
                         _buildHeader(userRole, isTrialActive),
                         const SizedBox(height: 24),
-                        if (userRole == UserRole.professional || (isTrialActive && userRole != UserRole.information) ) ...[
+                        if (userRole == UserRole.professional || (isTrialActive && userRole != UserRole.information)) ...[
                           _buildEmpresasSection(),
                           const SizedBox(height: 24),
                         ],
@@ -238,10 +206,10 @@ class HomeScreenState extends State<HomeScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return SliverAppBar(
         title: Row(
-          children: [
-            const AnimatedLogo(size: 35, showGlow: false),
-            const SizedBox(width: 10),
-            const Text(
+          children: const [
+            AnimatedLogo(size: 35, showGlow: false),
+            SizedBox(width: 10),
+            Text(
               'Syncra Arg',
               style: TextStyle(
                 fontSize: 18,
@@ -287,7 +255,7 @@ class HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.accentBlue,
             ),
             child: Row(
@@ -334,17 +302,6 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.web, color: AppColors.textPrimary),
-            title: const Text('Syncra Web', style: TextStyle(color: AppColors.textPrimary)),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => QRScannerScreen()),
-              );
-            },
-          ),
-          ListTile(
             leading: const Icon(Icons.policy, color: AppColors.textPrimary),
             title: const Text('Política de Privacidad', style: TextStyle(color: AppColors.textPrimary)),
             onTap: () async {
@@ -375,7 +332,6 @@ class HomeScreenState extends State<HomeScreen> {
             leading: const Icon(Icons.exit_to_app, color: AppColors.error),
             title: const Text('Cerrar Sesión', style: TextStyle(color: AppColors.error)),
             onTap: () async {
-              await setAdminBypass(false);
               await Supabase.instance.client.auth.signOut();
               if (mounted) Navigator.pop(context);
             },
@@ -384,8 +340,8 @@ class HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  Widget _buildHeader(UserRole userRole, bool isTrialActive) { /* ... código sin cambios ... */ return Container(); }
-  Widget _buildEmpresasSection() { /* ... código sin cambios ... */ return Container(); }
+  Widget _buildHeader(UserRole userRole, bool isTrialActive) { return Container(); }
+  Widget _buildEmpresasSection() { return Container(); }
   Widget _buildModuleGrid(UserRole userRole, bool isTrialActive) {
     final modules = appModules;
     final width = MediaQuery.of(context).size.width;
@@ -440,68 +396,6 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
-    );
-  }
-  Widget _buildWebLoginCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.accentBlue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.web, color: AppColors.accentBlue, size: 24),
-              const SizedBox(width: 12),
-              const Text(
-                'Acceso Web Premium',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Accedé a Syncra desde cualquier navegador con todas tus empresas y datos sincronizados.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => QRScannerScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              minimumSize: const Size(double.infinity, 48),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.qr_code_scanner, size: 20),
-                SizedBox(width: 8),
-                Text('Escanear QR para Web'),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 

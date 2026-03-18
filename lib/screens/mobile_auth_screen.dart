@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'web_login_screen.dart' show setAdminBypass;
 import '../widgets/animated_logo.dart';
 
 
@@ -24,18 +23,6 @@ class _MobileAuthScreenState extends State<MobileAuthScreen> {
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-
-    // Bypass para cuentas de prueba específicas (Admin y Tester de Play Store)
-    final isAdmin = email == 'admin@gmail.com' && password == 'vanesa2025';
-    final isTester = email == 'testerconsole@gmail.com' && password == 'usuariodeprueba';
-
-    if (isAdmin || isTester) {
-      await setAdminBypass(true);
-      if (mounted) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
-      }
-      return;
-    }
 
     setState(() {
       _isLoading = true;
