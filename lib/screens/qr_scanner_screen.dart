@@ -148,7 +148,20 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         children: [
           MobileScanner(
             controller: _scannerController,
-            errorBuilder: (context, error, child) {
+            errorBuilder: (context, error, _) {
+              final String errorMessage;
+              switch (error.errorCode) {
+                case MobileScannerErrorCode.permissionDenied:
+                  errorMessage = 'Permiso de cámara denegado.';
+                  break;
+                case MobileScannerErrorCode.unsupported:
+                  errorMessage = 'Escaneo no soportado en este dispositivo.';
+                  break;
+                default:
+                  errorMessage = 'Error al iniciar la cámara.';
+                  break;
+              }
+
               return Center(
                 child: Container(
                   padding: const EdgeInsets.all(24),
@@ -164,12 +177,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                       const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
                       const SizedBox(height: 16),
                       Text(
-                        'Error de Cámara: ${error.errorCode.name}',
+                        errorMessage,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Asegúrate de haber concedido los permisos de cámara.',
+                        'Asegúrate de haber concedido los permisos de cámara en los ajustes del sistema.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white70, fontSize: 12),
                       ),
