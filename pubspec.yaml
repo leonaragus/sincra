@@ -2,7 +2,7 @@ name: syncra_arg
 description: "Syncra Arg - La evolución digital de la nómina argentina. Gestión contable híbrida local/nube."
 publish_to: 'none'
 
-version: 1.0.1+10
+version: 1.0.0+2
 
 environment:
   sdk: ^3.0.0
