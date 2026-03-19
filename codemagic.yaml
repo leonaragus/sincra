@@ -56,7 +56,8 @@ workflows:
           fi
       - name: Build Android App Bundle (Release)
         script: | 
-          flutter build appbundle --release --no-pub --verbose
+          # Usamos el número de build de Codemagic para que Google Play no rechace el paquete
+          flutter build appbundle --release --build-number=$BUILD_NUMBER --no-pub --verbose
       - name: Prueba de firmado manual
         script: |
           if [ -f /Users/builder/.keystores/syncra_prod.jks ]; then
