@@ -30,6 +30,7 @@ workflows:
           sdkmanager "platforms;android-36" "build-tools;35.0.0" "ndk;27.0.12077973"
       - name: Limpieza profunda y dependencias
         script: | 
+          flutter clean
           flutter pub cache clean
           flutter pub get
       - name: Flutter doctor
@@ -56,8 +57,9 @@ workflows:
           fi
       - name: Build Android App Bundle (Release)
         script: | 
-          # Usamos los valores definidos en pubspec.yaml (2.0.0+100) para evitar conflictos
-          flutter build appbundle --release --no-pub --verbose
+          # Forzamos la versión 2.0.0+100 explícitamente para romper el bloqueo de Google Play
+          echo "Compilando Versión 2.0.0 (100)..."
+          flutter build appbundle --release --build-name=2.0.0 --build-number=100 --no-pub --verbose
       - name: Prueba de firmado manual
         script: |
           if [ -f /Users/builder/.keystores/syncra_prod.jks ]; then
