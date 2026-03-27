@@ -49,6 +49,7 @@ class HomeScreenState extends State<HomeScreen> {
       SubscriptionService.isSubscribed(),
       SubscriptionService.isTrialActive(),
       SubscriptionService.getUserRole(),
+      SubscriptionService.getTrialDaysRemaining(),
     ]);
 
     if (!mounted) return {};
@@ -56,6 +57,7 @@ class HomeScreenState extends State<HomeScreen> {
     bool isSubscribed = results[0] as bool;
     bool isTrialActive = results[1] as bool;
     UserRole userRole = results[2] as UserRole;
+    int trialDaysRemaining = results[3] as int;
 
     if (userRole == UserRole.undecided) {
       final selectedRole = await showDialog<UserRole>(
@@ -74,6 +76,7 @@ class HomeScreenState extends State<HomeScreen> {
       'isSubscribed': isSubscribed,
       'isTrialActive': isTrialActive,
       'userRole': userRole,
+      'trialDaysRemaining': trialDaysRemaining,
     };
   }
 
@@ -137,7 +140,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: _buildDrawer(),
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: FutureBuilder<Map<String, dynamic>>(
         future: _initialDataFuture,
         builder: (context, snapshot) {
@@ -174,7 +177,7 @@ class HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 16),
-                        _buildHeader(userRole, isTrialActive),
+                        _buildHeader(userRole, isTrialActive, data['trialDaysRemaining'] as int),
                         const SizedBox(height: 24),
                         if (userRole == UserRole.professional || (isTrialActive && userRole != UserRole.information)) ...[
                           _buildEmpresasSection(),
@@ -197,31 +200,36 @@ class HomeScreenState extends State<HomeScreen> {
 
   SliverAppBar _buildAppBar(BuildContext context, UserRole userRole, bool isTrialActive) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final theme = Theme.of(context);
+    
     return SliverAppBar(
         title: Row(
-          children: const [
-            AnimatedLogo(size: 35, showGlow: false),
-            SizedBox(width: 10),
+          children: [
+            const AnimatedLogo(size: 35, showGlow: false),
+            const SizedBox(width: 10),
             Text(
               'Syncra Arg',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ],
         ),
-        backgroundColor: AppColors.backgroundLight,
+        backgroundColor: theme.colorScheme.surface,
         floating: true,
         pinned: true,
         elevation: 0,
         actions: [
+          // 1. Ajustes Profesionales (Engranaje) - AL PRINCIPIO como pidió el usuario
           IconButton(
-            icon: const Icon(Icons.info_outline),
-            tooltip: 'Descubrí el poder de Syncra',
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const WhatIsSyncraScreen())),
+            icon: const Icon(Icons.tune),
+            tooltip: 'Configuración de Liquidación',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ParametrosLegalesScreen())),
           ),
+          
+          // 2. Opción Premium (solo si aplica)
           if (!isTrialActive && userRole == UserRole.information) ...[
              IconButton(
                 icon: const Icon(Icons.star, color: AppColors.accentGold),
@@ -229,14 +237,14 @@ class HomeScreenState extends State<HomeScreen> {
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PricingScreen())),
               )
           ],
+          
+          // 3. Cambio de Tema (Sol/Luna)
           IconButton(
             icon: Icon(themeProvider.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
             onPressed: () => themeProvider.toggleTheme(),
           ),
-          IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-          )
+          
+          // NOTA: Se eliminó el icono de menú duplicado y el de ayuda (WhatIsSyncra) por pedido del usuario.
         ],
     );
 }
@@ -383,7 +391,68 @@ class HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  Widget _buildHeader(UserRole userRole, bool isTrialActive) { return Container(); }
+  Widget _buildHeader(UserRole userRole, bool isTrialActive, int trialDaysRemaining) {
+    if (!isTrialActive || trialDaysRemaining <= 0) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.accentBlue.withOpacity(0.15),
+            AppColors.accentPurple.withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.accentBlue.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accentBlue.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.accentBlue.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.bolt, color: AppColors.accentBlue, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Prueba Cerrada Syncra',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  'Tenés acceso total por $trialDaysRemaining días más.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary.withOpacity(0.8),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildEmpresasSection() { return Container(); }
   Widget _buildModuleGrid(UserRole userRole, bool isTrialActive) {
     final modules = appModules;
@@ -409,18 +478,18 @@ class HomeScreenState extends State<HomeScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.backgroundLight,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.glassBorder),
+              border: Border.all(color: AppColors.glassBorder.withOpacity(0.1)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(m.icon, color: m.iconColor, size: 28),
                 const SizedBox(height: 12),
-                Text(m.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                Text(m.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                 const SizedBox(height: 6),
-                Text(m.subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(m.subtitle, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
                 const Spacer(),
                 if (!hasAccess)
                   Align(

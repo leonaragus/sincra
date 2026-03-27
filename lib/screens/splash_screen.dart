@@ -53,10 +53,21 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       return;
     }
 
-    // Si hay usuario, vamos al Onboarding o Home
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-    );
+    // Si hay usuario, verificamos si ya vio el onboarding
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+
+    if (!mounted) return;
+
+    if (hasSeenOnboarding) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
+    }
   }
 
   @override

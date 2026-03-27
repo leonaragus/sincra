@@ -31,13 +31,29 @@ class SubscriptionService {
   static final _supabase = Supabase.instance.client;
   static final _billing = PlayBillingService();
 
-  // --- Gestión de la Prueba Gratuita (Basada en Google Play) ---
+  // --- Gestión de la Prueba Gratuita (Basada en Lanzamiento) ---
+
+  static final DateTime _promoStartDate = DateTime(2026, 3, 25);
+  static const int _promoDurationDays = 30;
+
+  /// Verifica si el usuario actual califica para la promoción de lanzamiento:
+  /// 30 días de acceso total gratuito desde el 25 de Marzo de 2026.
+  static Future<bool> _isPromoUser() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return false;
+
+    // Bypass rápido para admins
+    if (['admin@gmail.com', 'test@gmail.com'].contains(user.email)) return true;
+
+    final now = DateTime.now();
+    final daysSinceStart = now.difference(_promoStartDate).inDays;
+    
+    // Si estamos dentro de los 30 días desde el 25 de Marzo, se considera promo activa
+    return daysSinceStart >= 0 && daysSinceStart < _promoDurationDays;
+  }
 
   static Future<void> startTrialIfNeeded() async {
-    if (kIsWeb) return; // No hay trial nativo en web
-    
-    // La prueba gratuita de 20 días se gestiona automáticamente a través de Google Play Billing
-    // No necesitamos implementar lógica de tiempo manual aquí si se configura en la Play Console.
+    if (kIsWeb) return;
     await _billing.initialize();
   }
 
@@ -47,58 +63,11 @@ class SubscriptionService {
       return true;
     }
     
-    // PROMOCIÓN LANZAMIENTO: Primeros 30 usuarios / 45 días
+    // PROMOCIÓN LANZAMIENTO (TEST CERRADO)
     if (await _isPromoUser()) return true;
 
-    // Si Google Play nos dice que hay una suscripción activa, se considera que está en período de prueba o pago.
-    // Como Play Store maneja el trial de 20 días, solo necesitamos saber si el usuario tiene acceso.
+    // Si Google Play nos dice que hay una suscripción activa
     return await isSubscribed();
-  }
-
-  /// Verifica si el usuario actual califica para la promoción de lanzamiento:
-  /// Los primeros 30 usuarios registrados tienen 45 días de acceso total gratuito.
-  static Future<bool> _isPromoUser() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return false;
-
-    // Bypass rápido para admins
-    if (['admin@gmail.com', 'test@gmail.com'].contains(user.email)) return true;
-
-    try {
-      // 1. Obtener la fecha de creación del perfil actual
-      final profileRes = await _supabase
-          .from('profiles')
-          .select('created_at')
-          .eq('id', user.id)
-          .maybeSingle();
-      
-      if (profileRes == null) return false;
-      
-      final createdAt = DateTime.parse(profileRes['created_at']);
-      final now = DateTime.now();
-      
-      // 2. Validar límite de 45 días
-      if (now.difference(createdAt).inDays > 45) return false;
-
-      // 3. Validar si es uno de los primeros 30 (contando creados antes o igual)
-      final countRes = await _supabase
-          .from('profiles')
-          .select('id')
-          .lte('created_at', profileRes['created_at'])
-          .count();
-      
-      final rank = countRes.count;
-      return rank <= 30;
-    } catch (e) {
-      // Si hay error de red o de tabla, permitimos acceso temporal si la cuenta es nueva (< 45 días)
-      // para asegurar que los testers de Play Store no se queden bloqueados.
-      try {
-        final authCreatedAt = DateTime.parse(user.createdAt);
-        return DateTime.now().difference(authCreatedAt).inDays <= 45;
-      } catch (_) {
-        return false;
-      }
-    }
   }
 
   // --- Gestión de Roles de Usuario (Blindado en el Servidor) ---
@@ -237,22 +206,14 @@ class SubscriptionService {
       return 999;
     }
 
-    // PROMOCIÓN LANZAMIENTO
+    // PROMOCIÓN LANZAMIENTO (TEST CERRADO)
     if (await _isPromoUser()) {
-      try {
-        final profileRes = await _supabase.from('profiles').select('created_at').eq('id', user!.id).maybeSingle();
-        if (profileRes != null) {
-          final createdAt = DateTime.parse(profileRes['created_at']);
-          final daysPassed = DateTime.now().difference(createdAt).inDays;
-          final remaining = 45 - daysPassed;
-          return remaining > 0 ? remaining : 0;
-        }
-      } catch (_) {}
-      return 45;
+      final now = DateTime.now();
+      final daysSinceStart = now.difference(_promoStartDate).inDays;
+      final remaining = _promoDurationDays - daysSinceStart;
+      return remaining > 0 ? remaining : 0;
     }
 
-    // Si queremos mostrar días restantes reales, deberíamos consultar el PurchaseDate de Google.
-    // Por ahora, si está suscrito (o en trial), devolvemos un valor positivo para no bloquear.
     final subscribed = await isSubscribed();
     return subscribed ? 20 : 0; 
   }

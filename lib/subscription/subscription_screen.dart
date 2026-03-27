@@ -73,7 +73,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const Icon(Icons.card_giftcard, color: Colors.redAccent, size: 48),
             const SizedBox(height: 12),
             const Text(
-              'Prueba Gratis de 30 Días', // El mensaje de marketing
+              'Prueba Gratis de Syncra',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.redAccent),
             ),
             const SizedBox(height: 8),
