@@ -47,7 +47,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
         setState(() => _estaProcesando = false);
         return;
       }
-      final resultadoOcr = await _ocrService.procesarImagen(imagen);
+      final resultadoOcr = await _ocrService.procesarImagen(imagen, conAuditoria: true, usarGemini: true);
       if (mounted) {
         setState(() {
           _estaProcesando = false;
@@ -262,11 +262,74 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   ]);
 
   Widget _buildAuditoriaInteligenteTab() => ListView(children: [
+    if (_reciboModel?.auditoriaIa.analisisHumano != null) _buildAnalisisHumanoCard(),
+    const SizedBox(height: 16),
     _buildAcademyCtaCard(),
     const SizedBox(height: 16),
     _buildWidgetTuSueldoEnPerspectiva(),
     _buildWidgetDescubriTusDerechos(),
   ]);
+
+  Widget _buildAnalisisHumanoCard() => Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          AppColors.accentBlue.withOpacity(0.1),
+          AppColors.accentPurple.withOpacity(0.05),
+        ],
+      ),
+      border: Border.all(color: AppColors.accentBlue.withOpacity(0.2)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.accentBlue.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.auto_awesome, color: AppColors.accentBlue, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Asesoría Amiga',
+              style: TextStyle(
+                color: AppColors.accentBlue,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _reciboModel!.auditoriaIa.analisisHumano!,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.9),
+            fontSize: 15,
+            height: 1.5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+  );
   
   // --- HELPERS Y WIDGETS GENÉRICOS ---
 

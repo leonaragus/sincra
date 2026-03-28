@@ -136,28 +136,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _configurarApiKey() async {
-    final currentKey = await ClaudeVisionService.getApiKey() ?? '';
-    final ctrl = TextEditingController(text: currentKey);
+    final currentClaudeKey = await ClaudeVisionService.getApiKey() ?? '';
+    final currentGeminiKey = await ClaudeVisionService.getGeminiApiKey() ?? '';
+    final claudeCtrl = TextEditingController(text: currentClaudeKey);
+    final geminiCtrl = TextEditingController(text: currentGeminiKey);
 
     if (!mounted) return;
 
     await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Configurar Claude API Key'),
+        title: const Text('Configurar API Keys de IA'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Ingrese su clave de API de Anthropic (Claude) para habilitar el reconocimiento avanzado de recibos.',
-              style: TextStyle(fontSize: 12),
+              'Configura los motores de IA para el escaneo de recibos.',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 15),
+            const Text('Google Gemini 2.5 (Recomendado)', style: TextStyle(fontSize: 11)),
+            const SizedBox(height: 5),
             TextField(
-              controller: ctrl,
+              controller: geminiCtrl,
               decoration: const InputDecoration(
-                labelText: 'API Key (sk-ant-...)' ,
+                labelText: 'Gemini API Key',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.auto_awesome, size: 20),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            const Text('Anthropic Claude (Respaldo)', style: TextStyle(fontSize: 11)),
+            const SizedBox(height: 5),
+            TextField(
+              controller: claudeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Claude API Key',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.psychology, size: 20),
               ),
               obscureText: true,
             ),
@@ -167,7 +183,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () async {
-              await ClaudeVisionService.setApiKey(ctrl.text.trim());
+              await ClaudeVisionService.setApiKey(claudeCtrl.text.trim());
+              await ClaudeVisionService.setGeminiApiKey(geminiCtrl.text.trim());
               if (mounted) {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -464,8 +481,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           ListTile(
             leading: const Icon(Icons.key, color: Colors.purple),
-            title: const Text('Configuración API (Claude)'),
-            subtitle: const Text('Mejorar reconocimiento OCR'),
+            title: const Text('Configuración API (Gemini/Claude)'),
+            subtitle: const Text('Configurar motores de IA v2.5'),
             onTap: _configurarApiKey,
             contentPadding: EdgeInsets.zero,
           ),

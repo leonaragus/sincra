@@ -19,8 +19,46 @@ class AuditResult {
 
 class ClaudeVisionService {
   static const String _minimalPrompt = '''
-  Tu única tarea es analizar la imagen de un recibo de sueldo argentino y extraer el texto.
-  Responde únicamente con un JSON con esta estructura compacta: {"empleado_cuil": "...", "conceptos": [["cod", "desc", "unid", 1.0, 0.0]], "neto": 1.0}
+  Actúa como un analista experto en recibos de sueldo de Argentina.
+  Tu tarea es extraer de forma precisa y estructurada toda la información de la imagen.
+  
+  Estructura JSON requerida:
+  {
+    "cabecera": {
+      "empresa_nombre": "Nombre de la empresa/razón social",
+      "empresa_cuit": "CUIT del empleador",
+      "empresa_domicilio": "Dirección fiscal si figura",
+      "empleado_nombre": "Apellido y Nombre del trabajador",
+      "empleado_cuil": "CUIL del trabajador",
+      "fecha_ingreso": "Fecha de ingreso (DD/MM/AAAA)",
+      "categoria": "Categoría laboral (ej: Administrativo A, Operativo)",
+      "periodo": "Mes y año liquidado (ej: Mayo 2024)"
+    },
+    "liquidacion": {
+      "haberes": [
+        {"codigo": "...", "descripcion": "...", "cantidad": "...", "monto": 100.0, "es_remunerativo": true}
+      ],
+      "retenciones": [
+        {"codigo": "...", "descripcion": "...", "cantidad": "...", "monto": 50.0}
+      ]
+    },
+    "totales": {
+      "bruto": 150.0,
+      "retenciones": 50.0,
+      "neto": 100.0
+    },
+    "inferencias": {
+      "convenio": "Identifica el Convenio Colectivo",
+      "confianza": "Alta/Media/Baja",
+      "resumen_amigable": "Un resumen de 2-3 líneas para el trabajador. Usa tono humano, amigable y 'bien argentino' (ej: 'Che, fijate que...', 'Tranqui que está todo OK'). Explícale lo principal como a un amigo."
+    }
+  }
+
+  REGLAS CRÍTICAS:
+  1. No inventes datos. Si no figura, deja null.
+  2. Los montos deben ser numéricos (sin el signo $).
+  3. Identifica correctamente si un haber es 'remunerativo' (está en la columna de aportes) o 'no remunerativo'.
+  4. Responde ÚNICAMENTE con el objeto JSON puro, sin texto adicional.
   ''';
 
   static Future<ReciboModel> analyzeAndAuditReceipt(Uint8List imageBytes) async {
@@ -48,24 +86,50 @@ class ClaudeVisionService {
     List<ExplicacionIa> explicaciones = [];
     int healthScore = 100;
 
+    // 1. Auditoría de Cabecera (NUEVO)
+    if (recibo.cabecera.empresaCuit == null || recibo.cabecera.empresaCuit!.isEmpty) {
+      alertas.add(const AlertaIa(titulo: "CUIT Faltante", descripcion: "No se detectó el CUIT del empleador. Esto es obligatorio en recibos legales.", severidad: 'baja'));
+    }
+    if (recibo.cabecera.empleadoCuil == null || recibo.cabecera.empleadoCuil!.isEmpty) {
+      alertas.add(const AlertaIa(titulo: "CUIL Faltante", descripcion: "No se detectó el CUIL del empleado.", severidad: 'media'));
+    }
+
+    // 2. Identificación de CCT (Mejorado con Inferencia de IA)
     final allConcepts = [...recibo.liquidacionDetallada.haberes, ...recibo.liquidacionDetallada.retenciones];
     final descripcionesFull = allConcepts.map((c) => c.descripcion.toLowerCase()).join(' ');
+    
+    // Si la IA ya sugirió un convenio, lo usamos como pista principal
+    final sugerenciaIA = recibo.inferencias.convenioSugerido.toLowerCase();
+    final infoCCT = cctService.identificarCCT(
+      "$descripcionesFull $sugerenciaIA", 
+      recibo.cabecera.categoriaProfesional ?? ''
+    );
 
-    final infoCCT = cctService.identificarCCT(descripcionesFull, recibo.cabecera.categoriaProfesional ?? '');
     final isLiquidacionFinal = descripcionesFull.contains('indemni');
     final topeVigente = cctService.obtenerTopePrevisional(recibo.cabecera.periodoAbonado ?? '');
 
+    // 3. Auditoría de Retenciones (Más precisa con montos numéricos)
     final conceptosAuditados = <String>['jubilaci', 'obra social', 'ley 19032'];
-    final retencionesClave = recibo.liquidacionDetallada.retenciones.where((r) => conceptosAuditados.any((key) => r.descripcion.toLowerCase().contains(key))).toList();
+    final retencionesClave = recibo.liquidacionDetallada.retenciones.where((r) => 
+      conceptosAuditados.any((key) => r.descripcion.toLowerCase().contains(key))
+    ).toList();
     
-    bool alcanzoTope = recibo.totales.totalBruto > topeVigente;
+    // Calculamos el Bruto Sujeto a Aportes (Remunerativo) de forma real si la IA lo detectó bien
+    final brutoRemunerativo = recibo.liquidacionDetallada.haberes
+        .where((h) => h.esRemunerativo)
+        .fold(0.0, (sum, h) => sum + h.monto);
+    
+    // Si el bruto de la IA es consistente, lo usamos; si no, el calculado
+    final baseCalculo = brutoRemunerativo > 0 ? brutoRemunerativo : recibo.totales.totalBruto;
+
+    bool alcanzoTope = baseCalculo > topeVigente;
     bool topeValidado = true;
 
     for (var retencion in retencionesClave) {
-        final auditResult = _auditarRetencion(retencion, recibo.totales.totalBruto, topeVigente, infoCCT, cctService);
+        final auditResult = _auditarRetencion(retencion, baseCalculo, topeVigente, infoCCT, cctService);
         if (auditResult.isError) {
             alertas.add(AlertaIa(titulo: "🟡 Revisar ${retencion.descripcion}", descripcion: auditResult.message, severidad: 'media'));
-            healthScore -= 25;
+            healthScore -= 15; // Reducimos penalidad por ser más precisos
             topeValidado = false;
         }
     }
@@ -147,40 +211,97 @@ class ClaudeVisionService {
   }
   
   static Future<String> _invokeClaudeHaiku(String base64Image, {String? prompt}) async {
-    // Por ahora, devolvemos un JSON vacío para que _parseRawResponseToModel use el mock.
-    return ""; 
+    // Redirigimos a AiEngineService para soporte unificado
+    try {
+      final imageBytes = base64Decode(base64Image);
+      return await AiEngineService.processImage(
+        imageBytes: imageBytes, 
+        prompt: prompt ?? _minimalPrompt,
+        primaryProvider: AiProvider.gemini, // Gemini 2.5 como primario según pedido
+      );
+    } catch (e) {
+      debugPrint("Error en _invokeClaudeHaiku (via Unified Engine): $e");
+      // Fallback a mock si todo falla (para no romper la app en prueba cerrada)
+      return ""; 
+    }
   }
 
-  static ReciboModel _parseRawResponseToModel(String rawJson, String rawText) { 
-    return ReciboModel(
+  static ReciboModel _parseRawResponseToModel(String rawJson, String rawText) {
+    try {
+      // 1. Limpieza de bloques de código Markdown si el modelo los incluyó
+      String jsonStr = rawJson.trim();
+      if (jsonStr.contains('```json')) {
+        jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+      } else if (jsonStr.contains('```')) {
+        jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
+      }
+
+      final Map<String, dynamic> data = jsonDecode(jsonStr);
+      final cab = data['cabecera'] ?? {};
+      final liq = data['liquidacion'] ?? {};
+      final tot = data['totales'] ?? {};
+      final inf = data['inferencias'] ?? {};
+
+      return ReciboModel(
         textoCrudo: rawText,
-        cabecera: const CabeceraRecibo(
-            periodoAbonado: '2024-05',
-            empleadoNombre: 'Perez, Juan',
-            empleadoCuil: '20-30123456-7',
-            categoriaProfesional: 'Administrativo A'
+        cabecera: CabeceraRecibo(
+          empleadoCuil: cab['empleado_cuil']?.toString(),
+          empleadoNombre: cab['empleado_nombre']?.toString(),
+          empresaCuit: cab['empresa_cuit']?.toString(),
+          empresaNombre: cab['empresa_nombre']?.toString(),
+          empresaDomicilio: cab['empresa_domicilio']?.toString(),
+          fechaIngreso: cab['fecha_ingreso']?.toString(),
+          categoriaProfesional: cab['categoria']?.toString(),
+          periodoAbonado: cab['periodo']?.toString(),
         ),
-        liquidacionDetallada: const LiquidacionDetallada(
-            haberes: [
-                ConceptoRecibo(descripcion: 'BASICO', monto: 756000.00),
-                ConceptoRecibo(descripcion: 'ASISTENCIA Y PUNTUALIDAD', monto: 63000.00),
-                ConceptoRecibo(descripcion: 'ANTIGUEDAD 5 ANIOS', monto: 37800.00),
-            ],
-            retenciones: [
-                ConceptoRecibo(descripcion: 'JUBILACION 11%', monto: -95013.60),
-                ConceptoRecibo(descripcion: 'LEY 19032 3%', monto: -25912.80),
-                ConceptoRecibo(descripcion: 'OBRA SOCIAL 3%', monto: -25912.80),
-                ConceptoRecibo(descripcion: 'APORTE FAECYS', monto: -4095.00),
-                ConceptoRecibo(descripcion: 'SINDICATO EMPLEADOS DE COMERCIO', monto: -17199.00),
-            ]
+        liquidacionDetallada: LiquidacionDetallada(
+          haberes: (liq['haberes'] as List? ?? []).map((h) => ConceptoRecibo(
+            codigo: h['codigo']?.toString(),
+            descripcion: h['descripcion']?.toString() ?? 'Concepto',
+            cantidad: h['cantidad']?.toString(),
+            monto: (h['monto'] as num? ?? 0.0).toDouble(),
+            esRemunerativo: h['es_remunerativo'] == true,
+          )).toList(),
+          retenciones: (liq['retenciones'] as List? ?? []).map((r) => ConceptoRecibo(
+            codigo: r['codigo']?.toString(),
+            descripcion: r['descripcion']?.toString() ?? 'Retención',
+            cantidad: r['cantidad']?.toString(),
+            monto: (r['monto'] as num? ?? 0.0).toDouble(),
+            esRemunerativo: false,
+          )).toList(),
         ),
-        totales: const TotalesRecibo(
-            totalBruto: 864000.00, 
-            totalRetenciones: 168133.20,
-            netoACobrar: 695866.80
+        totales: TotalesRecibo(
+          totalBruto: (tot['bruto'] as num? ?? 0.0).toDouble(),
+          totalRetenciones: (tot['retenciones'] as num? ?? 0.0).toDouble(),
+          netoACobrar: (tot['neto'] as num? ?? 0.0).toDouble(),
         ),
-        inferencias: const InferenciasRecibo(convenioSugerido: 'comercio', confianza: 'Baja', healthScore: 0),
-        auditoriaIa: const AuditoriaIa(analisisGeneral: '', alertas: [], explicacionesItems: [])
+        inferencias: InferenciasRecibo(
+          convenioSugerido: inf['convenio']?.toString() ?? 'Sin identificar',
+          confianza: inf['confianza']?.toString() ?? 'Baja',
+          healthScore: 0,
+        ),
+        auditoriaIa: AuditoriaIa(
+          analisisGeneral: '',
+          analisisHumano: inf['resumen_amigable']?.toString(), // <- NUEVO
+          alertas: [],
+          explicacionesItems: [],
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error al parsear el JSON de la IA: $e');
+      // Fallback a un modelo vacío si el parseo falla catastróficamente
+      return _generateEmptyModel(rawText);
+    }
+  }
+
+  static ReciboModel _generateEmptyModel(String rawText) {
+    return const ReciboModel(
+      textoCrudo: '',
+      cabecera: CabeceraRecibo(),
+      liquidacionDetallada: LiquidacionDetallada(haberes: [], retenciones: []),
+      totales: TotalesRecibo(totalBruto: 0, totalRetenciones: 0, netoACobrar: 0),
+      inferencias: InferenciasRecibo(convenioSugerido: 'Error de análisis', confianza: 'Baja', healthScore: 0),
+      auditoriaIa: AuditoriaIa(analisisGeneral: 'No se pudo leer el recibo. Intenta con una imagen más nítida.', alertas: [], explicacionesItems: []),
     );
   }
 
@@ -195,8 +316,18 @@ class ClaudeVisionService {
     return prefs.getString('claude_api_key');
   }
 
+  static Future<String?> getGeminiApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('gemini_api_key');
+  }
+
   static Future<void> setApiKey(String key) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('claude_api_key', key);
+  }
+
+  static Future<void> setGeminiApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('gemini_api_key', key);
   }
 }

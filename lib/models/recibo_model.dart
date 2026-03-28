@@ -117,11 +117,13 @@ class InferenciasRecibo {
 @immutable
 class AuditoriaIa {
   final String analisisGeneral;
+  final String? analisisHumano; // <-- NUEVO: Resumen amigable en lenguaje argento
   final List<AlertaIa> alertas;
   final List<ExplicacionIa> explicacionesItems;
 
   const AuditoriaIa({
     required this.analisisGeneral,
+    this.analisisHumano,
     required this.alertas,
     required this.explicacionesItems,
   });

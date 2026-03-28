@@ -1,6 +1,7 @@
 import 'package:image_picker/image_picker.dart';
 import 'claude_vision_service.dart';
 import '../models/recibo_model.dart';
+import 'ai_engine_service.dart';
 
 class OcrService {
   final ImagePicker _picker = ImagePicker();
@@ -13,22 +14,33 @@ class OcrService {
     return await _picker.pickImage(source: ImageSource.gallery);
   }
 
-  /// Procesa la imagen usando el servicio de Claude Vision.
+  /// Procesa la imagen usando el servicio de IA (Claude o Gemini).
   /// Acepta un booleano [conAuditoria] para determinar si se debe ejecutar el análisis completo.
-  Future<OcrResult> procesarImagen(XFile file, {bool conAuditoria = false, String? contextoConvenio}) async {
+  Future<OcrResult> procesarImagen(XFile file, {bool conAuditoria = false, String? contextoConvenio, bool usarGemini = false}) async {
     try {
       final imagen = await file.readAsBytes();
       ReciboModel reciboModel;
       String textoCrudo;
 
-      if (conAuditoria) {
-        // Llama al método que incluye el paso de auditoría y enriquecimiento.
-        reciboModel = await ClaudeVisionService.analyzeAndAuditReceipt(imagen);
+      if (usarGemini) {
+        // Si usamos Gemini, pasamos por el motor unificado de AiEngineService directamente
+        // o a través de ClaudeVisionService que ahora está unificado.
+        // Para respetar la estructura actual, usaremos ClaudeVisionService que ya parsea el modelo.
+        if (conAuditoria) {
+          reciboModel = await ClaudeVisionService.analyzeAndAuditReceipt(imagen);
+        } else {
+          reciboModel = await ClaudeVisionService.extractRawModel(imagen);
+        }
         textoCrudo = reciboModel.textoCrudo;
       } else {
-        // Llama al método de extracción de datos crudos, más rápido y simple.
-        reciboModel = await ClaudeVisionService.extractRawModel(imagen);
-        textoCrudo = reciboModel.textoCrudo;
+        // Lógica original (que ahora también usa AiEngineService pero podemos forzar el provider si fuera necesario)
+        if (conAuditoria) {
+          reciboModel = await ClaudeVisionService.analyzeAndAuditReceipt(imagen);
+          textoCrudo = reciboModel.textoCrudo;
+        } else {
+          reciboModel = await ClaudeVisionService.extractRawModel(imagen);
+          textoCrudo = reciboModel.textoCrudo;
+        }
       }
 
       return OcrResult(
