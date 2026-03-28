@@ -8,6 +8,10 @@
     <!-- Permiso para el Verificador de Recibo y Login QR -->
     <uses-permission android:name="android.permission.CAMERA" />
     
+    <!-- Permisos para seleccionar recibos desde la galería -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    
     <!-- Permiso requerido para realizar compras dentro de la aplicación con Google Play -->
     <uses-permission android:name="com.android.vending.BILLING" />
 
