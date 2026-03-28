@@ -1,4 +1,5 @@
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/material.dart';
 import 'claude_vision_service.dart';
 import '../models/recibo_model.dart';
 
@@ -8,9 +9,40 @@ class OcrService {
   // Resultado del procesamiento de OCR
   late OcrResult result;
 
-  /// Permite al usuario elegir una imagen de la cámara o galería.
-  Future<XFile?> obtenerImagen() async {
-    return await _picker.pickImage(source: ImageSource.gallery);
+  /// Permite al usuario elegir entre cámara o galería.
+  Future<XFile?> obtenerImagen(BuildContext context) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Seleccionar imagen', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Colors.amber),
+              title: const Text('Cámara'),
+              subtitle: const Text('Tomar foto del recibo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Colors.amber),
+              title: const Text('Galería'),
+              subtitle: const Text('Elegir imagen existente'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return null;
+    return await _picker.pickImage(source: source, imageQuality: 85);
   }
 
   /// Procesa la imagen usando el servicio de IA (Claude o Gemini).

@@ -66,7 +66,7 @@ class _ListaLegajosSanidadScreenState extends State<ListaLegajosSanidadScreen> {
 
   Future<void> _escanearReciboAI() async {
     final ocrService = OcrService();
-    final file = await ocrService.obtenerImagen();
+    final file = await ocrService.obtenerImagen(context);
     if (file == null) return;
 
     if (!mounted) return;

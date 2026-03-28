@@ -488,7 +488,7 @@ class _InstitucionFormScreenState extends State<InstitucionFormScreen> {
     setState(() => _estaProcesando = true);
     
     try {
-      final imagenFile = await _ocrService.obtenerImagen();
+      final imagenFile = await _ocrService.obtenerImagen(context);
       if (imagenFile == null) {
         setState(() => _estaProcesando = false);
         return;

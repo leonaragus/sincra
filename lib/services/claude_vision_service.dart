@@ -222,19 +222,13 @@ class ClaudeVisionService {
   }
   
   static Future<String> _invokeClaudeHaiku(String base64Image, {String? prompt}) async {
-    // Redirigimos a AiEngineService para soporte unificado
-    try {
-      final imageBytes = base64Decode(base64Image);
-      return await AiEngineService.processImage(
-        imageBytes: imageBytes, 
-        prompt: prompt ?? _minimalPrompt,
-        primaryProvider: AiProvider.gemini, // Gemini 2.5 como primario según pedido
-      );
-    } catch (e) {
-      debugPrint("Error en _invokeClaudeHaiku (via Unified Engine): $e");
-      // Fallback a mock si todo falla (para no romper la app en prueba cerrada)
-      return ""; 
-    }
+    // Redirigimos a AiEngineService (Gemini 2.5 como motor principal)
+    final imageBytes = base64Decode(base64Image);
+    return await AiEngineService.processImage(
+      imageBytes: imageBytes, 
+      prompt: prompt ?? _minimalPrompt,
+      primaryProvider: AiProvider.gemini,
+    );
   }
 
   static ReciboModel _parseRawResponseToModel(String rawJson, String rawText) {

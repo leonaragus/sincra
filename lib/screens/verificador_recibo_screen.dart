@@ -42,7 +42,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
   Future<void> _escanearYAnalizar() async {
     setState(() => _estaProcesando = true);
     try {
-      final imagen = await _ocrService.obtenerImagen();
+      final imagen = await _ocrService.obtenerImagen(context);
       if (imagen == null) {
         setState(() => _estaProcesando = false);
         return;
