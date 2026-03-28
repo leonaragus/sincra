@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../theme/app_colors.dart';
 import 'onboarding_screen.dart';
-import 'web_login_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'mobile_auth_screen.dart';
+import 'home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'web_login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

@@ -47,6 +47,7 @@ class CabeceraRecibo {
   final String? fechaIngreso;
   final String? categoriaProfesional;
   final String? periodoAbonado;
+  final MetadataDocente? docenteMetadata; // <-- NUEVO: Para datos específicos de educación
 
   const CabeceraRecibo({
     this.empleadoCuil,
@@ -57,6 +58,24 @@ class CabeceraRecibo {
     this.fechaIngreso,
     this.categoriaProfesional,
     this.periodoAbonado,
+    this.docenteMetadata,
+  });
+}
+
+@immutable
+class MetadataDocente {
+  final int? puntos;
+  final double? valorIndice;
+  final String? jurisdiccion;
+  final String? antiguedadAnos;
+  final bool? esRural;
+
+  const MetadataDocente({
+    this.puntos,
+    this.valorIndice,
+    this.jurisdiccion,
+    this.antiguedadAnos,
+    this.esRural,
   });
 }
 

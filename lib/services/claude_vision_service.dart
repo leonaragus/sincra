@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/recibo_model.dart';
 import 'cct_database_service.dart';
 import 'educational_concepts_service.dart';
+import 'ai_engine_service.dart'; // <- AGREGAR AQUÍ
 
 // Importamos el servicio de suscripción
 import '../subscription/subscription_service.dart';
@@ -18,7 +19,7 @@ class AuditResult {
 }
 
 class ClaudeVisionService {
-  static const String _minimalPrompt = '''
+  static const String _minimalPrompt = r'''
   Actúa como un analista experto en recibos de sueldo de Argentina.
   Tu tarea es extraer de forma precisa y estructurada toda la información de la imagen.
   
@@ -31,8 +32,15 @@ class ClaudeVisionService {
       "empleado_nombre": "Apellido y Nombre del trabajador",
       "empleado_cuil": "CUIL del trabajador",
       "fecha_ingreso": "Fecha de ingreso (DD/MM/AAAA)",
-      "categoria": "Categoría laboral (ej: Administrativo A, Operativo)",
-      "periodo": "Mes y año liquidado (ej: Mayo 2024)"
+      "categoria": "Categoría laboral (ej: Administrativo A, Operativo, Maestro de Grado)",
+      "periodo": "Mes y año liquidado (ej: Mayo 2024)",
+      "metadata_docente": {
+        "puntos": 0,
+        "valor_indice": 0.0,
+        "jurisdiccion": "PBA, CABA, etc.",
+        "antiguedad_anos": "Cantidad de años",
+        "es_rural": false
+      }
     },
     "liquidacion": {
       "haberes": [
@@ -61,7 +69,7 @@ class ClaudeVisionService {
   4. Responde ÚNICAMENTE con el objeto JSON puro, sin texto adicional.
   ''';
 
-  static Future<ReciboModel> analyzeAndAuditReceipt(Uint8List imageBytes) async {
+  static Future<ReciboModel> analyzeAndAuditReceipt(Uint8List imageBytes, {String? contexto}) async {
     // --- CONTROL DE SUSCRIPCIÓN ---
     final bool canUse = await SubscriptionService.canUseClaude();
     if (!canUse) {
@@ -74,7 +82,10 @@ class ClaudeVisionService {
     }
 
     final base64Image = base64Encode(imageBytes);
-    final rawJsonResponse = await _invokeClaudeHaiku(base64Image, prompt: _minimalPrompt);
+    final promptFinal = (contexto != null && contexto.isNotEmpty) 
+        ? "CONTEXTO DEL CONVENIO: $contexto\n\n$_minimalPrompt" 
+        : _minimalPrompt;
+    final rawJsonResponse = await _invokeClaudeHaiku(base64Image, prompt: promptFinal);
 
     // Si la llamada fue exitosa, registramos el uso.
     final reciboBase = _parseRawResponseToModel(rawJsonResponse, rawJsonResponse);
@@ -253,6 +264,7 @@ class ClaudeVisionService {
           fechaIngreso: cab['fecha_ingreso']?.toString(),
           categoriaProfesional: cab['categoria']?.toString(),
           periodoAbonado: cab['periodo']?.toString(),
+          docenteMetadata: _parseDocenteMetadata(cab['metadata_docente']), // <- NUEVO
         ),
         liquidacionDetallada: LiquidacionDetallada(
           haberes: (liq['haberes'] as List? ?? []).map((h) => ConceptoRecibo(
@@ -294,6 +306,17 @@ class ClaudeVisionService {
     }
   }
 
+  static MetadataDocente? _parseDocenteMetadata(dynamic data) {
+    if (data == null || data is! Map) return null;
+    return MetadataDocente(
+      puntos: (data['puntos'] as num?)?.toInt(),
+      valorIndice: (data['valor_indice'] as num?)?.toDouble(),
+      jurisdiccion: data['jurisdiccion']?.toString(),
+      antiguedadAnos: data['antiguedad_anos']?.toString(),
+      esRural: data['es_rural'] == true,
+    );
+  }
+
   static ReciboModel _generateEmptyModel(String rawText) {
     return const ReciboModel(
       textoCrudo: '',
@@ -305,9 +328,12 @@ class ClaudeVisionService {
     );
   }
 
-  static Future<ReciboModel> extractRawModel(Uint8List imageBytes) async {
+  static Future<ReciboModel> extractRawModel(Uint8List imageBytes, {String? contexto}) async {
     final base64Image = base64Encode(imageBytes);
-    final raw = await _invokeClaudeHaiku(base64Image);
+    final promptFinal = (contexto != null && contexto.isNotEmpty) 
+        ? "CONTEXTO DEL CONVENIO: $contexto\n\n$_minimalPrompt" 
+        : _minimalPrompt;
+    final raw = await _invokeClaudeHaiku(base64Image, prompt: promptFinal);
     return _parseRawResponseToModel(raw, raw);
   }
 

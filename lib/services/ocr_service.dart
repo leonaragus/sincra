@@ -1,7 +1,6 @@
 import 'package:image_picker/image_picker.dart';
 import 'claude_vision_service.dart';
 import '../models/recibo_model.dart';
-import 'ai_engine_service.dart';
 
 class OcrService {
   final ImagePicker _picker = ImagePicker();
@@ -27,20 +26,19 @@ class OcrService {
         // o a través de ClaudeVisionService que ahora está unificado.
         // Para respetar la estructura actual, usaremos ClaudeVisionService que ya parsea el modelo.
         if (conAuditoria) {
-          reciboModel = await ClaudeVisionService.analyzeAndAuditReceipt(imagen);
+          reciboModel = await ClaudeVisionService.analyzeAndAuditReceipt(imagen, contexto: contextoConvenio);
         } else {
-          reciboModel = await ClaudeVisionService.extractRawModel(imagen);
+          reciboModel = await ClaudeVisionService.extractRawModel(imagen, contexto: contextoConvenio);
         }
         textoCrudo = reciboModel.textoCrudo;
       } else {
         // Lógica original (que ahora también usa AiEngineService pero podemos forzar el provider si fuera necesario)
         if (conAuditoria) {
-          reciboModel = await ClaudeVisionService.analyzeAndAuditReceipt(imagen);
-          textoCrudo = reciboModel.textoCrudo;
+          reciboModel = await ClaudeVisionService.analyzeAndAuditReceipt(imagen, contexto: contextoConvenio);
         } else {
-          reciboModel = await ClaudeVisionService.extractRawModel(imagen);
-          textoCrudo = reciboModel.textoCrudo;
+          reciboModel = await ClaudeVisionService.extractRawModel(imagen, contexto: contextoConvenio);
         }
+        textoCrudo = reciboModel.textoCrudo;
       }
 
       return OcrResult(

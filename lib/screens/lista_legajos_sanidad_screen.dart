@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../services/instituciones_service.dart';
 import '../theme/app_colors.dart';
 import 'legajo_sanidad_form_screen.dart';
+import '../services/sanidad_receipt_scan_service.dart'; // <- NUEVO
+import '../services/ocr_service.dart'; // <- NUEVO
 
 class ListaLegajosSanidadScreen extends StatefulWidget {
   final String cuit;
@@ -59,7 +61,53 @@ class _ListaLegajosSanidadScreenState extends State<ListaLegajosSanidadScreen> {
 
   Future<void> _irANuevoLegajo() async {
     final r = await Navigator.push(context, MaterialPageRoute(builder: (c) => LegajoSanidadFormScreen(cuitInstitucion: widget.cuit)));
-    if (r == true && mounted) _cargarLegajos();
+    if (r == true) _cargarLegajos();
+  }
+
+  Future<void> _escanearReciboAI() async {
+    final ocrService = OcrService();
+    final file = await ocrService.obtenerImagen();
+    if (file == null) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator(color: Colors.amber)),
+    );
+
+    try {
+      final scanner = SanidadReceiptScanService();
+      final result = await scanner.runOcrFromXFile(file);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Cerrar loading
+
+      if (result.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${result.error}')));
+        return;
+      }
+
+      // Navegar al formulario con los datos pre-cargados
+      final r = await Navigator.push(
+        context, 
+        MaterialPageRoute(
+          builder: (c) => LegajoSanidadFormScreen(
+            cuitInstitucion: widget.cuit,
+            initialOcrData: result.toMapForForm(),
+          )
+        )
+      );
+
+      if (r == true && mounted) {
+        _cargarLegajos();
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error inesperado: $e')));
+      }
+    }
   }
 
   @override
@@ -79,6 +127,19 @@ class _ListaLegajosSanidadScreenState extends State<ListaLegajosSanidadScreen> {
             icon: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.pastelBlue.withOpacity(0.2), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.pastelBlue)), child: const Icon(Icons.add, color: AppColors.pastelBlue)),
             tooltip: 'Agregar legajo',
             onPressed: _irANuevoLegajo,
+          ),
+          IconButton( // <- NUEVO BOTÓN
+            icon: Container(
+              padding: const EdgeInsets.all(8), 
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.2), 
+                borderRadius: BorderRadius.circular(12), 
+                border: Border.all(color: Colors.amber)
+              ), 
+              child: const Icon(Icons.auto_awesome, color: Colors.amber)
+            ),
+            tooltip: 'Escanear Recibo AI',
+            onPressed: _escanearReciboAI,
           ),
         ],
       ),

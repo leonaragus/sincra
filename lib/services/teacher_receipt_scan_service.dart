@@ -52,6 +52,20 @@ class OcrExtractResult {
     this.error,
   });
 
+  /// Convierte el resultado a un Map compatible con LegajoDocenteFormScreen
+  Map<String, dynamic> toMapForForm() {
+    return {
+      'nombre': nombre,
+      'cuil': cuil,
+      'fechaIngreso': fechaIngreso?.toIso8601String(),
+      'sueldoBasicoOverride': sueldoBasico?.toString(),
+      'puntosCargoOverride': puntos,
+      'valorIndice': valorIndice?.toString(),
+      'cargo': jurisdiccionRaw != null ? jurisdiccionRaw : null, // Heurística simple
+      // Otros campos podrían mapearse si el AI los detecta específicamente
+    };
+  }
+
   bool get hasError => error != null && error!.isNotEmpty;
 }
 
@@ -183,8 +197,8 @@ class TeacherReceiptScanService {
     try {
       // Usamos el OcrService estándar (el del verificador)
       final ocrService = OcrService();
-      // Le pasamos contextoConvenio null por ahora, o podríamos pasar algo si fuera relevante
-      final ocrResult = await ocrService.procesarImagen(file);
+      // Le pasamos contextoConvenio para mejorar la extracción de metadatos docentes
+      final ocrResult = await ocrService.procesarImagen(file, contextoConvenio: 'Docente');
 
       if (!ocrResult.exito || ocrResult.reciboModel == null) {
         final errorMsg = ocrResult.texto.length > 200 
@@ -214,6 +228,7 @@ class TeacherReceiptScanService {
   OcrExtractResult _mapReciboModelToExtractResult(ReciboModel model, String rawText) {
     final cab = model.cabecera;
     final det = model.liquidacionDetallada;
+    final meta = cab.docenteMetadata; // <- NUEVOS METADATOS ESTRUCTURADOS
 
     // 1. Mapeo de Items (todos)
     List<Map<String, dynamic>> allItems = [];
@@ -251,31 +266,34 @@ class TeacherReceiptScanService {
       });
     }
 
-    // 2. Extracción de valores clave para el docente (Básico, Antigüedad)
-    double? basico;
+    // 2. Extracción de valores clave (Prioridad: Metadata Estructurada > Heurística)
+    double? basico = meta?.valorIndice != null && meta?.puntos != null 
+        ? (meta!.valorIndice! * meta!.puntos!) 
+        : null;
     
-    // Buscamos concepto Básico explícitamente
-    for (var h in det.haberes) {
-      final desc = h.descripcion.toLowerCase();
-      // Ajustar heurística según nombres comunes en recibos docentes
-      if (desc.contains('basico') || desc.contains('básico')) {
-        basico = h.monto;
-        break; 
+    // Si no se puede calcular por puntos/indice, buscamos el ítem "Básico"
+    if (basico == null) {
+      for (var h in det.haberes) {
+        final desc = h.descripcion.toLowerCase();
+        if (desc.contains('basico') || desc.contains('básico')) {
+          basico = h.monto;
+          break; 
+        }
       }
     }
 
     // Parseo de CUIL
     String? cuil = (cab.empleadoCuil?.isNotEmpty == true) ? cab.empleadoCuil : null;
 
-    // Parseo de Jurisdicción (si viniera en cabecera o se deduce)
-    String? jurisdiccion;
-    final empresaLower = cab.empresaNombre?.toLowerCase() ?? '';
-    if (empresaLower.contains('buenos aires') || empresaLower.contains('pba')) {
-      jurisdiccion = 'PBA';
-    } else if (empresaLower.contains('caba') || empresaLower.contains('ciudad')) {
-      jurisdiccion = 'CABA';
-    } else if (empresaLower.contains('mendoza')) {
-      jurisdiccion = 'Mendoza';
+    // Jurisdicción (Usar meta si existe)
+    String? jurisdiccion = meta?.jurisdiccion;
+    if (jurisdiccion == null || jurisdiccion.isEmpty) {
+      final empresaLower = cab.empresaNombre?.toLowerCase() ?? '';
+      if (empresaLower.contains('buenos aires') || empresaLower.contains('pba')) {
+        jurisdiccion = 'PBA';
+      } else if (empresaLower.contains('caba') || empresaLower.contains('ciudad')) {
+        jurisdiccion = 'CABA';
+      }
     }
 
     // Parseo de Fecha Ingreso
@@ -307,6 +325,9 @@ class TeacherReceiptScanService {
       items: allItems,
       fechaIngreso: fechaIngreso,
       sueldoBasico: basico,
+      antiguedadPct: null, // Podría extraerse de meta.antiguedadAnos si fuera necesario
+      puntos: meta?.puntos, // <- AHORA DESDE META
+      valorIndice: meta?.valorIndice, // <- AHORA DESDE META
       jurisdiccionRaw: jurisdiccion,
       source: OcrExtractSource.ocr,
       rawTextOcr: rawText,

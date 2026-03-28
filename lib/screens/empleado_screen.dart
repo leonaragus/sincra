@@ -15,11 +15,13 @@ import '../utils/app_help.dart';
 class EmpleadoScreen extends StatefulWidget {
   final Empresa empresa;
   final Map<String, dynamic>? empleadoExistente; // Para edición
+  final Map<String, dynamic>? initialOcrData; // <- NUEVO: Para autocompletado
 
   const EmpleadoScreen({
     super.key,
     required this.empresa,
     this.empleadoExistente,
+    this.initialOcrData,
   });
 
   @override
@@ -49,12 +51,14 @@ class _EmpleadoScreenState extends State<EmpleadoScreen> {
     
     // Cargar convenios primero
     _cargarConveniosEmpresa().then((_) {
-      // Después de cargar convenios, cargar datos del empleado si estamos editando
+      // Después de cargar convenios, cargar datos del empleado
       if (widget.empleadoExistente != null && mounted) {
-        _cargarDatosEmpleado();
+        _cargarDatosEmpleado(widget.empleadoExistente!);
+      } else if (widget.initialOcrData != null && mounted) {
+        _cargarDatosEmpleado(widget.initialOcrData!);
       }
       
-      // Agregar listener para formatear CUIL después de la inicialización completa
+      // Agregar listener para formatear CUIL
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _inicializando = false;
@@ -77,10 +81,7 @@ class _EmpleadoScreenState extends State<EmpleadoScreen> {
     });
   }
 
-  void _cargarDatosEmpleado() {
-    if (widget.empleadoExistente == null) return;
-    
-    final empleado = widget.empleadoExistente!;
+  void _cargarDatosEmpleado(Map<String, dynamic> empleado) {
     final nombreCompleto = empleado['nombre']?.toString() ?? '';
     final partesNombre = nombreCompleto.split(' ');
     

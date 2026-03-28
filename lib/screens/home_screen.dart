@@ -19,9 +19,10 @@ import '../config/app_modules.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_middleware.dart';
 
+import 'profile_screen.dart';
+import 'parametros_legales_screen.dart';
 import 'mobile_auth_screen.dart';
 import 'web_login_screen.dart';
-import 'profile_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomeScreen extends StatefulWidget {

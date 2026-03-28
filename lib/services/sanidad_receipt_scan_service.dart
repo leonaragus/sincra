@@ -57,6 +57,19 @@ class SanidadOcrExtractResult {
   });
 
   bool get hasError => error != null && error!.isNotEmpty;
+
+  /// Convierte el resultado a un Map compatible con LegajoSanidadFormScreen
+  Map<String, dynamic> toMapForForm() {
+    return {
+      'nombre': nombre,
+      'cuil': cuil,
+      'puesto': categoriaRaw, // Normalmente coincide el cargo con la categoría detectada
+      'horasNocturnas': horasNocturnas,
+      'categoria': categoriaRaw, // Se intentará matchear en el form
+      'tareaCriticaRiesgo': tareaCriticaRiesgo,
+      // Se podrían agregar más campos detectados por Gemini
+    };
+  }
 }
 
 /// Overrides para SanidadEmpleadoInput (mapeo desde pantalla de revisión OCR)

@@ -144,6 +144,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
 
     await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
         title: const Text('Configurar API Keys de IA'),
         content: Column(
           mainAxisSize: MainAxisSize.min,

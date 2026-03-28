@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/empresa.dart';
 import '../theme/app_colors.dart';
 import 'empleado_screen.dart';
+import '../services/ocr_service.dart'; // <- NUEVO
 
 class ListaEmpleadosScreen extends StatefulWidget {
   final Empresa empresa;
@@ -300,6 +301,63 @@ class _ListaEmpleadosScreenState extends State<ListaEmpleadosScreen> {
     );
   }
 
+  Future<void> _escanearReciboAI() async {
+    final ocrService = OcrService();
+    final file = await ocrService.obtenerImagen();
+    if (file == null) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator(color: Colors.amber)),
+    );
+
+    try {
+      final result = await ocrService.procesarImagen(file, contextoConvenio: 'General');
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Cerrar loading
+
+      if (!result.exito || result.reciboModel == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${result.texto}')));
+        return;
+      }
+
+      final model = result.reciboModel!;
+      final cab = model.cabecera;
+
+      // Mapeo para EmpleadoScreen
+      final initialData = {
+        'nombre': cab.empleadoNombre,
+        'cuil': cab.empleadoCuil,
+        'fechaIngreso': cab.fechaIngreso,
+        'cargo': cab.categoriaProfesional,
+        // Otros datos si se detectan
+      };
+
+      // Navegar al formulario con los datos pre-cargados
+      final r = await Navigator.push(
+        context, 
+        MaterialPageRoute(
+          builder: (c) => EmpleadoScreen(
+            empresa: widget.empresa,
+            initialOcrData: initialData,
+          )
+        )
+      );
+
+      if (r == true && mounted) {
+        _cargarEmpleados();
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error inesperado: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -352,6 +410,19 @@ class _ListaEmpleadosScreenState extends State<ListaEmpleadosScreen> {
                 _cargarEmpleados();
               }
             },
+          ),
+          IconButton( // <- NUEVO BOTÓN
+            icon: Container(
+              padding: const EdgeInsets.all(8), 
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.2), 
+                borderRadius: BorderRadius.circular(12), 
+                border: Border.all(color: Colors.amber)
+              ), 
+              child: const Icon(Icons.auto_awesome, color: Colors.amber)
+            ),
+            tooltip: 'Escanear Recibo AI',
+            onPressed: _escanearReciboAI,
           ),
         ],
       ),

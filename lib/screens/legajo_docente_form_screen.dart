@@ -19,8 +19,14 @@ import '../utils/formatters.dart';
 class LegajoDocenteFormScreen extends StatefulWidget {
   final String cuitInstitucion;
   final Map<String, dynamic>? legajoExistente;
+  final Map<String, dynamic>? initialOcrData; // <- NUEVO: Para autocompletado de escaneo
 
-  const LegajoDocenteFormScreen({super.key, required this.cuitInstitucion, this.legajoExistente});
+  const LegajoDocenteFormScreen({
+    super.key, 
+    required this.cuitInstitucion, 
+    this.legajoExistente,
+    this.initialOcrData,
+  });
 
   @override
   State<LegajoDocenteFormScreen> createState() => _LegajoDocenteFormScreenState();
@@ -99,7 +105,15 @@ class _LegajoDocenteFormScreenState extends State<LegajoDocenteFormScreen> {
   void initState() {
     super.initState();
     _cargarInstitucion();
-    if (widget.legajoExistente != null) _cargarDesdeLegajo(widget.legajoExistente!);
+    
+    // Prioridad 1: Legajo Existente (Edición)
+    if (widget.legajoExistente != null) {
+      _cargarDesdeLegajo(widget.legajoExistente!);
+    } 
+    // Prioridad 2: Datos de OCR (Nuevo con autocompletado)
+    else if (widget.initialOcrData != null) {
+      _cargarDesdeLegajo(widget.initialOcrData!);
+    }
   }
 
   Future<void> _cargarInstitucion() async {

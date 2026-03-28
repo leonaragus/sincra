@@ -12,8 +12,14 @@ import '../theme/app_colors.dart';
 class LegajoSanidadFormScreen extends StatefulWidget {
   final String cuitInstitucion;
   final Map<String, dynamic>? legajoExistente;
+  final Map<String, dynamic>? initialOcrData; // <- NUEVO
 
-  const LegajoSanidadFormScreen({super.key, required this.cuitInstitucion, this.legajoExistente});
+  const LegajoSanidadFormScreen({
+    super.key, 
+    required this.cuitInstitucion, 
+    this.legajoExistente,
+    this.initialOcrData,
+  });
 
   @override
   State<LegajoSanidadFormScreen> createState() => _LegajoSanidadFormScreenState();
@@ -39,7 +45,14 @@ class _LegajoSanidadFormScreenState extends State<LegajoSanidadFormScreen> {
   void initState() {
     super.initState();
     if (widget.legajoExistente != null) {
-      final l = widget.legajoExistente!;
+      _cargarDatos(widget.legajoExistente!);
+    } else if (widget.initialOcrData != null) {
+      _cargarDatos(widget.initialOcrData!);
+    }
+  }
+
+  void _cargarDatos(Map<String, dynamic> l) {
+    if (mounted) {
       _nombreController.text = l['nombre']?.toString() ?? '';
       _cuilController.text = l['cuil']?.toString() ?? '';
       _puestoController.text = l['puesto']?.toString() ?? ''; // Cargar puesto
