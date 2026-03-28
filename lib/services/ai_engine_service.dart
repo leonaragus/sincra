@@ -7,8 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum AiProvider { gemini, claude }
 
 class AiEngineService {
-  static const String _geminiModel = 'gemini-2.5-flash'; // Especificado por el usuario
+  static const String _geminiModel = 'gemini-2.5-flash'; 
   static const String _claudeModel = 'claude-3-haiku-20240307';
+  
+  // Clave fija proporcionada por el usuario
+  static const String _defaultGeminiKey = 'AIzaSyAJSp9bwvRFfU_Obw1l5cFtRUWBjNpCA6A';
 
   /// Ejecuta la petición a la IA con lógica de Failover (Gemini -> Claude)
   static Future<String> processImage({
@@ -124,13 +127,11 @@ class AiEngineService {
   static Future<String?> _getApiKey(String key) async {
     final prefs = await SharedPreferences.getInstance();
     final savedKey = prefs.getString(key);
-    
     if (savedKey != null && savedKey.isNotEmpty) return savedKey;
-
-    // Fallback con la clave proporcionada por el usuario (Uso interno/Prueba)
-    if (key == 'gemini_api_key') {
-      return 'AIzaSyAJSp9bwvRFfU_Obw1l5cFtRUWBjNpCA6A';
-    }
+ 
+    // Uso de la clave fija como valor por defecto
+    if (key == 'gemini_api_key') return _defaultGeminiKey;
+    
     return null;
   }
 }
