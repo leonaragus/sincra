@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum AiProvider { gemini, claude }
 
@@ -136,8 +138,36 @@ class AiEngineService {
     final savedKey = prefs.getString(key);
     if (savedKey != null && savedKey.isNotEmpty) return savedKey;
  
-    // Uso de la clave fija como valor por defecto
-    if (key == 'gemini_api_key') return _defaultGeminiKey;
+    if (key == 'gemini_api_key') {
+      // 1. Intentar desde Supabase (Preferencia del usuario)
+      try {
+        final resp = await Supabase.instance.client
+            .from('app_config')
+            .select('value')
+            .eq('key', 'gemini_api_key')
+            .maybeSingle();
+        
+        if (resp != null && resp['value'] != null && resp['value'].toString().isNotEmpty) {
+          return resp['value'].toString();
+        }
+      } catch (e) {
+        debugPrint('No se encontró la key en Supabase app_config: $e');
+      }
+
+      // 2. Intentar desde dart-define (Ideal para Codemagic / CI)
+      const dartDefineKey = String.fromEnvironment('GEMINI_API_KEY');
+      if (dartDefineKey.isNotEmpty) return dartDefineKey;
+      
+      // 3. Intentar desde flutter_dotenv (archivo .env local)
+      try {
+        if (dotenv.isInitialized) {
+          final envKey = dotenv.env['GEMINI_API_KEY'];
+          if (envKey != null && envKey.isNotEmpty) return envKey;
+        }
+      } catch (_) {}
+      
+      throw Exception('Falta GEMINI_API_KEY. Configurala en Supabase (tabla app_config)');
+    }
     
     return null;
   }

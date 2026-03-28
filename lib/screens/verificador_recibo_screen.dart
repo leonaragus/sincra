@@ -55,7 +55,7 @@ class _VerificadorReciboScreenState extends State<VerificadorReciboScreen> with 
             _reciboModel = resultadoOcr.reciboModel;
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No se pudo interpretar el recibo. Intenta con una imagen más clara.')),
+              SnackBar(content: Text('Error del escáner: ${resultadoOcr.texto}')),
             );
           }
         });
