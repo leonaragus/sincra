@@ -295,8 +295,7 @@ class ClaudeVisionService {
       );
     } catch (e) {
       debugPrint('Error al parsear el JSON de la IA: $e');
-      // Fallback a un modelo vacío si el parseo falla catastróficamente
-      return _generateEmptyModel(rawText);
+      throw Exception('Los datos de la IA están incompletos o mal formateados: $e');
     }
   }
 

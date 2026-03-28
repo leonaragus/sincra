@@ -75,7 +75,7 @@ class AiEngineService {
         'generationConfig': {
           'temperature': 0.1,
           'topP': 0.95,
-          'maxOutputTokens': 2048,
+          'maxOutputTokens': 8192,
         }
       }),
     );
@@ -103,7 +103,7 @@ class AiEngineService {
       },
       body: jsonEncode({
         'model': _claudeModel,
-        'max_tokens': 2048,
+        'max_tokens': 4096,
         'messages': [
           {
             'role': 'user',
