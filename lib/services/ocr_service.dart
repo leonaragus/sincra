@@ -42,7 +42,7 @@ class OcrService {
       ),
     );
     if (source == null) return null;
-    return await _picker.pickImage(source: source, imageQuality: 85);
+    return await _picker.pickImage(source: source, imageQuality: 60);
   }
 
   /// Procesa la imagen usando el servicio de IA (Claude o Gemini).

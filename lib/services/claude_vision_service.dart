@@ -183,7 +183,7 @@ class ClaudeVisionService {
 
     return recibo.copyWith(
       inferencias: InferenciasRecibo(convenioSugerido: infoCCT.nombre, confianza: infoCCT.confianza, healthScore: healthScore > 0 ? healthScore : 0),
-      auditoriaIa: AuditoriaIa(analisisGeneral: "$tituloScore\n\n$saludo", alertas: alertas, explicacionesItems: explicaciones),
+      auditoriaIa: AuditoriaIa(analisisGeneral: "$tituloScore\n\n$saludo", alertas: alertas, explicacionesItems: explicaciones, analisisHumano: recibo.auditoriaIa.analisisHumano),
     );
   }
 
