@@ -12,8 +12,9 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "100"
-def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "2.0.0"
+// Estas variables leen lo que Flutter manda desde el pubspec.yaml
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "101"
+def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "2.0.1"
 
 android {
     namespace "com.elevar.syncra_arg"
@@ -33,15 +34,17 @@ android {
         applicationId "com.elevar.syncra_app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 36
-        versionCode 100
-        versionName "2.0.0"
+        
+        // CAMBIO CLAVE: Ahora usa la variable dinámica en lugar del número fijo 100
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        
         multiDexEnabled true
     }
 
-    // Configuración de firma forzada para Codemagic
+    // Configuración de firma para Codemagic
     signingConfigs {
         release {
-            // CM_KEYSTORE_PATH es la variable por defecto de Codemagic para el archivo
             storeFile file(System.getenv("CM_KEYSTORE_PATH") ?: "no_hay_keystore")
             storePassword System.getenv("KEYSTORE_PASSWORD")
             keyAlias System.getenv("KEY_ALIAS")
@@ -51,9 +54,7 @@ android {
 
     buildTypes {
         release {
-            // Sin el "if", si no hay firma el build falla y te avisa por qué
             signingConfig signingConfigs.release
-            
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
