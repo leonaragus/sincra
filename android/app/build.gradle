@@ -12,10 +12,6 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-// Estas variables leen lo que Flutter manda desde el pubspec.yaml
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "101"
-def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "2.0.1"
-
 android {
     namespace "com.elevar.syncra_arg"
     compileSdkVersion 36
@@ -35,14 +31,13 @@ android {
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 36
         
-        // CAMBIO CLAVE: Ahora usa la variable dinámica en lugar del número fijo 100
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+        // FORZADO MANUAL PARA EVITAR ERRORES DE PLAY STORE
+        versionCode 110
+        versionName "2.0.6"
         
         multiDexEnabled true
     }
 
-    // Configuración de firma para Codemagic
     signingConfigs {
         release {
             storeFile file(System.getenv("CM_KEYSTORE_PATH") ?: "no_hay_keystore")
